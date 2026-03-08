@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 
-const leagueSchema = new mongooseSchema({
+const leagueSchema = new mongoose.Schema({
     name: {
         type: String,
         required: [true, "League name is required"],
         trim: true,
     },
-    createBy: {
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
@@ -19,7 +19,7 @@ const leagueSchema = new mongooseSchema({
     budget: {
         type: Number,
         required: true,
-        min: [0, "Budget must be a positive number"],
+        min: [1, "Budget must be a positive number"],
     },
     scoringTypes: {
         type: [String],
