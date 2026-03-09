@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import client from './api/citrusClient';
+import citrusClient from './api/citrusClient';
+import playerClient from './api/playerClient'
 import logo from './logo.svg';
 import './App.css';
 
@@ -9,6 +10,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [allNames, setAllNames] = useState([]); 
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedData, setSelectedData] = useState(null);
+
+  useEffect(() => {
+    playerClient.get('/players')
+      .then(res => setAllNames(res.data))
+      .catch(err => console.error("Could not fetch master player list", err));
+  }, []);
+
   const handleRegister = async (e) => {
 
     e.preventDefault();
@@ -17,7 +29,7 @@ function App() {
 
     try {
 
-      const { data } = await client.post('/auth/register', {
+      const { data } = await citrusClient.post('/auth/register', {
         name: "Test User",
         email: `test${Math.floor(Math.random() * 1000)}@test.com`,
         password: "password123"
@@ -37,10 +49,34 @@ function App() {
     }
   };
 
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+
+    setQuery(val);
+
+    if (val.length > 1) {
+      const filtered = allNames.filter(n => n.toLowerCase().includes(val.toLowerCase())).slice(0, 10);
+
+    } else {
+      // Back
+    }
+  };
+
+  const handleSelectPlayer = async (name) => {
+    setQuery(name);
+
+    try {
+      const res = await playerClient.get(`/player?name=${name}`);
+      setSelectedPlayer(res.data);
+    } catch (err) {
+      alert("Error fetching player stats from API");
+    }
+  };
+
   const handleCreateLeague = async () => {
     setLoading(true);
     try {
-      const res = await client.post('/leagues', {
+      const res = await citrusClient.post('/leagues', {
         name: "My MVP League",
         teamCount: 12,
         budget: 260,
@@ -77,6 +113,27 @@ function App() {
         
         )}
 
+      </div>
+
+      {/* Search Player */}
+      <div className="box">
+        <h3>Player Search</h3>
+          <div>
+            <input>
+              type="text"
+              placeholder="Type player name..." 
+              value={query} 
+              onChange={handleSearchChange}
+            </input>
+          </div>
+
+          {selectedPlayer && (
+            <div className="player-card">
+              <h4>{selectedPlayer.name}</h4>
+              <p>Position: {selectedPlayer.position}</p>
+              <p>Value: <strong>${selectedPlayer.value}</strong></p>
+            </div>
+          )}
       </div>
 
       {/* League Making (Hidden, unless logged in) */}

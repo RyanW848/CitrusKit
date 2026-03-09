@@ -9,6 +9,11 @@ const playerClient = axios.create({
     }
 });
 
+export const getAllPlayerNames = async () => {
+    const response = await playerClient.get('/players');
+    return response.data;
+};
+
 export const getPlayerInfo = async (playerName) => {
   const response = await axios.get(`
     make a get req to https://do-you-know-ball-api.onrender.com/player`, 
