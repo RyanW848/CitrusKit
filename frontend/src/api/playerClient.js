@@ -10,7 +10,9 @@ const playerClient = axios.create({
 });
 
 export const getPlayerInfo = async (playerName) => {
-  const response = await axios.get(`make a get req to https://do-you-know-ball-api.onrender.com/player`, {
+  const response = await axios.get(`
+    make a get req to https://do-you-know-ball-api.onrender.com/player`, 
+  {
     params: {name: playerName },
     headers: {
         'X-API-Key': PLAYER_API_KEY

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const cirtusClient = axios.create({
+const citrusClient = axios.create({
     baseURL: process.env.BACKEND,
 });
 
