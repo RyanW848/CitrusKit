@@ -48,3 +48,5 @@
 .button:disabled { background: #ccc; }
 
 .error { color: red; font-size: 0.8em; }
+
+.player-card { margin-top: 15px; padding: 10px; background: #e7f3ff; border-left: 4px solid #007bff; }

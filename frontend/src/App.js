@@ -12,7 +12,7 @@ function App() {
 
   const [allNames, setAllNames] = useState([]); 
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedData, setSelectedData] = useState(null);
 
   useEffect(() => {
@@ -119,12 +119,12 @@ function App() {
       <div className="box">
         <h3>Player Search</h3>
           <div>
-            <input>
+            <input
               type="text"
               placeholder="Type player name..." 
               value={query} 
               onChange={handleSearchChange}
-            </input>
+            />
           </div>
 
           {selectedPlayer && (

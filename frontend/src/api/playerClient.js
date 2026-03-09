@@ -26,3 +26,5 @@ export const getPlayerInfo = async (playerName) => {
   
   return response.data
 }
+
+export default playerClient;
