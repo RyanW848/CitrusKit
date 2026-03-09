@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const client = axios.create({
-    baseURL: process.env.API_URL,
+const cirtusClient = axios.create({
+    baseURL: process.env.BACKEND,
 });
 
-client.interceptors.request.use((config) => {
+citrusClient.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
 
     if (token) {
@@ -14,4 +14,4 @@ client.interceptors.request.use((config) => {
     return config;
 });
 
-export default client;
+export default citrusClient;

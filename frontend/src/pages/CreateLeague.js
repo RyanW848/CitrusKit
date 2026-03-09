@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import client from '../api/client';
+import client from '../api/citrusClient';
 
 const CreateLeague = () => {
     const [formData, setFormData ] = useState({
@@ -11,7 +11,7 @@ const CreateLeague = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         try {
             const payload = { ...formData, scoringTypes: [formData.scoringTypes] };
             const res = await client.post('/leagues', payload);

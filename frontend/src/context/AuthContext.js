@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import client from '../api/client';
+import client from '../api/citrusClient';
 
 export const AuthContext = createContext();
 

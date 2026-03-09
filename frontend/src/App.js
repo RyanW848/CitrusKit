@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import client from './api/client';
+import client from './api/citrusClient';
 import logo from './logo.svg';
 import './App.css';
 
@@ -64,13 +64,17 @@ function App() {
       <div className="box">
 
         <h3>Identity</h3>
-        
+
         {!user ? (
           <button onClick={handleRegister} disabled={loading}>
+
             {loading ? "Registering..." : "Quick Register (Test User)"}
+
           </button>
         ) : (
+
           <p>Logged in as: <strong>{user.name}</strong></p>
+        
         )}
 
       </div>
@@ -78,26 +82,38 @@ function App() {
       {/* League Making (Hidden, unless logged in) */}
       {user && (
         <div className="box">
+
           <h3>League Data</h3>
+
           {!league ? (
             <button onClick={handleCreateLeague} disabled={loading}>
+
               {loading ? "Creating..." : "Create Test League"}
+
             </button>
           ) : (
             <div>
-              <p>✅ League Created in MongoDB!</p>
+              <p>League Created in MongoDB!</p>
+
               <pre style={{ background: '#eee', padding: '10px' }}>
+
                 {JSON.stringify(league, null, 2)}
+
               </pre>
+
             </div>
           )}
+
         </div>
       )}
 
       {/* Check Token */}
       <div className="box">
+
         <h3>Token Status</h3>
+
         <p>Token in LocalStorage: {localStorage.getItem('token') ? "Present ✅" : "Missing ❌"}</p>
+      
       </div>
     </div>
   );

@@ -40,8 +40,11 @@
 .container { max-width: 600px; margin: 20px auto; font-family: sans-serif; }
 
 .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+
 .input { display: block; margin: 10px 0; width: 100%; padding: 8px; }
+
 .button { background: #007bff; color: white; border: none; padding: 10px; cursor: pointer; }
+
 .button:disabled { background: #ccc; }
 
 .error { color: red; font-size: 0.8em; }
