@@ -3,7 +3,7 @@ import axios from 'axios';
 const PLAYER_API_KEY = "admin_api_key"
 
 const playerClient = axios.create({
-    baseURL: process.env.DO_YOU_KNOW_BALL,
+    baseURL: process.env.REACT_APP_DO_YOU_KNOW_BALL,
     headers: {
         'X-API-Key': PLAYER_API_KEY
     }

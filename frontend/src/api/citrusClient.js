@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const citrusClient = axios.create({
-    baseURL: process.env.BACKEND,
+    baseURL: process.env.REACT_APP_BACKEND,
 });
 
 citrusClient.interceptors.request.use((config) => {
