@@ -40,3 +40,5 @@ const CreateLeague = () => {
         </form>
     );
 };
+
+export default CreateLeague;

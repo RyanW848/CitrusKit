@@ -1,184 +1,201 @@
-import React, { useState, useEffect } from "react";
-import citrusClient from "./api/citrusClient";
-import playerClient from "./api/playerClient";
-import "./App.css";
+// import React, { useState, useEffect } from "react";
+// import citrusClient from "./api/citrusClient";
+// import playerClient from "./api/playerClient";
+// import "./App.css";
 
-function App() {
-    const [user, setUser] = useState(null);
-    const [league, setLeague] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+// function App() {
+//     const [user, setUser] = useState(null);
+//     const [league, setLeague] = useState(null);
+//     const [loading, setLoading] = useState(false);
+//     const [error, setError] = useState("");
 
-    const [allNames, setAllNames] = useState([]);
-    const [query, setQuery] = useState("");
-    const [selectedPlayer, setSelectedPlayer] = useState(null);
-    const [selectedData, setSelectedData] = useState(null);
+//     const [allNames, setAllNames] = useState([]);
+//     const [query, setQuery] = useState("");
+//     const [selectedPlayer, setSelectedPlayer] = useState(null);
+//     const [selectedData, setSelectedData] = useState(null);
 
-    useEffect(() => {
-        playerClient
-            .get("/players")
-            .then((res) => setAllNames(res.data))
-            .catch((err) =>
-                console.error("Could not fetch master player list", err),
-            );
-    }, []);
+//     useEffect(() => {
+//         playerClient
+//             .get("/players")
+//             .then((res) => setAllNames(res.data))
+//             .catch((err) =>
+//                 console.error("Could not fetch master player list", err),
+//             );
+//     }, []);
 
-    const handleRegister = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+//     const handleRegister = async (e) => {
+//         e.preventDefault();
+//         setLoading(true);
+//         setError("");
 
-        try {
-            const { data } = await citrusClient.post("/auth/register", {
-                name: "Test User",
-                email: `test${Math.floor(Math.random() * 1000)}@test.com`,
-                password: "password123",
-            });
+//         try {
+//             const { data } = await citrusClient.post("/auth/register", {
+//                 name: "Test User",
+//                 email: `test${Math.floor(Math.random() * 1000)}@test.com`,
+//                 password: "password123",
+//             });
 
-            localStorage.setItem("token", data.token);
-            setUser(data.user);
-        } catch (err) {
-            setError(
-                "Registration failed: " +
-                    (err.response?.data?.error || err.message),
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+//             localStorage.setItem("token", data.token);
+//             setUser(data.user);
+//         } catch (err) {
+//             setError(
+//                 "Registration failed: " +
+//                     (err.response?.data?.error || err.message),
+//             );
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
 
-    const handleSearchChange = (e) => {
-      const val = e.target.value;
+//     const handleSearchChange = (e) => {
+//       const val = e.target.value;
 
-      setQuery(val);
+//       setQuery(val);
 
-      if (val.length > 1) {
-        const filtered = allNames.filter(n => n.toLowerCase().includes(val.toLowerCase())).slice(0, 10);
+//       if (val.length > 1) {
+//         const filtered = allNames.filter(n => n.toLowerCase().includes(val.toLowerCase())).slice(0, 10);
 
-      } else {
-        // Back
-      }
-    };
+//       } else {
+//         // Back
+//       }
+//     };
 
-    const handleSelectPlayer = async (name) => {
-        setQuery(name);
+//     const handleSelectPlayer = async (name) => {
+//         setQuery(name);
 
-        try {
-            const res = await playerClient.get(`/player?name=${name}`);
-            setSelectedPlayer(res.data);
-        } catch (err) {
-            alert("Error fetching player stats from API");
-        }
-    };
+//         try {
+//             const res = await playerClient.get(`/player?name=${name}`);
+//             setSelectedPlayer(res.data);
+//         } catch (err) {
+//             alert("Error fetching player stats from API");
+//         }
+//     };
 
-    const handleCreateLeague = async () => {
-        setLoading(true);
-        try {
-            const res = await citrusClient.post("/leagues", {
-                name: "My MVP League",
-                teamCount: 12,
-                budget: 260,
-                scoringTypes: ["5x5", "Roto"],
-            });
-            setLeague(res.data);
-        } catch (err) {
-            setError(
-                "League creation failed: " +
-                    (err.response?.data?.error || err.message),
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+//     const handleCreateLeague = async () => {
+//         setLoading(true);
+//         try {
+//             const res = await citrusClient.post("/leagues", {
+//                 name: "My MVP League",
+//                 teamCount: 12,
+//                 budget: 260,
+//                 scoringTypes: ["5x5", "Roto"],
+//             });
+//             setLeague(res.data);
+//         } catch (err) {
+//             setError(
+//                 "League creation failed: " +
+//                     (err.response?.data?.error || err.message),
+//             );
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
 
-    return (
-        <div className="container">
-            <h1>Draft Kit MVP Test</h1>
+//     return (
+//         <div className="container">
+//             <h1>Draft Kit MVP Test</h1>
 
-            {error && <p className="error">{error}</p>}
+//             {error && <p className="error">{error}</p>}
 
-            {/* Register User */}
-            <div className="box">
-                <h3>Identity</h3>
+//             {/* Register User */}
+//             <div className="box">
+//                 <h3>Identity</h3>
 
-                {!user ? (
-                    <button onClick={handleRegister} disabled={loading}>
-                        {loading
-                            ? "Registering..."
-                            : "Quick Register (Test User)"}
-                    </button>
-                ) : (
-                    <p>
-                        Logged in as: <strong>{user.name}</strong>
-                    </p>
-                )}
-            </div>
+//                 {!user ? (
+//                     <button onClick={handleRegister} disabled={loading}>
+//                         {loading
+//                             ? "Registering..."
+//                             : "Quick Register (Test User)"}
+//                     </button>
+//                 ) : (
+//                     <p>
+//                         Logged in as: <strong>{user.name}</strong>
+//                     </p>
+//                 )}
+//             </div>
 
-            {/* Search Player */}
-            <div className="box">
-                <h3>Player Search</h3>
-                <div>
-                    <input
-                        type="text"
-                        placeholder="Type player name..."
-                        value={query}
-                        onChange={handleSearchChange}
-                    />
-                </div>
-                <button
-                    onClick={() => handleSelectPlayer(query)}
-                    disabled={!query.trim()}
-                >
-                    Get Player Info
-                </button>
+//             {/* Search Player */}
+//             <div className="box">
+//                 <h3>Player Search</h3>
+//                 <div>
+//                     <input
+//                         type="text"
+//                         placeholder="Type player name..."
+//                         value={query}
+//                         onChange={handleSearchChange}
+//                     />
+//                 </div>
+//                 <button
+//                     onClick={() => handleSelectPlayer(query)}
+//                     disabled={!query.trim()}
+//                 >
+//                     Get Player Info
+//                 </button>
 
-                {selectedPlayer && (
-                    <div className="player-card">
-                        {Object.entries(selectedPlayer).map(([key, value]) => (
-                            <p key={key}>
-                                <strong>{key}:</strong> {value}
-                            </p>
-                        ))}
-                    </div>
-                )}
-            </div>
+//                 {selectedPlayer && (
+//                     <div className="player-card">
+//                         {Object.entries(selectedPlayer).map(([key, value]) => (
+//                             <p key={key}>
+//                                 <strong>{key}:</strong> {value}
+//                             </p>
+//                         ))}
+//                     </div>
+//                 )}
+//             </div>
 
-            {/* League Making (Hidden, unless logged in) */}
-            {user && (
-                <div className="box">
-                    <h3>League Data</h3>
+//             {/* League Making (Hidden, unless logged in) */}
+//             {user && (
+//                 <div className="box">
+//                     <h3>League Data</h3>
 
-                    {!league ? (
-                        <button onClick={handleCreateLeague} disabled={loading}>
-                            {loading ? "Creating..." : "Create Test League"}
-                        </button>
-                    ) : (
-                        <div>
-                            <p>League Created in MongoDB!</p>
+//                     {!league ? (
+//                         <button onClick={handleCreateLeague} disabled={loading}>
+//                             {loading ? "Creating..." : "Create Test League"}
+//                         </button>
+//                     ) : (
+//                         <div>
+//                             <p>League Created in MongoDB!</p>
 
-                            <pre
-                                style={{ background: "#eee", padding: "10px" }}
-                            >
-                                {JSON.stringify(league, null, 2)}
-                            </pre>
-                        </div>
-                    )}
-                </div>
-            )}
+//                             <pre
+//                                 style={{ background: "#eee", padding: "10px" }}
+//                             >
+//                                 {JSON.stringify(league, null, 2)}
+//                             </pre>
+//                         </div>
+//                     )}
+//                 </div>
+//             )}
 
-            {/* Check Token */}
-            <div className="box">
-                <h3>Token Status</h3>
+//             {/* Check Token */}
+//             <div className="box">
+//                 <h3>Token Status</h3>
 
-                <p>
-                    Token in LocalStorage:{" "}
-                    {localStorage.getItem("token")
-                        ? "Present ✅"
-                        : "Missing ❌"}
-                </p>
-            </div>
-        </div>
-    );
+//                 <p>
+//                     Token in LocalStorage:{" "}
+//                     {localStorage.getItem("token")
+//                         ? "Present ✅"
+//                         : "Missing ❌"}
+//                 </p>
+//             </div>
+//         </div>
+//     );
+// }
+
+// export default App;
+
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import SignIn from "./pages/SignIn.jsx";
+import CreateAccount from "./pages/CreateAccount.jsx";
+import Home from "./pages/Home.jsx";
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/create-account" element={<CreateAccount />} />
+        <Route path="/" element={<SignIn />} />
+        <Route path="/home" element={<Home />} />
+      </Routes>
+    </Router>
+  );
 }
-
-export default App;
