@@ -1,0 +1,23 @@
+name: Deploy via SSH
+on: [push]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy with SSH
+        uses: appleboy/ssh-action@v1.0.3 # Use a specific version of the action
+        with:
+          host: citrus-kit.com
+          username: 'root' # e.g., 'ubuntu' or 'root'
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/CitrusKit/
+            git pull
+            cd frontend
+            npm run build
+            systemctl reload nginx
+            cd ../citruskit-backend
+            pm2 restart server
