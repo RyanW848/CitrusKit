@@ -121,9 +121,9 @@ export default function CreateAccount({ onBack }) {
           >
             <TextField
               fullWidth
-              label="Username"
+              label="Name"
               variant="outlined"
-              placeholder="Username"
+              placeholder="Name"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               sx={inputSx}
