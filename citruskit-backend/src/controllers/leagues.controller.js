@@ -1,12 +1,60 @@
 const League = require("../models/League");
 
+// Fetching Leagues for the current user
+async function getMyLeagues(req, res) {
+    try {
+        const leagues = await League.find({ createdBy: req.user._id })
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        res.status(200).json(
+            leagues.map((l) => ({
+                id: l._id,
+                name: l.name,
+                teamCount: l.teamCount,
+                budget: l.budget,
+                scoringTypes: l.scoringTypes,
+                createdAt: l.createdAt,
+                updatedAt: l.updatedAt,
+            }))
+        );
+    } catch (error) {
+        console.error("LIST LEAGUES ERROR:", error);
+        res.status(500).json({
+            error: "Error fetching leagues",
+        });
+    }
+}
+
 // Create a new league
 async function createLeague(req, res) {
-    const { name, teamCount, budget, scoringTypes } = req.body;
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const teamCount = Number(req.body?.teamCount);
+    const budget = Number(req.body?.budget);
+    let scoringTypes = req.body?.scoringTypes;
+    if (!Array.isArray(scoringTypes)) {
+        scoringTypes =
+            scoringTypes != null && scoringTypes !== ""
+                ? [String(scoringTypes)]
+                : [];
+    }
 
-    if (!name || !teamCount || !budget || !scoringTypes) {
+    if (!name) {
+        return res.status(400).json({ error: "League name is required" });
+    }
+    if (!Number.isInteger(teamCount) || teamCount < 2) {
         return res.status(400).json({
-            error: "name, teamCount, budget, and scoringTypes are required"
+            error: "teamCount must be a whole number of at least 2",
+        });
+    }
+    if (!Number.isFinite(budget) || budget < 1) {
+        return res.status(400).json({
+            error: "budget must be a number of at least 1",
+        });
+    }
+    if (!scoringTypes.length) {
+        return res.status(400).json({
+            error: "scoringTypes must be a non-empty array of strings",
         });
     }
 
@@ -31,8 +79,14 @@ async function createLeague(req, res) {
         });
     } catch (error) {
         console.error("CREATE LEAGUE ERROR:", error);
+        if (error.name === "ValidationError") {
+            const msg = Object.values(error.errors)
+                .map((e) => e.message)
+                .join(" ");
+            return res.status(400).json({ error: msg || "Invalid league data" });
+        }
         res.status(500).json({
-            error: "Error creating league"
+            error: "Error creating league",
         });
     }
 }
@@ -74,6 +128,7 @@ async function getLeagueById(req, res) {
 }
 
 module.exports = {
+    getMyLeagues,
     createLeague,
     getLeagueById,
 };

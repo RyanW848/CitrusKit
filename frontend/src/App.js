@@ -11,6 +11,7 @@ import DraftPlan from "./pages/DraftPlan.jsx";
 import DraftDraft from "./pages/DraftDraft.jsx";
 import DraftView from "./pages/DraftView.jsx";
 import DraftPlayers from "./pages/DraftPlayers.jsx";
+import CreateLeague from "./pages/CreateLeague.jsx";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/edit-account" element={<EditAccount />} />
           <Route path="/home" element={<Home />} />
           <Route path="/leagues" element={<Leagues />} />
+          <Route path="/create-league" element={<CreateLeague />} />
           <Route path="/draft/:id/rules" element={<DraftRules />} />
           <Route path="/draft/:id/teams" element={<DraftTeams />} />
           <Route path="/draft/:id/plan" element={<DraftPlan />} />

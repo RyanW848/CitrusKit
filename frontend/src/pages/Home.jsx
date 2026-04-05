@@ -1,24 +1,44 @@
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Box, Typography, Menu, MenuItem, ListItemIcon, Card } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PageLayout from "../components/PageLayout";
-import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
-
-const MOCK_LEAGUES = [
-  { id: "1", name: "Super Cool Baseball Draft", lastEdited: "January 1, 1970" },
-  { id: "2", name: "Other Baseball Draft", lastEdited: "December 31, 1969" },
-];
+import SectionLinkHeader from "../components/SectionLinkHeader";
+import SearchBar from "../components/SearchBar";
+import LeagueRowList from "../components/LeagueRowList";
+import ActivityFeed from "../components/ActivityFeed";
+import { useMyLeagues } from "../hooks/useMyLeagues";
+import {
+  filterLeaguesByName,
+  leagueToRowShape,
+  leaguesToActivityFeedItems,
+} from "../utils/leagueDisplay";
 
 export default function Home() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [settingsAnchor, setSettingsAnchor] = useState(null);
+  const [leagueSearch, setLeagueSearch] = useState("");
+  const { leagues, loading, error } = useMyLeagues();
+
+  const rowLeagues = useMemo(
+    () => leagues.map(leagueToRowShape),
+    [leagues]
+  );
+
+  const filteredRows = useMemo(
+    () => filterLeaguesByName(rowLeagues, leagueSearch),
+    [rowLeagues, leagueSearch]
+  );
+
+  const activityFeedItems = useMemo(
+    () => leaguesToActivityFeedItems(leagues, { limit: 5 }),
+    [leagues]
+  );
 
   return (
     <PageLayout
@@ -56,35 +76,43 @@ export default function Home() {
         </Menu>
       }
     >
-      {/* Saved Leagues */}
       <Box sx={{ mb: 4 }}>
-        <Box
-          sx={{ display: "flex", alignItems: "center", mb: 1.5, cursor: "pointer" }}
+        <SectionLinkHeader
+          title="Saved Leagues"
           onClick={() => navigate("/leagues")}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Saved Leagues
+        />
+        <SearchBar
+          value={leagueSearch}
+          onChange={(e) => setLeagueSearch(e.target.value)}
+          onClear={() => setLeagueSearch("")}
+          placeholder="Search saved leagues"
+          disabled={loading}
+        />
+        {error && (
+          <Typography variant="body2" sx={{ color: "#a94442", mb: 1 }}>
+            {error}
           </Typography>
-          <ChevronRightIcon sx={{ color: "#555" }} />
-        </Box>
-
-        {MOCK_LEAGUES.map((league) => (
-          <LeagueRow
-            key={league.id}
-            league={league}
-            onClick={() => navigate(`/draft/${league.id}/rules`)}
-          />
-        ))}
+        )}
+        <LeagueRowList
+          leagues={filteredRows}
+          onLeagueClick={(id) => navigate(`/draft/${id}/rules`)}
+          loading={loading}
+          emptyMessage={
+            leagueSearch.trim() ? "No leagues match your search." : "No leagues yet."
+          }
+        />
       </Box>
 
-      {/* Saved Players */}
+      <Box sx={{ mb: 4 }}>
+        <ActivityFeed
+          title="Recent activity"
+          items={loading || error ? [] : activityFeedItems}
+          emptyMessage="Save a league to see it show up here."
+        />
+      </Box>
+
       <Box>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Saved Players
-          </Typography>
-          <ChevronRightIcon sx={{ color: "#555" }} />
-        </Box>
+        <SectionLinkHeader title="Saved Players" showChevron />
         <Box sx={{ display: "flex", gap: 2 }}>
           <Card
             sx={{

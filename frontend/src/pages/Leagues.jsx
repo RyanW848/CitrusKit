@@ -1,17 +1,28 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../components/PageLayout";
-import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
-
-const MOCK_LEAGUES = [
-  { id: "1", name: "Super Cool Baseball Draft", lastEdited: "January 1, 1970" },
-  { id: "2", name: "Other Baseball Draft", lastEdited: "December 31, 1969" },
-];
+import SearchBar from "../components/SearchBar";
+import LeagueRowList from "../components/LeagueRowList";
+import { useMyLeagues } from "../hooks/useMyLeagues";
+import { filterLeaguesByName, leagueToRowShape } from "../utils/leagueDisplay";
 
 export default function Leagues() {
   const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const { leagues, loading, error } = useMyLeagues();
+
+  const rowLeagues = useMemo(
+    () => leagues.map(leagueToRowShape),
+    [leagues]
+  );
+
+  const filtered = useMemo(
+    () => filterLeaguesByName(rowLeagues, query),
+    [rowLeagues, query]
+  );
 
   return (
     <PageLayout
@@ -20,13 +31,26 @@ export default function Leagues() {
       showBell
     >
       <Box sx={{ position: "relative" }}>
-        {MOCK_LEAGUES.map((league) => (
-          <LeagueRow
-            key={league.id}
-            league={league}
-            onClick={() => navigate(`/draft/${league.id}/rules`)}
-          />
-        ))}
+        <SearchBar
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
+          placeholder="Search leagues"
+          disabled={loading}
+        />
+        {error && (
+          <Typography variant="body2" sx={{ color: "#a94442", mb: 1 }}>
+            {error}
+          </Typography>
+        )}
+        <LeagueRowList
+          leagues={filtered}
+          onLeagueClick={(id) => navigate(`/draft/${id}/rules`)}
+          loading={loading}
+          emptyMessage={
+            query.trim() ? "No leagues match your search." : "No leagues yet."
+          }
+        />
 
         <CitrusFab
           icon={<AddIcon />}
