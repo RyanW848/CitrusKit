@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,7 +20,11 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const { login } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (user) navigate("/home");
+  }, [user]);
 
   const onCreateAccount = () => {
     navigate("/create-account");
@@ -148,10 +152,10 @@ export default function SignIn() {
               }}
             />
 
-            <Button 
-                fullWidth 
-                variant="contained" 
-                startIcon={<AccountCircleOutlinedIcon />} 
+            <Button
+                fullWidth
+                variant="contained"
+                startIcon={<AccountCircleOutlinedIcon />}
                 sx={btnSx}
                 onClick={async () => {
                 setError("");
@@ -166,6 +170,12 @@ export default function SignIn() {
             >
               Sign In
             </Button>
+
+            {error && (
+              <Typography sx={{ color: "#c0392b", fontSize: "0.85rem", mt: 1, textAlign: "center" }}>
+                {error}
+              </Typography>
+            )}
           </Box>
 
           {/* Right — New to Citrus Kit */}

@@ -1,4 +1,6 @@
-import React from 'react';
+import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from "../context/AuthContext";
 import {
   Box,
   Typography,
@@ -6,15 +8,23 @@ import {
   Avatar,
   Card,
   Fab,
-  Container
+  Container,
+  Menu,
+  MenuItem,
+  ListItemIcon,
 } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 
 const Home = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [settingsAnchor, setSettingsAnchor] = useState(null);
   const leagues = [
     { id: 1, name: "Super Cool Baseball Draft", date: "January 1, 1970", initial: "S" },
     { id: 2, name: "Other Baseball Draft", date: "December 31, 1969", initial: "A" },
@@ -44,13 +54,32 @@ const Home = () => {
           <AccountCircleOutlinedIcon sx={{ color: "#1a1a1a", fontSize: 32 }} />
           <Box>
             <IconButton size="small" sx={{ mr: 1 }}><NotificationsNoneOutlinedIcon /></IconButton>
-            <IconButton size="small"><SettingsOutlinedIcon /></IconButton>
+            <IconButton size="small" onClick={(e) => setSettingsAnchor(e.currentTarget)}>
+              <SettingsOutlinedIcon />
+            </IconButton>
           </Box>
         </Box>
 
+        <Menu
+          anchorEl={settingsAnchor}
+          open={Boolean(settingsAnchor)}
+          onClose={() => setSettingsAnchor(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItem onClick={() => { setSettingsAnchor(null); navigate("/edit-user"); }}>
+            <ListItemIcon><EditOutlinedIcon fontSize="small" /></ListItemIcon>
+            Edit User
+          </MenuItem>
+          <MenuItem onClick={() => { setSettingsAnchor(null); logout(); navigate("/"); }}>
+            <ListItemIcon><LogoutOutlinedIcon fontSize="small" /></ListItemIcon>
+            Logout
+          </MenuItem>
+        </Menu>
+
         {/* 2. HEADER (Fixed) */}
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Home</Typography>
-        <Typography variant="body2" sx={{ color: "#666", mb: 3 }}>Welcome Back, USER!</Typography>
+        <Typography variant="body2" sx={{ color: "#666", mb: 3 }}>Welcome Back, {user?.name}!</Typography>
 
         {/* 3. SCROLLABLE AREA (The middle that fits) */}
         <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>

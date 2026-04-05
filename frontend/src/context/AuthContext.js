@@ -6,6 +6,17 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    client.get('/auth/me')
+      .then(({ data }) => setUser(data.user))
+      .catch(() => {
+        localStorage.removeItem('token');
+        setUser(null);
+      });
+  }, []);
+
   const login = async (email, password) => {
     try {
       const { data } = await client.post('/auth/login', { email, password });
