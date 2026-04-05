@@ -184,18 +184,21 @@
 // export default App;
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import SignIn from "./pages/SignIn.jsx";
 import CreateAccount from "./pages/CreateAccount.jsx";
 import Home from "./pages/Home.jsx";
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/create-account" element={<CreateAccount />} />
-        <Route path="/" element={<SignIn />} />
-        <Route path="/home" element={<Home />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/create-account" element={<CreateAccount />} />
+          <Route path="/" element={<SignIn />} />
+          <Route path="/home" element={<Home />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }

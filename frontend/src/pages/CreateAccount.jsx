@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import {
   Box,
   Typography,
@@ -6,6 +7,7 @@ import {
   Button,
   IconButton,
   InputAdornment,
+  Alert,
 } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -14,11 +16,13 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ErrorIcon from "@mui/icons-material/Error";
 
 export default function CreateAccount({ onBack }) {
+  const { register } = useContext(AuthContext);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordAgain, setPasswordAgain] = useState("");
   const [touched, setTouched] = useState(false);
+  const [error, setError] = useState("");
 
   const passwordMismatch = touched && passwordAgain !== "" && password !== passwordAgain;
 
@@ -179,6 +183,12 @@ export default function CreateAccount({ onBack }) {
               }}
             />
 
+            {error && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: "8px" }}>
+                {error}
+              </Alert>
+            )}
+
             <Button
               fullWidth
               variant="contained"
@@ -195,6 +205,15 @@ export default function CreateAccount({ onBack }) {
                 mt: 1,
                 "&:hover": { backgroundColor: "#eeb89e", boxShadow: "none" },
               }}
+              onClick={async () => {
+                setError("");
+                try {
+                  await register(username, email, password);
+                } catch (err) {
+                  setError(err.message);
+                }
+              }}
+              disabled={!username || !email || !password || passwordMismatch}
             >
               Create Account
             </Button>

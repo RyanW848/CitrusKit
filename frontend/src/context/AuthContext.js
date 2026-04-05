@@ -7,9 +7,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   const login = async (email, password) => {
-    const { data } = await client.post('/auth/login', { email, password });
-    localStorage.setItem('token', data.token);
-    setUser(data.user);
+    try {
+      const { data } = await client.post('/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Login failed');
+    }
+  };
+
+  const register = async (name, email, password) => {
+    try {
+      const { data } = await client.post('/auth/register', { name, email, password });
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Registration failed');
+    }
   };
 
   const logout = () => {
@@ -18,7 +32,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
