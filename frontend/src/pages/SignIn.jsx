@@ -15,7 +15,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DesktopAccessDisabledOutlinedIcon from "@mui/icons-material/DesktopAccessDisabledOutlined";
 
 export default function SignIn() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -86,7 +86,7 @@ export default function SignIn() {
           Sign In
         </Typography>
         <Typography sx={{ fontSize: "0.88rem", color: "#666", mb: 4 }}>
-          Login to Citrus Kit using your username and password
+          Login to Citrus Kit using your email and password
         </Typography>
 
         {/* Two-panel card */}
@@ -108,16 +108,16 @@ export default function SignIn() {
 
             <TextField
               fullWidth
-              label="Username"
+              label="Email"
               variant="outlined"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               sx={inputSx}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setUsername("")} edge="end">
+                    <IconButton size="small" onClick={() => setEmail("")} edge="end">
                       <CancelOutlinedIcon sx={{ fontSize: 22, color: "#6d5a57" }} />
                     </IconButton>
                   </InputAdornment>
