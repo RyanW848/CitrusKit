@@ -1,12 +1,3 @@
-export const MOCK_OWNERS = [
-  { id: "a", letter: "A", name: "Alice" },
-  { id: "b", letter: "B", name: "Bob" },
-  { id: "c", letter: "C", name: "Carol" },
-  { id: "d", letter: "D", name: "David" },
-  { id: "e", letter: "E", name: "Eve" },
-  { id: "f", letter: "F", name: "Frank" },
-];
-
 const BASE_ROSTER = [
   { posAbbr: "C",  posName: "Catcher",         playerName: "Baseball Guy 1", price: 15, stat: "S1" },
   { posAbbr: "C",  posName: "Catcher",         playerName: "Baseball Guy 2", price: 15, stat: "S1" },
