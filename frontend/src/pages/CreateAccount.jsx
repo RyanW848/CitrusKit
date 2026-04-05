@@ -6,17 +6,17 @@ import {
   Typography,
   TextField,
   Button,
-  IconButton,
   InputAdornment,
   Alert,
 } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ErrorIcon from "@mui/icons-material/Error";
+import ClearAdornment from "../components/ClearAdornment";
+import { inputSx, errorInputSx, btnSx } from "../styles/formStyles";
 
-export default function CreateAccount({ onBack }) {
+export default function CreateAccount() {
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -27,58 +27,6 @@ export default function CreateAccount({ onBack }) {
   const [error, setError] = useState("");
 
   const passwordMismatch = touched && passwordAgain !== "" && password !== passwordAgain;
-
-  // Consistent with the Sign In styling
-  const inputSx = {
-    mb: 3,
-    "& .MuiOutlinedInput-root": {
-      backgroundColor: "transparent",
-      borderRadius: "8px",
-      "& fieldset": { 
-        borderColor: "#A08985", 
-        borderWidth: "1px" 
-      },
-      "&:hover fieldset": { borderColor: "#8c7672" },
-      "&.Mui-focused fieldset": { borderColor: "#8c7672" },
-    },
-    "& .MuiInputLabel-root": {
-      color: "#6d5a57",
-      backgroundColor: "#fef0e8", // Matches the card background
-      padding: "0 4px",
-      "&.Mui-focused": { color: "#8c7672" },
-    },
-    "& .MuiOutlinedInput-input": {
-      padding: "16px", // Keeps the tall look from the image
-    }
-  };
-
-  const errorInputSx = {
-    ...inputSx,
-    "& .MuiOutlinedInput-root": {
-      ...inputSx["& .MuiOutlinedInput-root"],
-      "& fieldset": { borderColor: "#c0392b" },
-      "&:hover fieldset": { borderColor: "#c0392b" },
-      "&.Mui-focused fieldset": { borderColor: "#c0392b" },
-    },
-    "& .MuiInputLabel-root": {
-      ...inputSx["& .MuiInputLabel-root"],
-      color: "#c0392b",
-      "&.Mui-focused": { color: "#c0392b" },
-    },
-    "& .MuiFormHelperText-root": {
-      color: "#c0392b",
-      fontWeight: 500,
-    },
-  };
-
-  const ClearAdornment = ({ value, onClear }) =>
-    value ? (
-      <InputAdornment position="end">
-        <IconButton size="small" onClick={onClear} edge="end">
-          <CancelOutlinedIcon sx={{ fontSize: 22, color: "#6d5a57" }} />
-        </IconButton>
-      </InputAdornment>
-    ) : null;
 
   return (
     <Box
@@ -123,7 +71,6 @@ export default function CreateAccount({ onBack }) {
               fullWidth
               label="Name"
               variant="outlined"
-              placeholder="Name"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               sx={inputSx}
@@ -135,9 +82,8 @@ export default function CreateAccount({ onBack }) {
             <TextField
               fullWidth
               label="Email"
-              variant="outlined"
-              placeholder="Email"
               type="email"
+              variant="outlined"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               sx={inputSx}
@@ -149,9 +95,8 @@ export default function CreateAccount({ onBack }) {
             <TextField
               fullWidth
               label="Password"
-              variant="outlined"
-              placeholder="Password"
               type="password"
+              variant="outlined"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               sx={inputSx}
@@ -163,14 +108,10 @@ export default function CreateAccount({ onBack }) {
             <TextField
               fullWidth
               label="Password, Again"
-              variant="outlined"
-              placeholder="Password, Again"
               type="password"
+              variant="outlined"
               value={passwordAgain}
-              onChange={(e) => {
-                setPasswordAgain(e.target.value);
-                setTouched(true);
-              }}
+              onChange={(e) => { setPasswordAgain(e.target.value); setTouched(true); }}
               error={passwordMismatch}
               helperText={passwordMismatch ? "Passwords must match" : ""}
               sx={passwordMismatch ? errorInputSx : inputSx}
@@ -195,18 +136,7 @@ export default function CreateAccount({ onBack }) {
               fullWidth
               variant="contained"
               startIcon={<AddCircleOutlineIcon />}
-              sx={{
-                backgroundColor: "#f4c9b3",
-                color: "#1a1a1a",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                borderRadius: "10px",
-                padding: "12px 20px",
-                boxShadow: "none",
-                mt: 1,
-                "&:hover": { backgroundColor: "#eeb89e", boxShadow: "none" },
-              }}
+              sx={{ ...btnSx, mt: 1 }}
               onClick={async () => {
                 setError("");
                 try {
