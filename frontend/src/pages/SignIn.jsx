@@ -66,7 +66,7 @@ export default function SignIn() {
 
             <TextField
               fullWidth
-              label="Username"
+              label="Email"
               variant="outlined"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
