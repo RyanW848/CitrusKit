@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -18,6 +19,8 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const { login } = useContext(AuthContext);
 
   const onCreateAccount = () => {
     navigate("/create-account");
@@ -150,6 +153,16 @@ export default function SignIn() {
                 variant="contained" 
                 startIcon={<AccountCircleOutlinedIcon />} 
                 sx={btnSx}
+                onClick={async () => {
+                setError("");
+                try {
+                  await login(email, password);
+                  navigate("/home");
+                } catch (err) {
+                  setError(err.message);
+                }
+              }}
+              disabled={!email || !password}
             >
               Sign In
             </Button>

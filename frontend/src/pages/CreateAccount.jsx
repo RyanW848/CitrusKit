@@ -1,5 +1,6 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -17,6 +18,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 
 export default function CreateAccount({ onBack }) {
   const { register } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -209,6 +211,7 @@ export default function CreateAccount({ onBack }) {
                 setError("");
                 try {
                   await register(username, email, password);
+                  navigate("/home");
                 } catch (err) {
                   setError(err.message);
                 }
