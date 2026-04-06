@@ -1,28 +1,43 @@
-import { useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../components/PageLayout";
 import CitrusFab from "../components/CitrusFab";
-import SearchBar from "../components/SearchBar";
-import LeagueRowList from "../components/LeagueRowList";
-import { useMyLeagues } from "../hooks/useMyLeagues";
-import { filterLeaguesByName, leagueToRowShape } from "../utils/leagueDisplay";
+import { AuthContext } from "../context/AuthContext";
+import client from "../api/citrusClient";
 
 export default function Leagues() {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const { leagues, loading, error } = useMyLeagues();
+  const [leagues, setLeagues] = useState([]);
+  const [error, setError] = useState("");
 
-  const rowLeagues = useMemo(
-    () => leagues.map(leagueToRowShape),
-    [leagues]
-  );
+  useEffect(() => {
+    if (!user) {
+      setLeagues([]);
+      return;
+    }
 
-  const filtered = useMemo(
-    () => filterLeaguesByName(rowLeagues, query),
-    [rowLeagues, query]
-  );
+    let isMounted = true;
+
+    client.get("/leagues")
+      .then(({ data }) => {
+        if (isMounted) {
+          setLeagues(data.leagues);
+          setError("");
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.response?.data?.error || "Unable to load leagues");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   return (
     <PageLayout
@@ -31,26 +46,25 @@ export default function Leagues() {
       showBell
     >
       <Box sx={{ position: "relative" }}>
-        <SearchBar
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onClear={() => setQuery("")}
-          placeholder="Search leagues"
-          disabled={loading}
-        />
         {error && (
-          <Typography variant="body2" sx={{ color: "#a94442", mb: 1 }}>
+          <Typography variant="body2" sx={{ color: "#c0392b", mb: 1.5 }}>
             {error}
           </Typography>
         )}
-        <LeagueRowList
-          leagues={filtered}
-          onLeagueClick={(id) => navigate(`/draft/${id}/rules`)}
-          loading={loading}
-          emptyMessage={
-            query.trim() ? "No leagues match your search." : "No leagues yet."
-          }
-        />
+
+        {!error && leagues.length === 0 && (
+          <Typography variant="body2" sx={{ color: "#666", mb: 1.5 }}>
+            {user ? "No saved leagues yet." : "Sign in to view your saved leagues."}
+          </Typography>
+        )}
+
+        {leagues.map((league) => (
+          <LeagueRow
+            key={league.id}
+            league={league}
+            onClick={() => navigate(`/draft/${league.id}/rules`)}
+          />
+        ))}
 
         <CitrusFab
           icon={<AddIcon />}

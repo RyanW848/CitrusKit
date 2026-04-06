@@ -5,6 +5,7 @@ import CreateAccount from "./pages/CreateAccount.jsx";
 import EditAccount from "./pages/EditAccount.jsx";
 import Home from "./pages/Home.jsx";
 import Leagues from "./pages/Leagues.jsx";
+import CreateLeague from "./pages/CreateLeague.jsx";
 import DraftRules from "./pages/DraftRules.jsx";
 import DraftTeams from "./pages/DraftTeams.jsx";
 import DraftPlan from "./pages/DraftPlan.jsx";

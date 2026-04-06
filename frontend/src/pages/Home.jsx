@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Box, Typography, Menu, MenuItem, ListItemIcon, Card } from "@mui/material";
@@ -7,38 +7,40 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PageLayout from "../components/PageLayout";
 import CitrusFab from "../components/CitrusFab";
-import SectionLinkHeader from "../components/SectionLinkHeader";
-import SearchBar from "../components/SearchBar";
-import LeagueRowList from "../components/LeagueRowList";
-import ActivityFeed from "../components/ActivityFeed";
-import { useMyLeagues } from "../hooks/useMyLeagues";
-import {
-  filterLeaguesByName,
-  leagueToRowShape,
-  leaguesToActivityFeedItems,
-} from "../utils/leagueDisplay";
+import client from "../api/citrusClient";
 
 export default function Home() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [settingsAnchor, setSettingsAnchor] = useState(null);
-  const [leagueSearch, setLeagueSearch] = useState("");
-  const { leagues, loading, error } = useMyLeagues();
+  const [leagues, setLeagues] = useState([]);
+  const [leagueError, setLeagueError] = useState("");
 
-  const rowLeagues = useMemo(
-    () => leagues.map(leagueToRowShape),
-    [leagues]
-  );
+  useEffect(() => {
+    if (!user) {
+      setLeagues([]);
+      return;
+    }
 
-  const filteredRows = useMemo(
-    () => filterLeaguesByName(rowLeagues, leagueSearch),
-    [rowLeagues, leagueSearch]
-  );
+    let isMounted = true;
 
-  const activityFeedItems = useMemo(
-    () => leaguesToActivityFeedItems(leagues, { limit: 5 }),
-    [leagues]
-  );
+    client.get("/leagues")
+      .then(({ data }) => {
+        if (isMounted) {
+          setLeagues(data.leagues);
+          setLeagueError("");
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setLeagueError(err.response?.data?.error || "Unable to load leagues");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   return (
     <PageLayout
@@ -103,12 +105,25 @@ export default function Home() {
         />
       </Box>
 
-      <Box sx={{ mb: 4 }}>
-        <ActivityFeed
-          title="Recent activity"
-          items={loading || error ? [] : activityFeedItems}
-          emptyMessage="Save a league to see it show up here."
-        />
+        {leagueError && (
+          <Typography variant="body2" sx={{ color: "#c0392b", mb: 1.5 }}>
+            {leagueError}
+          </Typography>
+        )}
+
+        {!leagueError && leagues.length === 0 && (
+          <Typography variant="body2" sx={{ color: "#666", mb: 1.5 }}>
+            {user ? "No leagues yet. Create one to get started." : "Sign in to see your leagues."}
+          </Typography>
+        )}
+
+        {leagues.slice(0, 3).map((league) => (
+          <LeagueRow
+            key={league.id}
+            league={league}
+            onClick={() => navigate(`/draft/${league.id}/rules`)}
+          />
+        ))}
       </Box>
 
       <Box>
