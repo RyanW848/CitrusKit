@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Box, Typography, Menu, MenuItem, ListItemIcon, Card } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PageLayout from "../components/PageLayout";
-import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import client from "../api/citrusClient";
 
@@ -80,17 +78,32 @@ export default function Home() {
         </Menu>
       }
     >
-      {/* Saved Leagues */}
       <Box sx={{ mb: 4 }}>
-        <Box
-          sx={{ display: "flex", alignItems: "center", mb: 1.5, cursor: "pointer" }}
+        <SectionLinkHeader
+          title="Saved Leagues"
           onClick={() => navigate("/leagues")}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Saved Leagues
+        />
+        <SearchBar
+          value={leagueSearch}
+          onChange={(e) => setLeagueSearch(e.target.value)}
+          onClear={() => setLeagueSearch("")}
+          placeholder="Search saved leagues"
+          disabled={loading}
+        />
+        {error && (
+          <Typography variant="body2" sx={{ color: "#a94442", mb: 1 }}>
+            {error}
           </Typography>
-          <ChevronRightIcon sx={{ color: "#555" }} />
-        </Box>
+        )}
+        <LeagueRowList
+          leagues={filteredRows}
+          onLeagueClick={(id) => navigate(`/draft/${id}/rules`)}
+          loading={loading}
+          emptyMessage={
+            leagueSearch.trim() ? "No leagues match your search." : "No leagues yet."
+          }
+        />
+      </Box>
 
         {leagueError && (
           <Typography variant="body2" sx={{ color: "#c0392b", mb: 1.5 }}>
@@ -113,14 +126,8 @@ export default function Home() {
         ))}
       </Box>
 
-      {/* Saved Players */}
       <Box>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Saved Players
-          </Typography>
-          <ChevronRightIcon sx={{ color: "#555" }} />
-        </Box>
+        <SectionLinkHeader title="Saved Players" showChevron />
         <Box sx={{ display: "flex", gap: 2 }}>
           <Card
             sx={{

@@ -12,6 +12,7 @@ import DraftPlan from "./pages/DraftPlan.jsx";
 import DraftDraft from "./pages/DraftDraft.jsx";
 import DraftView from "./pages/DraftView.jsx";
 import DraftPlayers from "./pages/DraftPlayers.jsx";
+import CreateLeague from "./pages/CreateLeague.jsx";
 
 export default function App() {
   return (

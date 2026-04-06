@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../components/PageLayout";
-import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import { AuthContext } from "../context/AuthContext";
 import client from "../api/citrusClient";
