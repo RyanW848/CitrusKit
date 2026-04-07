@@ -71,14 +71,8 @@ async function createLeague(req, res) {
         res.status(201).json(serializeLeague(newLeague));
     } catch (error) {
         console.error("CREATE LEAGUE ERROR:", error);
-        if (error.name === "ValidationError") {
-            const msg = Object.values(error.errors)
-                .map((e) => e.message)
-                .join(" ");
-            return res.status(400).json({ error: msg || "Invalid league data" });
-        }
         res.status(500).json({
-            error: "Error creating league",
+            error: "Error creating league"
         });
     }
 }
