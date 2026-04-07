@@ -1,40 +1,92 @@
-import { Box, Typography, CircularProgress } from "@mui/material";
-import LeagueRow from "./LeagueRow";
+import { Box, Avatar, Typography, IconButton } from "@mui/material";
+import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 /**
- * Renders {@link LeagueRow} items from API-shaped or row-shaped leagues.
+ * Reusable league list row used on Home and Leagues pages.
  *
- * @param {Array<{ id: string, name: string, lastEdited: string }>} props.leagues
- * @param {(id: string) => void} props.onLeagueClick
- * @param {string} [props.emptyMessage]
- * @param {boolean} [props.loading]
+ * Props:
+ *   league  – { name: string, lastEdited: string }
+ *   onClick – optional click handler for the row body
  */
-export default function LeagueRowList({ leagues, onLeagueClick, emptyMessage, loading }) {
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-        <CircularProgress size={28} sx={{ color: "#f4c9b3" }} />
-      </Box>
-    );
-  }
-
-  if (!leagues.length && emptyMessage) {
-    return (
-      <Typography variant="body2" sx={{ color: "#888" }}>
-        {emptyMessage}
-      </Typography>
-    );
-  }
+export default function LeagueRow({ league, onClick }) {
+  const initial = league.name.charAt(0).toUpperCase();
+  const rawLastEdited = league.lastEdited ?? league.updatedAt ?? league.createdAt;
+  const lastEdited = rawLastEdited
+    ? new Date(rawLastEdited).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Unknown";
 
   return (
-    <>
-      {leagues.map((league) => (
-        <LeagueRow
-          key={league.id}
-          league={league}
-          onClick={onLeagueClick ? () => onLeagueClick(league.id) : undefined}
-        />
-      ))}
-    </>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "stretch",
+        bgcolor: "#fef0e8",
+        border: "1px solid #e5d5c8",
+        borderRadius: "12px",
+        mb: 1,
+        overflow: "hidden",
+      }}
+    >
+      {/* Row body */}
+      <Box
+        onClick={onClick}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flexGrow: 1,
+          p: 1.5,
+          cursor: onClick ? "pointer" : "default",
+        }}
+      >
+        <Avatar
+          sx={{
+            bgcolor: "#f4c9b3",
+            color: "#5a3e35",
+            fontWeight: 700,
+            width: 40,
+            height: 40,
+            mr: 2,
+            fontSize: "1rem",
+          }}
+        >
+          {initial}
+        </Avatar>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
+            {league.name}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#888" }}>
+            Last Edited: {lastEdited}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Action icons */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.25,
+          px: 1,
+          borderLeft: "1px solid #e5d5c8",
+        }}
+      >
+        <IconButton size="small" sx={{ color: "#c0aeaa" }}>
+          <IosShareOutlinedIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+        <IconButton size="small" sx={{ color: "#c0aeaa" }}>
+          <SettingsOutlinedIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+        <IconButton size="small" sx={{ color: "#c0aeaa" }}>
+          <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Box>
+    </Box>
   );
 }
