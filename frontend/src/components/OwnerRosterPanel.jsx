@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Box, Typography, IconButton } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -16,19 +16,6 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
  */
 export default function OwnerRosterPanel({ owners, getRoster, rightSlot }) {
   const [selectedId, setSelectedId] = useState(owners[0]?.id ?? null);
-
-  useEffect(() => {
-    if (!owners.length) {
-      setSelectedId(null);
-      return;
-    }
-
-    const hasSelectedOwner = owners.some((owner) => owner.id === selectedId);
-    if (!hasSelectedOwner) {
-      setSelectedId(owners[0].id);
-    }
-  }, [owners, selectedId]);
-
   const roster = getRoster ? getRoster(selectedId) : [];
 
   return (

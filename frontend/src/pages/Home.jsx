@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Box, Typography, Menu, MenuItem, ListItemIcon, Card } from "@mui/material";
@@ -7,40 +7,16 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PageLayout from "../components/PageLayout";
 import CitrusFab from "../components/CitrusFab";
-import client from "../api/citrusClient";
+
+const MOCK_LEAGUES = [
+  { id: "1", name: "Super Cool Baseball Draft", lastEdited: "January 1, 1970" },
+  { id: "2", name: "Other Baseball Draft", lastEdited: "December 31, 1969" },
+];
 
 export default function Home() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [settingsAnchor, setSettingsAnchor] = useState(null);
-  const [leagues, setLeagues] = useState([]);
-  const [leagueError, setLeagueError] = useState("");
-
-  useEffect(() => {
-    if (!user) {
-      setLeagues([]);
-      return;
-    }
-
-    let isMounted = true;
-
-    client.get("/leagues")
-      .then(({ data }) => {
-        if (isMounted) {
-          setLeagues(data.leagues);
-          setLeagueError("");
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setLeagueError(err.response?.data?.error || "Unable to load leagues");
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
 
   return (
     <PageLayout
@@ -105,19 +81,7 @@ export default function Home() {
         />
       </Box>
 
-        {leagueError && (
-          <Typography variant="body2" sx={{ color: "#c0392b", mb: 1.5 }}>
-            {leagueError}
-          </Typography>
-        )}
-
-        {!leagueError && leagues.length === 0 && (
-          <Typography variant="body2" sx={{ color: "#666", mb: 1.5 }}>
-            {user ? "No leagues yet. Create one to get started." : "Sign in to see your leagues."}
-          </Typography>
-        )}
-
-        {leagues.slice(0, 3).map((league) => (
+        {MOCK_LEAGUES.map((league) => (
           <LeagueRow
             key={league.id}
             league={league}

@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  Alert,
   Box,
-  CircularProgress,
   Typography,
   TextField,
   IconButton,
@@ -15,12 +13,23 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import CheckIcon from "@mui/icons-material/Check";
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import CitrusFab from "../components/CitrusFab";
-import useLeague, { formatLeagueOwners } from "../hooks/useLeague";
+
+// ── mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_OWNERS = [
+  { id: "a", letter: "A", name: "Alice" },
+  { id: "b", letter: "B", name: "Bob" },
+  { id: "c", letter: "C", name: "Carol" },
+  { id: "d", letter: "D", name: "David" },
+  { id: "e", letter: "E", name: "Eve" },
+  { id: "f", letter: "F", name: "Frank" },
+];
 
 const MOCK_STATS = ["Runs", "Stat #2", "Stat #3"];
 
@@ -39,38 +48,13 @@ const ALL_STATS_POOL = ["Stat #4", "Stat #5", "Stat #6", "Stat #7", "Stat #8"];
 
 // ── section definitions ───────────────────────────────────────────────────────
 
-function NamePanel({ league }) {
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography sx={{ fontSize: "0.85rem", color: "#8c7672", mb: 1 }}>
-        League Name
-      </Typography>
-      <Typography sx={{ fontSize: "1.6rem", fontWeight: 700, color: "#1a1a1a", mb: 1 }}>
-        {league.name}
-      </Typography>
-      <Typography sx={{ color: "#666", maxWidth: 420 }}>
-        This is the primary draft workspace for the league. Use the tabs below to move into teams,
-        planning, and draft tracking.
-      </Typography>
-    </Box>
-  );
-}
-
-function BudgetPanel({ league }) {
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography sx={{ fontSize: "0.85rem", color: "#8c7672", mb: 1 }}>
-        Auction Budget
-      </Typography>
-      <Typography sx={{ fontSize: "1.6rem", fontWeight: 700, color: "#1a1a1a", mb: 1 }}>
-        ${league.budget}
-      </Typography>
-      <Typography sx={{ color: "#666" }}>
-        {league.teamCount} teams are configured for this league.
-      </Typography>
-    </Box>
-  );
-}
+const SECTIONS = [
+  { id: "name", label: "League Name", icon: <TextFieldsIcon sx={{ fontSize: 18 }} />, value: "Baseball Team" },
+  { id: "budget", label: "Budget", icon: <StarBorderIcon sx={{ fontSize: 18 }} />, value: "$200" },
+  { id: "owners", label: "League Owners", icon: <PersonOutlineIcon sx={{ fontSize: 18 }} />, value: "6" },
+  { id: "scoring", label: "Scoring Criteria", icon: <CheckIcon sx={{ fontSize: 18 }} />, value: "..." },
+  { id: "positions", label: "Positions", icon: <SyncAltIcon sx={{ fontSize: 18 }} />, value: "23" },
+];
 
 // ── sub-panels ────────────────────────────────────────────────────────────────
 
@@ -209,80 +193,21 @@ function PositionsPanel({ positions }) {
 
 export default function DraftRules() {
   const { id } = useParams();
-  const { league, isLoading, error } = useLeague(id);
-  const [activeSection, setActiveSection] = useState("name");
-
-  const owners = useMemo(() => formatLeagueOwners(league), [league]);
-  const sections = useMemo(() => ([
-    {
-      id: "name",
-      label: "League Name",
-      icon: <TextFieldsIcon sx={{ fontSize: 18 }} />,
-      value: league?.name || "...",
-    },
-    {
-      id: "budget",
-      label: "Budget",
-      icon: <StarBorderIcon sx={{ fontSize: 18 }} />,
-      value: league ? `$${league.budget}` : "...",
-    },
-    {
-      id: "owners",
-      label: "League Owners",
-      icon: <PersonOutlineIcon sx={{ fontSize: 18 }} />,
-      value: league ? String(owners.length) : "...",
-    },
-    {
-      id: "scoring",
-      label: "Scoring Criteria",
-      icon: <CheckIcon sx={{ fontSize: 18 }} />,
-      value: league?.scoringTypes?.join(", ") || "...",
-    },
-    {
-      id: "positions",
-      label: "Positions",
-      icon: <SyncAltIcon sx={{ fontSize: 18 }} />,
-      value: String(MOCK_POSITIONS.reduce((sum, position) => sum + position.count, 0)),
-    },
-  ]), [league, owners.length]);
+  const [activeSection, setActiveSection] = useState("owners");
 
   const renderRightPanel = () => {
-    if (isLoading) {
-      return (
-        <Box sx={{ minHeight: 360, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <CircularProgress size={28} sx={{ color: "#8c7672" }} />
-        </Box>
-      );
-    }
-
-    if (error) {
-      return (
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ borderRadius: "10px" }}>
-            {error}
-          </Alert>
-        </Box>
-      );
-    }
-
-    if (!league) {
-      return null;
-    }
-
     switch (activeSection) {
-      case "name": return <NamePanel league={league} />;
-      case "budget": return <BudgetPanel league={league} />;
-      case "owners": return <OwnersPanel owners={owners} />;
-      case "scoring": return <ScoringPanel stats={league.scoringTypes?.length ? league.scoringTypes : MOCK_STATS} />;
+      case "owners":   return <OwnersPanel owners={MOCK_OWNERS} />;
+      case "scoring":  return <ScoringPanel stats={MOCK_STATS} />;
       case "positions": return <PositionsPanel positions={MOCK_POSITIONS} />;
-      default: return null;
+      default:         return null;
     }
   };
 
   return (
     <PageLayout
       title="Rules"
-      subtitle={league ? `Configure the rules for ${league.name}` : "Configure the rules for your league"}
+      subtitle="Configure the rules for your league"
       showBell
     >
       {/* Two-panel card */}
@@ -298,7 +223,7 @@ export default function DraftRules() {
       >
         {/* Left – settings menu */}
         <Box sx={{ bgcolor: "#fff", borderRight: "1px solid #e5d5c8", p: 1 }}>
-          {sections.map((section) => {
+          {SECTIONS.map((section) => {
             const isActive = activeSection === section.id;
             return (
               <Box

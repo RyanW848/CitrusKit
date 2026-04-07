@@ -12,14 +12,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
  */
 export default function LeagueRow({ league, onClick }) {
   const initial = league.name.charAt(0).toUpperCase();
-  const rawLastEdited = league.lastEdited ?? league.updatedAt ?? league.createdAt;
-  const lastEdited = rawLastEdited
-    ? new Date(rawLastEdited).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "Unknown";
 
   return (
     <Box
@@ -62,7 +54,7 @@ export default function LeagueRow({ league, onClick }) {
             {league.name}
           </Typography>
           <Typography variant="caption" sx={{ color: "#888" }}>
-            Last Edited: {lastEdited}
+            Last Edited: {league.lastEdited}
           </Typography>
         </Box>
       </Box>
