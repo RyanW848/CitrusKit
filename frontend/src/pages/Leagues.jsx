@@ -7,7 +7,6 @@ import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import { AuthContext } from "../context/AuthContext";
 import client from "../api/citrusClient";
-import LeagueRow from "../components/LeagueRow";
 
 export default function Leagues() {
   const { user } = useContext(AuthContext);
