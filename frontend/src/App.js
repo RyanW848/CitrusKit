@@ -12,6 +12,8 @@ import DraftPlan from "./pages/DraftPlan.jsx";
 import DraftDraft from "./pages/DraftDraft.jsx";
 import DraftView from "./pages/DraftView.jsx";
 import DraftPlayers from "./pages/DraftPlayers.jsx";
+import Test from "./pages/Test.jsx";
+import Search from "./pages/Search.jsx";
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/draft/:id/draft" element={<DraftDraft />} />
           <Route path="/draft/:id/view" element={<DraftView />} />
           <Route path="/draft/:id/players" element={<DraftPlayers />} />
+          <Route path="/test" element={<Test />} />
+          <Route path="/search" element={<Search />} />
         </Routes>
       </Router>
     </AuthProvider>

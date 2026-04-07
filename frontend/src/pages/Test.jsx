@@ -12,10 +12,6 @@ import { inputSx, btnSx } from "../styles/formStyles";
 export default function SignIn() {
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (user) navigate("/home");
-    }, [user]);
-
     return (
         <Box
             sx={{
@@ -43,30 +39,14 @@ export default function SignIn() {
                     Page for me to test buttons and other UI elements
                 </Typography>
 
-                <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        border: "1px solid #e5d5c8",
-                        borderRadius: "14px",
-                        overflow: "hidden",
-                        backgroundColor: "#fef0e8",
-                    }}
-                >
-                    <Box sx={{ p: "40px", borderRight: "1px solid #e5d5c8" }}>
-                        <Typography sx={{ fontWeight: 600, textAlign: "center", mb: 4, color: "#1a1a1a" }}>
-                            Test Button
-                        </Typography>
-                        <Button
-                            variant="contained" sx={btnSx}
-                            onClick={async () => {
-                                // See if player view pop up works
-                            }}>
-                            Test Button
-                        </Button>
-                    </Box>
-
-                </Box>
+                {/* Test Button */}
+                <Button
+                    variant="contained" sx={btnSx}
+                    onClick={async () => {
+                        // See if player view pop up works
+                    }}>
+                    Test Button
+                </Button>
             </Box>
         </Box>
     );
