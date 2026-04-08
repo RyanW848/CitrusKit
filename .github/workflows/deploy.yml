@@ -17,7 +17,9 @@ jobs:
             cd /opt/CitrusKit/
             git pull
             cd frontend
+            npm ci
             npm run build
             systemctl reload nginx
-            cd ../citruskit-backend
-            pm2 restart server
+            cd ../backend
+            npm ci
+            pm2 restart server --update-env
