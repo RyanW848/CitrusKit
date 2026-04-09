@@ -5,10 +5,10 @@
 1. **MongoDB**  
    Install [MongoDB Community](https://www.mongodb.com/try/download/community) locally, or create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and copy its connection string.
 
-2. **Backend** (`citruskit-backend`)
+2. **Backend** (`backend`)
 
    ```bash
-   cd citruskit-backend
+   cd backend
    ```
 
    Copy `.env.example` to `.env` in that folder (Explorer, or `copy .env.example .env` in Command Prompt / `Copy-Item .env.example .env` in PowerShell). Edit `.env`: set `MONGO_URI` and `JWT_SECRET` (any long random string is fine for dev).
