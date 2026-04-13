@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import playerClient, { getAllPlayerNames, getAllPlayerNames, getPlayerInfo } from '../api/playerClient';
+import playerClient, { getAllPlayerNames, getPlayerInfo } from '../api/playerClient';
 import SearchBar from './SearchBar';
 
 const PlayerSearch = () => {
@@ -45,7 +45,7 @@ const PlayerSearch = () => {
         try {
             const data = await getPlayerInfo(name);
             setSelectedData(data);
-            if (onPlayerSelect) onPlayerSelect(data);
+            // if (onPlayerSelect) onPlayerSelect(data);
         } catch (err) {
             console.error("Error fetching player stats", err);
             alert("Error fetching player stats");
