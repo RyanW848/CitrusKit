@@ -8,11 +8,17 @@
     "mongoose": "^9.2.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "mockingoose": "^3.0.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.4"
   },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "vitest run src/tests/unit",
+    "test:integration": "vitest run src/tests/integration",
+    "test:all": "vitest run"
   },
   "name": "citruskit-backend",
   "version": "1.0.0",
