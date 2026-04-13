@@ -2,6 +2,14 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
+function serializeUser(user) {
+    return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+    };
+}
+
 async function register(req, res) {
     try {
         const { name, email, password } = req.body;
@@ -33,11 +41,7 @@ async function register(req, res) {
         await user.save();
 
         return res.status(201).json({
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+            user: serializeUser(user),
             token
         })
     } catch (error) {
@@ -73,11 +77,7 @@ async function login(req, res) {
 
         const token = generateToken(user._id);
         return res.status(200).json({
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+            user: serializeUser(user),
             token
         })
     } catch (error) {
@@ -89,16 +89,92 @@ async function login(req, res) {
 
 async function getMe(req, res) {
     return res.status(200).json({
-        user: {
-            id: req.user._id,
-            name: req.user.name,
-            email: req.user.email,
-        },
+        user: serializeUser(req.user),
     });
+}
+
+async function updateMe(req, res) {
+    try {
+        const { name, email, password } = req.body;
+        const hasPasswordUpdate = password !== undefined && password !== "";
+
+        if (name === undefined && email === undefined && !hasPasswordUpdate) {
+            return res.status(400).json({
+                error: "Please provide name, email, or password to update",
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                error: "User not found",
+            });
+        }
+
+        if (name !== undefined) {
+            const trimmedName = typeof name === "string" ? name.trim() : "";
+            if (!trimmedName) {
+                return res.status(400).json({
+                    error: "Name is required",
+                });
+            }
+            user.name = trimmedName;
+        }
+
+        if (email !== undefined) {
+            const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+            if (!normalizedEmail) {
+                return res.status(400).json({
+                    error: "Email is required",
+                });
+            }
+
+            const existingUser = await User.findOne({
+                email: normalizedEmail,
+                _id: { $ne: user._id },
+            });
+
+            if (existingUser) {
+                return res.status(409).json({
+                    error: "User already exists with this email",
+                });
+            }
+
+            user.email = normalizedEmail;
+        }
+
+        if (hasPasswordUpdate) {
+            if (typeof password !== "string") {
+                return res.status(400).json({
+                    error: "Password is required",
+                });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            user.passwordHash = await bcrypt.hash(password, salt);
+        }
+
+        await user.save();
+
+        return res.status(200).json({
+            user: serializeUser(user),
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                error: "User already exists with this email",
+            });
+        }
+
+        return res.status(500).json({
+            error: "Server error during account update",
+        });
+    }
 }
 
 module.exports = {
     register,
     login,
-    getMe
+    getMe,
+    updateMe
 }
