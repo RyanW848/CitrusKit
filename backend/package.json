@@ -17,9 +17,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "vitest run src/tests/unit",
+    "test:unit": "vitest run src/tests/unit",
+    "test:unit:auth": "vitest run src/tests/unit/auth.test.js",
+    "test:unit:leagues": "vitest run src/tests/unit/leagues.test.js",
     "test:integration": "vitest run src/tests/integration",
-    "test:all": "vitest run"
+    "test:integration:auth": "vitest run src/tests/integration/auth.test.js",
+    "test:integration:leagues": "vitest run src/tests/integration/leagues.test.js",
+    "test:all": "vitest run",
+    "test": "vitest run"
   },
   "name": "citruskit-backend",
   "version": "1.0.0",
