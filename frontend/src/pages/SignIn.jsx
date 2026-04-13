@@ -34,6 +34,8 @@ export default function SignIn() {
     >
       <Box sx={{ width: "100%", maxWidth: 860 }}>
         {/* Top bar */}
+
+        
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
           <AccountCircleOutlinedIcon sx={{ color: "#555", fontSize: 28 }} />
           <SettingsOutlinedIcon sx={{ color: "#555", fontSize: 24 }} />
