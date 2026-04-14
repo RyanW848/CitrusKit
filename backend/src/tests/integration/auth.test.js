@@ -138,3 +138,104 @@ describe("GET /api/auth/me", () => {
         expect(res.body.user).toMatchObject({ name: "Alice", email: "alice@b.com" });
     });
 });
+
+// ---------------------------------------------------------------------------
+// Update User  PATCH /api/auth/me
+// ---------------------------------------------------------------------------
+describe("PATCH /api/auth/me", () => {
+    let token;
+
+    beforeEach(async () => {
+        const res = await request(app)
+            .post("/api/auth/register")
+            .send({ name: "Alice", email: "alice@b.com", password: "pass123" });
+        token = res.body.token;
+    });
+
+    it("returns 401 when no token is provided", async () => {
+        const res = await request(app)
+            .patch("/api/auth/me")
+            .send({ name: "Alice Updated" });
+
+        expect(res.status).toBe(401);
+    });
+
+    it("returns 400 when no update fields are provided", async () => {
+        const res = await request(app)
+            .patch("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body).toHaveProperty("error");
+    });
+
+    it("returns 400 when only an empty password is provided", async () => {
+        const res = await request(app)
+            .patch("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ password: "" });
+
+        expect(res.status).toBe(400);
+        expect(res.body).toHaveProperty("error");
+    });
+
+    it("updates the current user's name and email", async () => {
+        const res = await request(app)
+            .patch("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ name: "Alice Updated", email: "ALICE.UPDATED@b.com" });
+
+        expect(res.status).toBe(200);
+        expect(res.body.user).toMatchObject({
+            name: "Alice Updated",
+            email: "alice.updated@b.com",
+        });
+
+        const meRes = await request(app)
+            .get("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(meRes.status).toBe(200);
+        expect(meRes.body.user).toMatchObject({
+            name: "Alice Updated",
+            email: "alice.updated@b.com",
+        });
+    });
+
+    it("returns 409 when the updated email belongs to another user", async () => {
+        await request(app)
+            .post("/api/auth/register")
+            .send({ name: "Bob", email: "bob@b.com", password: "pass123" });
+
+        const res = await request(app)
+            .patch("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ email: "bob@b.com" });
+
+        expect(res.status).toBe(409);
+        expect(res.body).toHaveProperty("error");
+    });
+
+    it("updates the current user's password", async () => {
+        const updateRes = await request(app)
+            .patch("/api/auth/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ password: "newpass123" });
+
+        expect(updateRes.status).toBe(200);
+
+        const oldLoginRes = await request(app)
+            .post("/api/auth/login")
+            .send({ email: "alice@b.com", password: "pass123" });
+
+        expect(oldLoginRes.status).toBe(401);
+
+        const newLoginRes = await request(app)
+            .post("/api/auth/login")
+            .send({ email: "alice@b.com", password: "newpass123" });
+
+        expect(newLoginRes.status).toBe(200);
+        expect(newLoginRes.body).toHaveProperty("token");
+    });
+});
