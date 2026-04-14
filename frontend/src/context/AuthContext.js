@@ -37,13 +37,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateAccount = async ({ name, email, password }) => {
+    try {
+      const payload = { name, email };
+      if (password) {
+        payload.password = password;
+      }
+
+      const { data } = await client.patch('/auth/me', payload);
+      setUser(data.user);
+      return data.user;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Account update failed');
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, updateAccount, logout }}>
       {children}
     </AuthContext.Provider>
   );

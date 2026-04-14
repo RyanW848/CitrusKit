@@ -20,7 +20,7 @@
    npm run dev
    ```
 
-   Set `PORT` in `.env` if you like (default **5000**). Health check: `http://localhost:<PORT>/api/health`.
+   Set `PORT` in `.env` if you like (default **4000**). Health check: `http://localhost:<PORT>/api/health`.
 
 3. **Frontend** (`frontend`)
 
@@ -30,7 +30,7 @@
    npm start
    ```
 
-   Opens **http://localhost:3000**. During **`npm start`**, API requests use **`/api` on the same origin**; **`src/setupProxy.js`** forwards `/api/*` to the backend (default **`http://localhost:4000`**). Match that to `PORT` in `citruskit-backend/.env`, or set **`REACT_APP_PROXY_TARGET`** (e.g. `http://localhost:5000`) in `frontend/.env`.
+   Opens **http://localhost:3000**. During **`npm start`**, API requests use **`/api` on the same origin**; **`src/setupProxy.js`** forwards `/api/*` to the backend (default **`http://localhost:4000`**). Match that to `PORT` in `backend/.env`, or set **`REACT_APP_PROXY_TARGET`** (e.g. `http://localhost:5000`) in `frontend/.env`.
 
    For **`npm run build`** / production, set **`REACT_APP_BACKEND`** in `frontend/.env` to the full API root (e.g. `https://your-api.com/api`).
 

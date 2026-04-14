@@ -1,13 +1,12 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import {
   Box,
-  Typography,
   TextField,
   Button,
   InputAdornment,
   Avatar,
-  IconButton,
+  Alert,
 } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -16,15 +15,25 @@ import ClearAdornment from "../components/ClearAdornment";
 import { inputSx, errorInputSx, btnSx } from "../styles/formStyles";
 
 export default function EditAccount() {
-  const { user } = useContext(AuthContext);
+  const { user, updateAccount } = useContext(AuthContext);
   const [username, setUsername] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
   const [passwordAgain, setPasswordAgain] = useState("");
   const [touched, setTouched] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const passwordMismatch = touched && passwordAgain !== "" && password !== passwordAgain;
+  useEffect(() => {
+    setUsername(user?.name ?? "");
+    setEmail(user?.email ?? "");
+  }, [user]);
+
+  const passwordStarted = password !== "" || passwordAgain !== "";
+  const passwordMismatch = passwordStarted && password !== passwordAgain;
+  const showPasswordMismatch = touched && passwordMismatch;
 
   const usernameInputSx = usernameError
     ? {
@@ -38,7 +47,36 @@ export default function EditAccount() {
 
   const handleSave = async () => {
     setUsernameError("");
-    // TODO: wire up API call to update account
+    setError("");
+    setSuccess("");
+
+    if (!username.trim()) {
+      setUsernameError("Username is required");
+      return;
+    }
+
+    if (passwordMismatch) {
+      setTouched(true);
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await updateAccount({
+        name: username.trim(),
+        email: email.trim(),
+        password: password || undefined,
+      });
+      setPassword("");
+      setPasswordAgain("");
+      setTouched(false);
+      setSuccess("Account updated");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -108,7 +146,7 @@ export default function EditAccount() {
             type="email"
             variant="outlined"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setError(""); }}
             sx={inputSx}
             InputProps={{
               endAdornment: <ClearAdornment value={email} onClear={() => setEmail("")} />,
@@ -122,7 +160,7 @@ export default function EditAccount() {
             type="password"
             variant="outlined"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setSuccess(""); }}
             sx={inputSx}
             InputProps={{
               endAdornment: <ClearAdornment value={password} onClear={() => setPassword("")} />,
@@ -136,12 +174,12 @@ export default function EditAccount() {
             type="password"
             variant="outlined"
             value={passwordAgain}
-            onChange={(e) => { setPasswordAgain(e.target.value); setTouched(true); }}
-            error={passwordMismatch}
-            helperText={passwordMismatch ? "Passwords must match" : ""}
-            sx={passwordMismatch ? errorInputSx : inputSx}
+            onChange={(e) => { setPasswordAgain(e.target.value); setTouched(true); setSuccess(""); }}
+            error={showPasswordMismatch}
+            helperText={showPasswordMismatch ? "Passwords must match" : ""}
+            sx={showPasswordMismatch ? errorInputSx : inputSx}
             InputProps={{
-              endAdornment: passwordMismatch ? (
+              endAdornment: showPasswordMismatch ? (
                 <InputAdornment position="end">
                   <ErrorIcon sx={{ fontSize: 22, color: "#c0392b" }} />
                 </InputAdornment>
@@ -151,15 +189,27 @@ export default function EditAccount() {
             }}
           />
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: "8px" }}>
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mb: 2, borderRadius: "8px" }}>
+              {success}
+            </Alert>
+          )}
+
           <Button
             fullWidth
             variant="contained"
             startIcon={<EditOutlinedIcon />}
             sx={{ ...btnSx, mt: 1 }}
             onClick={handleSave}
-            disabled={!username || !email || passwordMismatch}
+            disabled={!username.trim() || !email.trim() || passwordMismatch || saving}
           >
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </Button>
         </Box>
       </Box>
