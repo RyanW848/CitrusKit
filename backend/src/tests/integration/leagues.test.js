@@ -126,11 +126,58 @@ describe("POST /api/leagues", () => {
             teamCount: 2,
             budget: 200,
         });
+        expect(res.body.rosterPositions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ abbr: "C", count: 2 }),
+                expect.objectContaining({ abbr: "OF", count: 5 }),
+                expect.objectContaining({ abbr: "UT", count: 1 }),
+            ])
+        );
 
         // Confirm it was actually saved
         const saved = await League.findById(res.body.id);
         expect(saved).not.toBeNull();
         expect(saved.name).toBe("Test League");
+        expect(saved.rosterPositions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ abbr: "C", count: 2 }),
+            ])
+        );
+    });
+
+    it("accepts custom roster position rules", async () => {
+        const res = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ...validLeagueBody,
+                rosterPositions: [
+                    { abbr: "QB", name: "Quarterback", count: 1 },
+                    { abbr: "RB", name: "Running Back", count: 2 },
+                ],
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.rosterPositions).toEqual([
+            { abbr: "QB", name: "Quarterback", count: 1, sortOrder: 1 },
+            { abbr: "RB", name: "Running Back", count: 2, sortOrder: 2 },
+        ]);
+    });
+
+    it("returns 400 for duplicate roster position abbreviations", async () => {
+        const res = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ...validLeagueBody,
+                rosterPositions: [
+                    { abbr: "OF", name: "Outfielder", count: 3 },
+                    { abbr: "of", name: "Extra Outfielder", count: 1 },
+                ],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("Roster position abbreviations must be unique");
     });
 });
 
@@ -210,7 +257,7 @@ describe("GET /api/leagues/:leagueId/draft", () => {
             league: leagueId,
             owner: owners[0].id,
             playerName: "Shohei Ohtani",
-            position: "DH",
+            position: "C",
             amount: 42,
             stat: "R",
             pickNumber: 1,
@@ -228,6 +275,18 @@ describe("GET /api/leagues/:leagueId/draft", () => {
             spent: 42,
             remainingBudget: 158,
         });
+        expect(res.body.owners[0].rosterSlots).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    abbr: "C",
+                    pick: expect.objectContaining({ playerName: "Shohei Ohtani" }),
+                }),
+                expect.objectContaining({
+                    abbr: "OF",
+                    pick: null,
+                }),
+            ])
+        );
     });
 
     it("returns 403 when the league belongs to another user", async () => {
@@ -283,6 +342,7 @@ describe("POST /api/leagues/:leagueId/draft/picks", () => {
         expect(res.body).toMatchObject({
             owner: owners[0].id,
             playerName: "Aaron Judge",
+            position: "OF",
             amount: 30,
             pickNumber: 1,
         });
@@ -331,6 +391,55 @@ describe("POST /api/leagues/:leagueId/draft/picks", () => {
             .send({ ownerId: owners[1].id, playerName: "Aaron Judge", amount: 30 });
 
         expect(res.status).toBe(409);
+    });
+
+    it("returns 400 when a roster position is full for the owner", async () => {
+        const leagueRes = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ...validLeagueBody,
+                name: "Tiny Roster League",
+                rosterPositions: [{ abbr: "C", name: "Catcher", count: 1 }],
+            });
+
+        await request(app)
+            .post(`/api/leagues/${leagueRes.body.id}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: leagueRes.body.owners[0].id,
+                playerName: "First Catcher",
+                position: "C",
+                amount: 10,
+            });
+
+        const res = await request(app)
+            .post(`/api/leagues/${leagueRes.body.id}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: leagueRes.body.owners[0].id,
+                playerName: "Second Catcher",
+                position: "C",
+                amount: 10,
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("C roster slots are full for this owner");
+    });
+
+    it("returns 400 when the position is not part of the league roster rules", async () => {
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                position: "QB",
+                amount: 30,
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("position must match a league roster position");
     });
 });
 

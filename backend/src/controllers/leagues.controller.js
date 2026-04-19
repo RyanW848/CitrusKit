@@ -25,6 +25,7 @@ function serializeLeague(league) {
         teamCount: league.teamCount,
         budget: league.budget,
         scoringTypes: league.scoringTypes,
+        rosterPositions: serializeRosterPositions(getLeagueRosterPositions(league)),
         owners: (league.owners || []).map((owner, index) => ({
             id: owner._id,
             name: owner.name,
@@ -33,6 +34,59 @@ function serializeLeague(league) {
         createdAt: league.createdAt,
         updatedAt: league.updatedAt,
     };
+}
+
+function serializeRosterPositions(rosterPositions = []) {
+    return rosterPositions
+        .map((position) => ({
+            abbr: position.abbr,
+            name: position.name,
+            count: position.count,
+            sortOrder: position.sortOrder,
+        }))
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function getLeagueRosterPositions(league) {
+    if (Array.isArray(league.rosterPositions) && league.rosterPositions.length > 0) {
+        return league.rosterPositions;
+    }
+
+    return League.defaultRosterPositions();
+}
+
+function normalizeRosterPositions(rosterPositions) {
+    if (!Array.isArray(rosterPositions) || rosterPositions.length === 0) {
+        return undefined;
+    }
+
+    const seen = new Set();
+    const normalized = rosterPositions
+        .map((position, index) => ({
+            abbr: position?.abbr?.trim().toUpperCase(),
+            name: position?.name?.trim(),
+            count: Number(position?.count),
+            sortOrder: Number(position?.sortOrder || index + 1),
+        }))
+        .filter((position) => position.abbr || position.name || position.count);
+
+    if (normalized.length === 0) {
+        return { error: "At least one roster position is required" };
+    }
+
+    for (const position of normalized) {
+        if (!position.abbr || !position.name || !Number.isInteger(position.count) || position.count < 1) {
+            return { error: "Each roster position must include abbr, name, and a positive count" };
+        }
+
+        if (seen.has(position.abbr)) {
+            return { error: "Roster position abbreviations must be unique" };
+        }
+
+        seen.add(position.abbr);
+    }
+
+    return { rosterPositions: normalized };
 }
 
 async function findOwnedLeague(leagueId, userId) {
@@ -53,6 +107,39 @@ function ownerBelongsToLeague(league, ownerId) {
     return (league.owners || []).some((owner) => owner._id.toString() === ownerId.toString());
 }
 
+function findRosterPosition(league, abbr) {
+    return serializeRosterPositions(getLeagueRosterPositions(league))
+        .find((position) => position.abbr === abbr);
+}
+
+function findFirstAvailablePosition(league, ownerPicks) {
+    return serializeRosterPositions(getLeagueRosterPositions(league))
+        .find((position) => {
+            const filledCount = ownerPicks.filter((pick) => pick.position === position.abbr).length;
+            return filledCount < position.count;
+        });
+}
+
+function buildRosterSlots(league, ownerPicks) {
+    const remainingPicks = [...ownerPicks];
+
+    return serializeRosterPositions(getLeagueRosterPositions(league))
+        .flatMap((position) => {
+            return Array.from({ length: position.count }, (_, index) => {
+                const pickIndex = remainingPicks.findIndex((pick) => pick.position === position.abbr);
+                const pick = pickIndex >= 0 ? remainingPicks.splice(pickIndex, 1)[0] : null;
+
+                return {
+                    id: `${position.abbr}-${index + 1}`,
+                    abbr: position.abbr,
+                    name: position.name,
+                    slot: index + 1,
+                    pick: pick ? serializeDraftPick(pick) : null,
+                };
+            });
+        });
+}
+
 function buildDraftState(league, picks) {
     const ownerStates = (league.owners || []).map((owner, index) => {
         const ownerPicks = picks.filter((pick) => pick.owner.toString() === owner._id.toString());
@@ -66,6 +153,7 @@ function buildDraftState(league, picks) {
             spent,
             remainingBudget: league.budget - spent,
             roster: ownerPicks.map(serializeDraftPick),
+            rosterSlots: buildRosterSlots(league, ownerPicks),
         };
     });
 
@@ -95,7 +183,7 @@ async function listLeagues(req, res) {
 
 // Create a new league
 async function createLeague(req, res) {
-    const { name, teamCount, budget, scoringTypes, owners } = req.body;
+    const { name, teamCount, budget, scoringTypes, owners, rosterPositions } = req.body;
     const normalizedOwners = Array.isArray(owners)
         ? owners
             .map((owner) => ({
@@ -116,6 +204,13 @@ async function createLeague(req, res) {
         });
     }
 
+    const normalizedRosterPositions = normalizeRosterPositions(rosterPositions);
+    if (normalizedRosterPositions?.error) {
+        return res.status(400).json({
+            error: normalizedRosterPositions.error
+        });
+    }
+
     try {
         const newLeague = await League.create({
             name,
@@ -124,6 +219,9 @@ async function createLeague(req, res) {
             budget,
             scoringTypes,
             owners: normalizedOwners,
+            ...(normalizedRosterPositions?.rosterPositions
+                ? { rosterPositions: normalizedRosterPositions.rosterPositions }
+                : {}),
         });
 
         res.status(201).json(serializeLeague(newLeague));
@@ -210,6 +308,29 @@ async function createDraftPick(req, res) {
             });
         }
 
+        const requestedPosition = position?.trim().toUpperCase();
+        const targetPosition = requestedPosition
+            ? findRosterPosition(league, requestedPosition)
+            : findFirstAvailablePosition(league, ownerPicks);
+
+        if (!targetPosition) {
+            return res.status(400).json({
+                error: requestedPosition
+                    ? "position must match a league roster position"
+                    : "No open roster slots remain for this owner"
+            });
+        }
+
+        const filledPositionCount = ownerPicks
+            .filter((pick) => pick.position === targetPosition.abbr)
+            .length;
+
+        if (filledPositionCount >= targetPosition.count) {
+            return res.status(400).json({
+                error: `${targetPosition.abbr} roster slots are full for this owner`
+            });
+        }
+
         const existingPlayer = await DraftPick.findOne({
             league: league._id,
             $or: [
@@ -230,7 +351,7 @@ async function createDraftPick(req, res) {
             owner: ownerId,
             player: playerId || undefined,
             playerName,
-            position,
+            position: targetPosition.abbr,
             amount: draftAmount,
             stat,
             pickNumber: lastPick ? lastPick.pickNumber + 1 : 1,

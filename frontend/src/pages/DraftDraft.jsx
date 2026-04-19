@@ -41,6 +41,18 @@ function normalizePick(pick) {
   };
 }
 
+function normalizeRosterSlot(slot) {
+  return {
+    id: slot.id,
+    posAbbr: slot.abbr,
+    posName: slot.name,
+    playerName: slot.pick?.playerName || "Select a player ...",
+    price: slot.pick?.amount ?? 0,
+    stat: slot.pick?.stat || "...",
+    isEmpty: !slot.pick,
+  };
+}
+
 function createEmptyRows(count) {
   return Array.from({ length: count }, (_, index) => ({
     id: `empty-${index}`,
@@ -90,8 +102,13 @@ export default function DraftDraft() {
   }, [draftState]);
 
   const selectedOwner = owners.find((owner) => owner.id === selectedOwnerId) || owners[0];
+  const rosterPositions = draftState?.league?.rosterPositions || [];
 
   const rosterRows = useMemo(() => {
+    if (selectedOwner?.rosterSlots?.length) {
+      return selectedOwner.rosterSlots.map(normalizeRosterSlot);
+    }
+
     const picks = (selectedOwner?.roster || []).map(normalizePick);
     return picks.length ? picks : createEmptyRows(8);
   }, [selectedOwner]);
@@ -284,12 +301,21 @@ export default function DraftDraft() {
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <TextField
+                select
                 label="Position"
                 value={pickForm.position}
                 onChange={handleFormChange("position")}
-                placeholder="OF"
                 fullWidth
-              />
+              >
+                <MenuItem value="">
+                  Next open slot
+                </MenuItem>
+                {rosterPositions.map((position) => (
+                  <MenuItem key={position.abbr} value={position.abbr}>
+                    {position.abbr} · {position.name}
+                  </MenuItem>
+                ))}
+              </TextField>
               <TextField
                 label="Amount"
                 type="number"
