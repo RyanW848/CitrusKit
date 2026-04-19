@@ -5,11 +5,17 @@ const { protect } = require("../middleware/auth.middleware");
 const {
     listLeagues,
     createLeague,
-    getLeagueById
+    getLeagueById,
+    getDraftState,
+    createDraftPick,
+    deleteDraftPick
 } = require("../controllers/leagues.controller");
 
 router.get("/", protect, listLeagues);
 router.post("/", protect, createLeague);
+router.get("/:leagueId/draft", protect, getDraftState);
+router.post("/:leagueId/draft/picks", protect, createDraftPick);
+router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);
 router.get("/:leagueId", protect, getLeagueById);
 
 module.exports = router;

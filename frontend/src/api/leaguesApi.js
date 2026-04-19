@@ -17,3 +17,13 @@ export async function fetchLeagueById(leagueId) {
   const { data } = await client.get(`/leagues/${leagueId}`);
   return data;
 }
+
+export async function fetchDraftState(leagueId) {
+  const { data } = await client.get(`/leagues/${leagueId}/draft`);
+  return data;
+}
+
+export async function createDraftPick(leagueId, payload) {
+  const { data } = await client.post(`/leagues/${leagueId}/draft/picks`, payload);
+  return data;
+}

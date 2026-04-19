@@ -5,6 +5,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import app from "../../app.js";
 import User from "../../models/User.js";
 import League from "../../models/League.js";
+import DraftPick from "../../models/DraftPick.js";
 
 let mongod;
 let token;
@@ -31,6 +32,7 @@ afterAll(async () => {
 beforeEach(async () => {
     await User.deleteMany({});
     await League.deleteMany({});
+    await DraftPick.deleteMany({});
 
     // Register and log in a fresh user before each test
     const res = await request(app)
@@ -179,5 +181,199 @@ describe("GET /api/leagues/:leagueId", () => {
 
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject({ name: "Test League", teamCount: 2 });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Draft state  GET /api/leagues/:leagueId/draft
+// ---------------------------------------------------------------------------
+describe("GET /api/leagues/:leagueId/draft", () => {
+    let leagueId;
+    let owners;
+
+    beforeEach(async () => {
+        const res = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send(validLeagueBody);
+        leagueId = res.body.id;
+        owners = res.body.owners;
+    });
+
+    it("returns 401 when no token is provided", async () => {
+        const res = await request(app).get(`/api/leagues/${leagueId}/draft`);
+        expect(res.status).toBe(401);
+    });
+
+    it("returns 200 with league owners and draft picks", async () => {
+        await DraftPick.create({
+            league: leagueId,
+            owner: owners[0].id,
+            playerName: "Shohei Ohtani",
+            position: "DH",
+            amount: 42,
+            stat: "R",
+            pickNumber: 1,
+        });
+
+        const res = await request(app)
+            .get(`/api/leagues/${leagueId}/draft`)
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.league).toMatchObject({ id: leagueId, name: "Test League" });
+        expect(res.body.picks).toHaveLength(1);
+        expect(res.body.owners[0]).toMatchObject({
+            id: owners[0].id,
+            spent: 42,
+            remainingBudget: 158,
+        });
+    });
+
+    it("returns 403 when the league belongs to another user", async () => {
+        const bobRes = await request(app)
+            .post("/api/auth/register")
+            .send({ name: "Bob", email: "bob@b.com", password: "pass123" });
+
+        const res = await request(app)
+            .get(`/api/leagues/${leagueId}/draft`)
+            .set("Authorization", `Bearer ${bobRes.body.token}`);
+
+        expect(res.status).toBe(403);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Draft picks  POST /api/leagues/:leagueId/draft/picks
+// ---------------------------------------------------------------------------
+describe("POST /api/leagues/:leagueId/draft/picks", () => {
+    let leagueId;
+    let owners;
+
+    beforeEach(async () => {
+        const res = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send(validLeagueBody);
+        leagueId = res.body.id;
+        owners = res.body.owners;
+    });
+
+    it("returns 401 when no token is provided", async () => {
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .send({ ownerId: owners[0].id, playerName: "Aaron Judge", amount: 30 });
+
+        expect(res.status).toBe(401);
+    });
+
+    it("returns 201 and persists a draft pick", async () => {
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                position: "OF",
+                amount: 30,
+                stat: "HR",
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toMatchObject({
+            owner: owners[0].id,
+            playerName: "Aaron Judge",
+            amount: 30,
+            pickNumber: 1,
+        });
+
+        const saved = await DraftPick.findById(res.body.id);
+        expect(saved).not.toBeNull();
+        expect(saved.playerName).toBe("Aaron Judge");
+    });
+
+    it("returns 400 when the owner is not in the league", async () => {
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: new mongoose.Types.ObjectId().toString(),
+                playerName: "Aaron Judge",
+                amount: 30,
+            });
+
+        expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when the pick exceeds the owner budget", async () => {
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                amount: 201,
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("Draft pick exceeds owner budget");
+    });
+
+    it("returns 409 when a player is already drafted in the league", async () => {
+        await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ ownerId: owners[0].id, playerName: "Aaron Judge", amount: 30 });
+
+        const res = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ ownerId: owners[1].id, playerName: "Aaron Judge", amount: 30 });
+
+        expect(res.status).toBe(409);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Draft picks  DELETE /api/leagues/:leagueId/draft/picks/:pickId
+// ---------------------------------------------------------------------------
+describe("DELETE /api/leagues/:leagueId/draft/picks/:pickId", () => {
+    let leagueId;
+    let owners;
+    let pickId;
+
+    beforeEach(async () => {
+        const leagueRes = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send(validLeagueBody);
+        leagueId = leagueRes.body.id;
+        owners = leagueRes.body.owners;
+
+        const pickRes = await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({ ownerId: owners[0].id, playerName: "Aaron Judge", amount: 30 });
+        pickId = pickRes.body.id;
+    });
+
+    it("returns 404 when the pick is not in the league", async () => {
+        const res = await request(app)
+            .delete(`/api/leagues/${leagueId}/draft/picks/${new mongoose.Types.ObjectId()}`)
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.status).toBe(404);
+    });
+
+    it("returns 200 and deletes the pick", async () => {
+        const res = await request(app)
+            .delete(`/api/leagues/${leagueId}/draft/picks/${pickId}`)
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.deleted).toBe(true);
+
+        const saved = await DraftPick.findById(pickId);
+        expect(saved).toBeNull();
     });
 });
