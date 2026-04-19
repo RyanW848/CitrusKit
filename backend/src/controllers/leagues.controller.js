@@ -9,6 +9,8 @@ function serializeDraftPick(pick) {
         player: pick.player,
         playerName: pick.playerName,
         position: pick.position,
+        slot: pick.slot,
+        rosterSlot: `${pick.position}-${pick.slot}`,
         amount: pick.amount,
         stat: pick.stat,
         pickNumber: pick.pickNumber,
@@ -112,28 +114,44 @@ function findRosterPosition(league, abbr) {
         .find((position) => position.abbr === abbr);
 }
 
-function findFirstAvailablePosition(league, ownerPicks) {
-    return serializeRosterPositions(getLeagueRosterPositions(league))
-        .find((position) => {
-            const filledCount = ownerPicks.filter((pick) => pick.position === position.abbr).length;
-            return filledCount < position.count;
-        });
+function findFirstAvailableSlot(league, ownerPicks) {
+    for (const position of serializeRosterPositions(getLeagueRosterPositions(league))) {
+        for (let slot = 1; slot <= position.count; slot += 1) {
+            const isFilled = ownerPicks.some((pick) => pick.position === position.abbr && pick.slot === slot);
+            if (!isFilled) {
+                return { position, slot };
+            }
+        }
+    }
+
+    return null;
+}
+
+function findFirstAvailableSlotForPosition(position, ownerPicks) {
+    for (let slot = 1; slot <= position.count; slot += 1) {
+        const isFilled = ownerPicks.some((pick) => pick.position === position.abbr && pick.slot === slot);
+        if (!isFilled) {
+            return slot;
+        }
+    }
+
+    return null;
 }
 
 function buildRosterSlots(league, ownerPicks) {
-    const remainingPicks = [...ownerPicks];
-
     return serializeRosterPositions(getLeagueRosterPositions(league))
         .flatMap((position) => {
             return Array.from({ length: position.count }, (_, index) => {
-                const pickIndex = remainingPicks.findIndex((pick) => pick.position === position.abbr);
-                const pick = pickIndex >= 0 ? remainingPicks.splice(pickIndex, 1)[0] : null;
+                const slot = index + 1;
+                const pick = ownerPicks.find((ownerPick) => (
+                    ownerPick.position === position.abbr && ownerPick.slot === slot
+                ));
 
                 return {
-                    id: `${position.abbr}-${index + 1}`,
+                    id: `${position.abbr}-${slot}`,
                     abbr: position.abbr,
                     name: position.name,
-                    slot: index + 1,
+                    slot,
                     pick: pick ? serializeDraftPick(pick) : null,
                 };
             });
@@ -273,7 +291,7 @@ async function getDraftState(req, res) {
 
 async function createDraftPick(req, res) {
     try {
-        const { ownerId, playerId, playerName, position, amount, stat } = req.body;
+        const { ownerId, playerId, playerName, position, slot, rosterSlot, amount, stat } = req.body;
 
         if (!ownerId || !playerName || amount === undefined) {
             return res.status(400).json({
@@ -308,26 +326,63 @@ async function createDraftPick(req, res) {
             });
         }
 
-        const requestedPosition = position?.trim().toUpperCase();
+        const requestedRosterSlot = rosterSlot?.trim().toUpperCase();
+        const [rosterSlotPosition, rosterSlotNumber] = requestedRosterSlot
+            ? requestedRosterSlot.split("-")
+            : [];
+        const requestedPosition = (position || rosterSlotPosition)?.trim().toUpperCase();
+        const requestedSlot = slot !== undefined
+            ? Number(slot)
+            : (rosterSlotNumber ? Number(rosterSlotNumber) : undefined);
         const targetPosition = requestedPosition
             ? findRosterPosition(league, requestedPosition)
-            : findFirstAvailablePosition(league, ownerPicks);
+            : null;
 
-        if (!targetPosition) {
+        if (requestedPosition && !targetPosition) {
+            return res.status(400).json({
+                error: "position must match a league roster position"
+            });
+        }
+
+        if (requestedSlot !== undefined && (!Number.isInteger(requestedSlot) || requestedSlot < 1)) {
+            return res.status(400).json({
+                error: "slot must be a positive integer"
+            });
+        }
+
+        let targetSlotAssignment;
+        if (targetPosition && requestedSlot !== undefined) {
+            targetSlotAssignment = { position: targetPosition, slot: requestedSlot };
+        } else if (targetPosition) {
+            targetSlotAssignment = {
+                position: targetPosition,
+                slot: findFirstAvailableSlotForPosition(targetPosition, ownerPicks),
+            };
+        } else {
+            targetSlotAssignment = findFirstAvailableSlot(league, ownerPicks);
+        }
+
+        if (!targetSlotAssignment || !targetSlotAssignment.slot) {
             return res.status(400).json({
                 error: requestedPosition
-                    ? "position must match a league roster position"
+                    ? `${targetPosition.abbr} roster slots are full for this owner`
                     : "No open roster slots remain for this owner"
             });
         }
 
-        const filledPositionCount = ownerPicks
-            .filter((pick) => pick.position === targetPosition.abbr)
-            .length;
-
-        if (filledPositionCount >= targetPosition.count) {
+        if (targetSlotAssignment.slot > targetSlotAssignment.position.count) {
             return res.status(400).json({
-                error: `${targetPosition.abbr} roster slots are full for this owner`
+                error: `${targetSlotAssignment.position.abbr}-${targetSlotAssignment.slot} is not a valid roster slot`
+            });
+        }
+
+        const existingSlotPick = ownerPicks.find((pick) => (
+            pick.position === targetSlotAssignment.position.abbr && pick.slot === targetSlotAssignment.slot
+        ));
+
+        if (existingSlotPick) {
+            return res.status(409).json({
+                error: `${targetSlotAssignment.position.abbr}-${targetSlotAssignment.slot} is already filled`
             });
         }
 
@@ -351,7 +406,8 @@ async function createDraftPick(req, res) {
             owner: ownerId,
             player: playerId || undefined,
             playerName,
-            position: targetPosition.abbr,
+            position: targetSlotAssignment.position.abbr,
+            slot: targetSlotAssignment.slot,
             amount: draftAmount,
             stat,
             pickNumber: lastPick ? lastPick.pickNumber + 1 : 1,
