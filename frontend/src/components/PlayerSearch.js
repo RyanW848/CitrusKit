@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAllPlayers, getPlayerStats } from '../api/playerClient';
 import SearchBar from './SearchBar';
+import PLayerStatsModel from './PlayerStatsModel'
 import { IconButton, CircularProgress } from '@mui/material';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
