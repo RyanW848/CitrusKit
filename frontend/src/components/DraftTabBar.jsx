@@ -18,6 +18,7 @@ const TABS = [
  */
 export default function DraftTabBar({ activeTab, draftId }) {
   const navigate = useNavigate();
+  const isLocked = !draftId;
 
   return (
     <Box
@@ -40,20 +41,23 @@ export default function DraftTabBar({ activeTab, draftId }) {
       >
         {TABS.map((tab) => {
           const isActive = activeTab === tab.path;
+          const isDisabled = isLocked && !isActive;
           return (
             <Button
               key={tab.label}
-              onClick={() => navigate(`/draft/${draftId}/${tab.path}`)}
-              disableRipple={isActive}
+              onClick={isDisabled ? undefined : () => navigate(`/draft/${draftId}/${tab.path}`)}
+              disableRipple={isActive || isDisabled}
               sx={{
                 textTransform: "none",
                 fontWeight: isActive ? 600 : 400,
-                color: "#1a1a1a",
+                color: isDisabled ? "#c5b5b0" : "#1a1a1a",
                 borderRadius: "20px",
                 px: 2.5,
                 py: 0.6,
                 minWidth: 0,
                 fontSize: "0.9rem",
+                cursor: isDisabled ? "default" : "pointer",
+                pointerEvents: isDisabled ? "none" : "auto",
                 bgcolor: isActive ? "#f4c9b3" : "transparent",
                 "&:hover": {
                   bgcolor: isActive ? "#f4c9b3" : "#f0e8e0",
