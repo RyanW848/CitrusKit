@@ -1,14 +1,51 @@
 import axios from 'axios';
 
-const PLAYER_API_KEY = "admin_api_key"
+const PLAYER_API_KEY = process.env.REACT_APP_DYKB_API_KEY || "admin_api_key"
 
 const playerClient = axios.create({
   baseURL: process.env.REACT_APP_DO_YOU_KNOW_BALL ||
     'https://do-u-know-ball.com',
   headers: {
-    'X-API-Key': PLAYER_API_KEY
+    'X-API-Key': PLAYER_API_KEY,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   }
 });
+
+playerClient.interceptors.request.use((config) => {
+  const key = localStorage.getItem('DYKB_PLAYER_API_KEY');
+  if (key) {
+    config.headers['X-API-Key'] = key;
+  }
+
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+export const generateNewApiKey = async (jwtToken) => {
+  try {
+    const response = await axios.post(
+      'https://do-u-know-ball.com/api-keys/generate',
+      {}, // Empty body as per the spec
+      {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const { api_key } = response.data;
+
+    localStorage.setItem('DYKB_PLAYER_API_KEY', api_key);
+
+    return api_key;
+  } catch (error) {
+    console.error("Failed to generate API Key:", error.response?.data || error.message);
+    throw error;
+  }
+}
 
 export const getAllPlayers = async () => {
   const response = await playerClient.get('/players');
@@ -24,7 +61,7 @@ export const getPlayerId = async (playerName, dateOfBirth = null) => {
   return response.data;
 }
 
-export const getPlayerStats  = async (ids, year = null) => {
+export const getPlayerStats = async (ids, year = null) => {
   const params = { ids: Array.isArray(ids) ? ids.join(',') : ids };
 
   if (year) params.year = year;
@@ -50,12 +87,12 @@ export const getTransactions = async () => {
 
 export const getPlayerValues = async ({ budget, relevantStats, playersLeftToDraft, unavailablePlayerIds, playerIds }) => {
   const body = {
-      budget,
-      relevant_stats: Array.isArray(relevantStats) ? relevantStats.join(',') : relevantStats,
+    budget,
+    relevant_stats: Array.isArray(relevantStats) ? relevantStats.join(',') : relevantStats,
   };
   if (playersLeftToDraft != null) body.players_left_to_draft = playersLeftToDraft;
-  if (unavailablePlayerIds)      body.unavailable_player_ids = unavailablePlayerIds;
-  if (playerIds)                 body.player_ids = playerIds;
+  if (unavailablePlayerIds) body.unavailable_player_ids = unavailablePlayerIds;
+  if (playerIds) body.player_ids = playerIds;
 
   const response = await playerClient.post('/value', body);
   return response.data;
