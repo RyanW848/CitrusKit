@@ -4,7 +4,7 @@ const PLAYER_API_KEY = "admin_api_key"
 
 const playerClient = axios.create({
   baseURL: process.env.REACT_APP_DO_YOU_KNOW_BALL ||
-    'https://https://do-u-know-ball.com',
+    'https://do-u-know-ball.com',
   headers: {
     'X-API-Key': PLAYER_API_KEY
   }
