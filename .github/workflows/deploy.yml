@@ -41,6 +41,7 @@ jobs:
           username: 'root'
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
+            set -e
             cd /opt/CitrusKit/
             git pull
             cd frontend
