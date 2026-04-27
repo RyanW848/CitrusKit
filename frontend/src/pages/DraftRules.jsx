@@ -133,7 +133,6 @@ export default function DraftRules() {
   const [scoringStats, setScoringStats] = useState(isCreating ? DEFAULT_SCORING : MOCK_STATS);
   const [positions, setPositions] = useState(isCreating ? DEFAULT_POSITIONS : MOCK_POSITIONS);
   const [addingStat, setAddingStat] = useState(false);
-  const [newPosition, setNewPosition] = useState(null);
   const [createError, setCreateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
@@ -329,13 +328,7 @@ export default function DraftRules() {
           </Box>
         );
 
-      case "positions": {
-        const commitNewPosition = () => {
-          if (newPosition && newPosition.abbr.trim() && newPosition.name.trim()) {
-            setPositions([...positions, { ...newPosition, count: Math.max(1, newPosition.count) }]);
-          }
-          setNewPosition(null);
-        };
+      case "positions":
         return (
           <Box sx={{ p: 2.5, pb: fabPb }}>
             {sectionLabel(`Roster Positions — ${totalSlots} slots`)}
@@ -349,28 +342,19 @@ export default function DraftRules() {
                 </Typography>
                 <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{pos.name}</Typography>
                 {isCreating ? (
-                  <>
-                    <TextField
-                      variant="standard"
-                      type="number"
-                      value={pos.count}
-                      size="small"
-                      slotProps={{ htmlInput: { min: 0, style: { textAlign: "right", width: 28, fontSize: "0.9rem" } } }}
-                      sx={{ width: 44, ...fieldSx }}
-                      onChange={(e) =>
-                        setPositions(positions.map((p, j) =>
-                          j === i ? { ...p, count: Math.max(0, Number(e.target.value)) } : p
-                        ))
-                      }
-                    />
-                    <IconButton
-                      size="small"
-                      sx={{ color: "#b0a0a0" }}
-                      onClick={() => setPositions(positions.filter((_, j) => j !== i))}
-                    >
-                      <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </>
+                  <TextField
+                    variant="standard"
+                    type="number"
+                    value={pos.count}
+                    size="small"
+                    slotProps={{ htmlInput: { min: 0, style: { textAlign: "right", width: 28, fontSize: "0.9rem" } } }}
+                    sx={{ width: 44, ...fieldSx }}
+                    onChange={(e) =>
+                      setPositions(positions.map((p, j) =>
+                        j === i ? { ...p, count: Math.max(0, Number(e.target.value)) } : p
+                      ))
+                    }
+                  />
                 ) : (
                   <Typography sx={{ fontSize: "0.9rem", color: "#555", minWidth: 24, textAlign: "right" }}>
                     {pos.count}
@@ -378,52 +362,8 @@ export default function DraftRules() {
                 )}
               </Box>
             ))}
-            {isCreating && newPosition && (
-              <Box sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1, borderBottom: "1px solid #e8d8cc" }}>
-                <TextField
-                  variant="standard"
-                  placeholder="Abbr"
-                  value={newPosition.abbr}
-                  size="small"
-                  autoFocus
-                  sx={{ width: 48, ...fieldSx }}
-                  onChange={(e) => setNewPosition({ ...newPosition, abbr: e.target.value.toUpperCase() })}
-                />
-                <TextField
-                  variant="standard"
-                  placeholder="Position name"
-                  value={newPosition.name}
-                  size="small"
-                  sx={{ flexGrow: 1, ...fieldSx }}
-                  onChange={(e) => setNewPosition({ ...newPosition, name: e.target.value })}
-                  onBlur={commitNewPosition}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitNewPosition();
-                    if (e.key === "Escape") setNewPosition(null);
-                  }}
-                />
-                <TextField
-                  variant="standard"
-                  type="number"
-                  value={newPosition.count}
-                  size="small"
-                  slotProps={{ htmlInput: { min: 1, style: { textAlign: "right", width: 28, fontSize: "0.9rem" } } }}
-                  sx={{ width: 44, ...fieldSx }}
-                  onChange={(e) => setNewPosition({ ...newPosition, count: Math.max(1, Number(e.target.value)) })}
-                />
-              </Box>
-            )}
-            {isCreating && (
-              <CitrusFab
-                icon={<AddIcon />}
-                size={44}
-                onClick={() => setNewPosition({ abbr: "", name: "", count: 1 })}
-                sx={{ position: "absolute", bottom: 12, right: 12 }}
-              />
-            )}
           </Box>
         );
-      }
 
       case "owners":
         return (
