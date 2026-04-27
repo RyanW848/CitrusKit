@@ -1,5 +1,20 @@
 const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
+const PlanPick = require("../models/PlanPick");
+
+function serializePlanPick(pick) {
+    return {
+        id: pick._id,
+        league: pick.league,
+        owner: pick.owner,
+        player: pick.player,
+        playerName: pick.playerName,
+        position: pick.position,
+        plannedAmount: pick.plannedAmount,
+        createdAt: pick.createdAt,
+        updatedAt: pick.updatedAt,
+    };
+}
 
 function serializeDraftPick(pick) {
     return {
@@ -140,9 +155,30 @@ function buildRosterSlots(league, ownerPicks) {
         });
 }
 
-function buildDraftState(league, picks) {
+function buildPlannedRosterSlots(league, ownerPlans) {
+    const remainingPlans = [...ownerPlans];
+
+    return serializeRosterPositions(getLeagueRosterPositions(league))
+        .flatMap((position) => {
+            return Array.from({ length: position.count }, (_, index) => {
+                const planIndex = remainingPlans.findIndex((p) => p.position === position.abbr);
+                const plan = planIndex >= 0 ? remainingPlans.splice(planIndex, 1)[0] : null;
+
+                return {
+                    id: `plan-${position.abbr}-${index + 1}`,
+                    abbr: position.abbr,
+                    name: position.name,
+                    slot: index + 1,
+                    plan: plan ? serializePlanPick(plan) : null,
+                };
+            });
+        });
+}
+
+function buildDraftState(league, picks, planPicks = []) {
     const ownerStates = (league.owners || []).map((owner, index) => {
         const ownerPicks = picks.filter((pick) => pick.owner.toString() === owner._id.toString());
+        const ownerPlans = planPicks.filter((p) => p.owner.toString() === owner._id.toString());
         const spent = ownerPicks.reduce((sum, pick) => sum + pick.amount, 0);
 
         return {
@@ -154,6 +190,7 @@ function buildDraftState(league, picks) {
             remainingBudget: league.budget - spent,
             roster: ownerPicks.map(serializeDraftPick),
             rosterSlots: buildRosterSlots(league, ownerPicks),
+            plannedRosterSlots: buildPlannedRosterSlots(league, ownerPlans),
         };
     });
 
@@ -260,9 +297,12 @@ async function getDraftState(req, res) {
             return res.status(result.status).json({ error: result.error });
         }
 
-        const picks = await DraftPick.find({ league: result.league._id }).sort({ pickNumber: 1 });
+        const [picks, planPicks] = await Promise.all([
+            DraftPick.find({ league: result.league._id }).sort({ pickNumber: 1 }),
+            PlanPick.find({ league: result.league._id }),
+        ]);
 
-        return res.status(200).json(buildDraftState(result.league, picks));
+        return res.status(200).json(buildDraftState(result.league, picks, planPicks));
     } catch (error) {
         console.error("GET DRAFT STATE ERROR:", error);
         return res.status(500).json({
@@ -357,6 +397,9 @@ async function createDraftPick(req, res) {
             pickNumber: lastPick ? lastPick.pickNumber + 1 : 1,
         });
 
+        // Remove the owner's plan pick for this player if one exists
+        await PlanPick.deleteOne({ league: league._id, owner: ownerId, playerName: playerName.trim() });
+
         return res.status(201).json(serializeDraftPick(pick));
     } catch (error) {
         console.error("CREATE DRAFT PICK ERROR:", error);
@@ -398,6 +441,72 @@ async function deleteDraftPick(req, res) {
     }
 }
 
+async function createPlanPick(req, res) {
+    try {
+        const { ownerId, playerName, position, plannedAmount, playerId } = req.body;
+
+        if (!ownerId || !playerName) {
+            return res.status(400).json({ error: "ownerId and playerName are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const league = result.league;
+        if (!ownerBelongsToLeague(league, ownerId)) {
+            return res.status(400).json({ error: "ownerId must belong to the league" });
+        }
+
+        const normalizedPosition = position?.trim().toUpperCase();
+        if (normalizedPosition && !findRosterPosition(league, normalizedPosition)) {
+            return res.status(400).json({ error: "position must match a league roster position" });
+        }
+
+        const plan = await PlanPick.create({
+            league: league._id,
+            owner: ownerId,
+            player: playerId || undefined,
+            playerName: playerName.trim(),
+            position: normalizedPosition || undefined,
+            plannedAmount: plannedAmount != null ? Math.max(0, Number(plannedAmount)) : 0,
+        });
+
+        return res.status(201).json(serializePlanPick(plan));
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(409).json({ error: "Player is already in your plan for this league" });
+        }
+        console.error("CREATE PLAN PICK ERROR:", err);
+        return res.status(500).json({ error: "Error creating plan pick" });
+    }
+}
+
+async function deletePlanPick(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const plan = await PlanPick.findOne({
+            _id: req.params.pickId,
+            league: result.league._id,
+        });
+
+        if (!plan) {
+            return res.status(404).json({ error: "Plan pick not found" });
+        }
+
+        await plan.deleteOne();
+        return res.status(200).json({ deleted: true, pick: serializePlanPick(plan) });
+    } catch (err) {
+        console.error("DELETE PLAN PICK ERROR:", err);
+        return res.status(500).json({ error: "Error deleting plan pick" });
+    }
+}
+
 module.exports = {
     listLeagues,
     createLeague,
@@ -405,4 +514,6 @@ module.exports = {
     getDraftState,
     createDraftPick,
     deleteDraftPick,
+    createPlanPick,
+    deletePlanPick,
 };

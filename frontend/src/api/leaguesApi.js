@@ -27,3 +27,13 @@ export async function createDraftPick(leagueId, payload) {
   const { data } = await client.post(`/leagues/${leagueId}/draft/picks`, payload);
   return data;
 }
+
+export async function createPlanPick(leagueId, payload) {
+  const { data } = await client.post(`/leagues/${leagueId}/plan/picks`, payload);
+  return data;
+}
+
+export async function deletePlanPick(leagueId, pickId) {
+  const { data } = await client.delete(`/leagues/${leagueId}/plan/picks/${pickId}`);
+  return data;
+}
