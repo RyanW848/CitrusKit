@@ -5,13 +5,12 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { computeFiveTools, computePercentile, computeRank, RANKING_STATS } from '../utils/playerStats';
+import { computeFiveTools, computePercentile, computeRank, RANKING_STATS } from '../utils/playerStats.utils';
 
 const accentColor = '#f97316';
 const dimColor    = '#fde0c8';
 
-// Created with Claude Assistance 
-
+// ─── Radar label ─────────────────────────────────────────────────────────────
 const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     const dx = x - cx, dy = y - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -27,18 +26,39 @@ const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     );
 };
 
-const PercentileBar = ({ pct }) => (
-    <div style={{ position: 'relative', height: 6, background: dimColor, borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{
-            position: 'absolute', left: 0, top: 0, height: '100%',
-            width: `${pct}%`,
-            background: pct >= 75 ? '#16a34a' : pct >= 50 ? accentColor : '#dc2626',
-            borderRadius: 3,
-            transition: 'width 0.6s ease',
-        }} />
-    </div>
-);
+// ─── Percentile bar ───────────────────────────────────────────────────────────
+const PercentileBar = ({ pct }) => {
+    const barColor = pct >= 75 ? '#16a34a' : pct >= 50 ? accentColor : '#dc2626';
+    return (
+        <div style={{ position: 'relative', padding: '5px 0' }}>
+            <div style={{ position: 'relative', height: 6, background: dimColor, borderRadius: 3 }}>
+                <div style={{
+                    position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${pct}%`,
+                    background: barColor,
+                    borderRadius: 3,
+                    transition: 'width 0.6s ease',
+                }} />
+            </div>
+            <div style={{
+                position: 'absolute',
+                left: `${pct}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                background: barColor,
+                border: '2px solid #fff9f5',
+                boxShadow: `0 0 0 1.5px ${barColor}`,
+                transition: 'left 0.6s ease',
+                zIndex: 1,
+            }} />
+        </div>
+    );
+};
 
+// ─── Main Modal ───────────────────────────────────────────────────────────────
 export default function PlayerStatsModal({ open, onClose, playerResult, allPlayersStats }) {
     const [tab, setTab] = useState(0);
 
@@ -65,6 +85,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                 }
             }}
         >
+            {/* Header */}
             <DialogTitle sx={{ p: 0 }}>
                 <Box sx={{
                     background: `linear-gradient(135deg, #1a1008 0%, #3a1f08 100%)`,
@@ -93,6 +114,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                     </IconButton>
                 </Box>
 
+                {/* Tabs */}
                 <Tabs
                     value={tab}
                     onChange={(_, v) => setTab(v)}
@@ -116,6 +138,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
             </DialogTitle>
 
             <DialogContent sx={{ p: 0, background: '#fff9f5' }}>
+                {/* ── Tab 0: Radar ── */}
                 {tab === 0 && (
                     <Box sx={{ p: 3 }}>
                         <ResponsiveContainer width="100%" height={300}>
@@ -133,6 +156,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                             </RadarChart>
                         </ResponsiveContainer>
 
+                        {/* Score pills */}
                         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap', mt: 1 }}>
                             {Object.entries(fiveTools).map(([tool, score]) => (
                                 <Box key={tool} sx={{
@@ -155,6 +179,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                     </Box>
                 )}
 
+                {/* ── Tab 1: Rankings ── */}
                 {tab === 1 && (
                     <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {RANKING_STATS.map(({ key, label, isFloat }) => {
@@ -162,6 +187,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                             if (raw == null) return null;
                             const val = isFloat ? parseFloat(raw) : parseInt(raw, 10);
 
+                            // Compute rank and percentile from allPlayersStats if available
                             const allVals = allPlayersStats
                                 ?.map(s => isFloat ? parseFloat(s[key]) : parseInt(s[key], 10))
                                 .filter(v => !isNaN(v));
