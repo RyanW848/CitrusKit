@@ -9,7 +9,9 @@ const {
     getLeagueById,
     getDraftState,
     createDraftPick,
-    deleteDraftPick
+    deleteDraftPick,
+    createPlanPick,
+    deletePlanPick,
 } = require("../controllers/leagues.controller");
 
 router.get("/", protect, listLeagues);
@@ -18,6 +20,8 @@ router.patch("/:leagueId", protect, updateLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
 router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);
+router.post("/:leagueId/plan/picks", protect, createPlanPick);
+router.delete("/:leagueId/plan/picks/:pickId", protect, deletePlanPick);
 router.get("/:leagueId", protect, getLeagueById);
 
 module.exports = router;

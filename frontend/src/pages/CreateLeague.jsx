@@ -1,3 +1,5 @@
+// Deprecated code; Functionality merged into the DraftRules panel
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {

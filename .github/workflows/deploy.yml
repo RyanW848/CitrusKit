@@ -41,12 +41,13 @@ jobs:
           username: 'root'
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
+            set -e
             cd /opt/CitrusKit/
             git pull
             cd frontend
-            npm ci
+            npm install
             npm run build
             systemctl reload nginx
             cd ../backend
-            npm ci
+            npm install
             pm2 restart server --update-env

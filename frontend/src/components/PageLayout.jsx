@@ -1,7 +1,8 @@
 import { Box, Container, Typography, IconButton } from "@mui/material";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Common page shell used by all pages.
@@ -22,6 +23,7 @@ export default function PageLayout({
   title,
   subtitle,
   showBell = false,
+  showHome = true,
   onBellClick,
   onSettingsClick,
   settingsMenu,
@@ -29,6 +31,8 @@ export default function PageLayout({
   maxWidth = "md",
   noPad = false,
 }) {
+  const navigate = useNavigate();
+
   return (
     <Box
       sx={{
@@ -47,7 +51,18 @@ export default function PageLayout({
             mb: 2,
           }}
         >
-          <AccountCircleOutlinedIcon sx={{ color: "#1a1a1a", fontSize: 28 }} />
+          {showHome ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, cursor: "pointer" }} onClick={() => navigate("/home")}>
+              <HomeOutlinedIcon sx={{ color: "#1a1a1a", fontSize: 28 }} />
+              <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#1a1a1a", letterSpacing: 0.3 }}>
+                CitrusKit
+              </Typography>
+            </Box>
+          ) : (
+            <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#1a1a1a", letterSpacing: 0.3 }}>
+              CitrusKit
+            </Typography>
+          )}
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             {showBell && (
               <IconButton size="small" onClick={onBellClick}>
@@ -55,7 +70,7 @@ export default function PageLayout({
               </IconButton>
             )}
             <IconButton size="small" onClick={onSettingsClick}>
-              <SettingsOutlinedIcon sx={{ color: "#555" }} />
+              <AccountCircleOutlinedIcon sx={{ color: "#555", fontSize: 26 }} />
             </IconButton>
             {settingsMenu}
           </Box>

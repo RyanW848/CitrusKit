@@ -14,7 +14,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
  *   getRoster    – fn(ownerId) => array of { posAbbr, posName, playerName, price, stat }
  *   rightSlot    – optional element rendered at the bottom-right of the right panel
  */
-export default function OwnerRosterPanel({ owners, getRoster, rightSlot }) {
+export default function OwnerRosterPanel({ owners, getRoster, rightSlot, editableOwnerId, onSlotClick }) {
   const [selectedId, setSelectedId] = useState(owners[0]?.id ?? null);
 
   useEffect(() => {
@@ -90,15 +90,21 @@ export default function OwnerRosterPanel({ owners, getRoster, rightSlot }) {
 
       {/* Right – roster */}
       <Box sx={{ bgcolor: "#fef0e8", position: "relative", p: 1.5 }}>
-        {roster.map((slot, i) => (
+        {roster.map((slot, i) => {
+          const isEditable = onSlotClick && editableOwnerId != null && selectedId === String(editableOwnerId);
+          return (
           <Box
             key={i}
+            onClick={isEditable ? () => onSlotClick(slot, i) : undefined}
             sx={{
               display: "flex",
               alignItems: "center",
               py: 1,
               borderBottom: i < roster.length - 1 ? "1px solid #e8d8cc" : "none",
               gap: 1,
+              cursor: isEditable ? "pointer" : "default",
+              borderRadius: "6px",
+              "&:hover": isEditable ? { bgcolor: "rgba(140, 118, 114, 0.06)" } : undefined,
             }}
           >
             {/* Position abbreviation */}
@@ -180,7 +186,8 @@ export default function OwnerRosterPanel({ owners, getRoster, rightSlot }) {
               {slot.stat ?? "..."}
             </Typography>
           </Box>
-        ))}
+          );
+        })}
 
         {/* Optional slot for FAB etc. */}
         {rightSlot && (
