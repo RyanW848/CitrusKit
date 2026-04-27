@@ -22,7 +22,14 @@ const draftPickSchema = new mongoose.Schema({
     },
     position: {
         type: String,
+        required: true,
         trim: true,
+        uppercase: true,
+    },
+    slot: {
+        type: Number,
+        required: true,
+        min: [1, "Roster slot must be positive"],
     },
     amount: {
         type: Number,
@@ -48,5 +55,6 @@ draftPickSchema.index({ league: 1, player: 1 }, {
 });
 draftPickSchema.index({ league: 1, playerName: 1 }, { unique: true });
 draftPickSchema.index({ league: 1, pickNumber: 1 }, { unique: true });
+draftPickSchema.index({ league: 1, owner: 1, position: 1, slot: 1 }, { unique: true });
 
 module.exports = mongoose.model("DraftPick", draftPickSchema);

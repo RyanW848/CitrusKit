@@ -22,6 +22,7 @@ const emptyPickForm = {
   ownerId: "",
   playerName: "",
   position: "",
+  slot: "",
   amount: "",
   stat: "",
 };
@@ -35,6 +36,7 @@ function normalizePick(pick) {
     id: pick.id,
     posAbbr: pick.position || "UT",
     posName: pick.position || `Pick ${pick.pickNumber}`,
+    rosterSlot: pick.rosterSlot,
     playerName: pick.playerName,
     price: pick.amount,
     stat: pick.stat || "...",
@@ -46,6 +48,8 @@ function normalizeRosterSlot(slot) {
     id: slot.id,
     posAbbr: slot.abbr,
     posName: slot.name,
+    slot: slot.slot,
+    rosterSlot: slot.id,
     playerName: slot.pick?.playerName || "Select a player ...",
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat || "...",
@@ -139,6 +143,7 @@ export default function DraftDraft() {
         ownerId: pickForm.ownerId,
         playerName: pickForm.playerName.trim(),
         position: pickForm.position.trim(),
+        slot: pickForm.slot ? Number(pickForm.slot) : undefined,
         amount: Number(pickForm.amount),
         stat: pickForm.stat.trim(),
       });
@@ -230,7 +235,7 @@ export default function DraftDraft() {
                   {slot.posAbbr}
                 </Typography>
                 <Typography sx={{ width: 104, fontSize: "0.82rem", color: "#333" }}>
-                  {slot.posName}
+                  {slot.posName}{slot.slot ? ` ${slot.slot}` : ""}
                 </Typography>
                 <Typography
                   sx={{
@@ -304,7 +309,14 @@ export default function DraftDraft() {
                 select
                 label="Position"
                 value={pickForm.position}
-                onChange={handleFormChange("position")}
+                onChange={(event) => {
+                  const nextPosition = event.target.value;
+                  setPickForm((current) => ({
+                    ...current,
+                    position: nextPosition,
+                    slot: "",
+                  }));
+                }}
                 fullWidth
               >
                 <MenuItem value="">
@@ -317,6 +329,31 @@ export default function DraftDraft() {
                 ))}
               </TextField>
               <TextField
+                select
+                label="Slot"
+                value={pickForm.slot}
+                onChange={handleFormChange("slot")}
+                fullWidth
+                disabled={!pickForm.position}
+              >
+                <MenuItem value="">
+                  First open
+                </MenuItem>
+                {(rosterPositions.find((position) => position.abbr === pickForm.position)?.count
+                  ? Array.from({
+                      length: rosterPositions.find((position) => position.abbr === pickForm.position).count,
+                    })
+                  : []
+                ).map((_, index) => (
+                  <MenuItem key={index + 1} value={index + 1}>
+                    {pickForm.position}-{index + 1}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <TextField
                 label="Amount"
                 type="number"
                 value={pickForm.amount}
@@ -325,15 +362,14 @@ export default function DraftDraft() {
                 fullWidth
                 slotProps={{ htmlInput: { min: 0 } }}
               />
+              <TextField
+                label="Stat"
+                value={pickForm.stat}
+                onChange={handleFormChange("stat")}
+                placeholder="S1"
+                fullWidth
+              />
             </Box>
-
-            <TextField
-              label="Stat"
-              value={pickForm.stat}
-              onChange={handleFormChange("stat")}
-              placeholder="S1"
-              fullWidth
-            />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setDialogOpen(false)} disabled={isSaving} sx={{ color: "#6d5a57" }}>
