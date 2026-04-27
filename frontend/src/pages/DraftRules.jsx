@@ -6,6 +6,7 @@ import {
   Button,
   IconButton,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
@@ -68,11 +69,12 @@ const MOCK_POSITIONS = [
 
 // ── section nav ───────────────────────────────────────────────────────────────
 
-function SectionNav({ sections, activeId, onSelect }) {
+function SectionNav({ sections, activeId, onSelect, invalidIds = [] }) {
   return (
     <Box sx={{ bgcolor: "#fff", borderRight: "1px solid #e5d5c8", p: 1 }}>
       {sections.map((section) => {
         const isActive = activeId === section.id;
+        const isInvalid = invalidIds.includes(section.id);
         return (
           <Box
             key={section.id}
@@ -84,20 +86,24 @@ function SectionNav({ sections, activeId, onSelect }) {
               px: 1.5,
               py: 1.25,
               cursor: "pointer",
-              border: isActive ? "1.5px solid #8c7672" : "1.5px solid transparent",
+              border: isInvalid
+                ? "1.5px solid #d32f2f"
+                : isActive
+                ? "1.5px solid #8c7672"
+                : "1.5px solid transparent",
               borderRadius: "8px",
-              bgcolor: isActive ? "#f5f0ed" : "transparent",
-              "&:hover": { bgcolor: isActive ? "#f5f0ed" : "#faf4f0" },
+              bgcolor: isInvalid && !isActive ? "#fff5f5" : isActive ? "#f5f0ed" : "transparent",
+              "&:hover": { bgcolor: isInvalid && !isActive ? "#ffebeb" : isActive ? "#f5f0ed" : "#faf4f0" },
             }}
           >
-            <Box sx={{ color: "#6d5a57" }}>{section.icon}</Box>
-            <Typography sx={{ flexGrow: 1, fontSize: "0.95rem", fontWeight: isActive ? 600 : 400 }}>
+            <Box sx={{ color: isInvalid ? "#d32f2f" : "#6d5a57" }}>{section.icon}</Box>
+            <Typography sx={{ flexGrow: 1, fontSize: "0.95rem", fontWeight: isActive ? 600 : 400, color: isInvalid ? "#d32f2f" : "inherit" }}>
               {section.label}
             </Typography>
-            <Typography sx={{ fontSize: "0.85rem", color: "#888" }}>
+            <Typography sx={{ fontSize: "0.85rem", color: isInvalid ? "#d32f2f" : "#888" }}>
               {section.value}
             </Typography>
-            <ChevronRightIcon sx={{ fontSize: 18, color: "#b0a0a0" }} />
+            <ChevronRightIcon sx={{ fontSize: 18, color: isInvalid ? "#d32f2f" : "#b0a0a0" }} />
           </Box>
         );
       })}
@@ -123,6 +129,7 @@ export default function DraftRules() {
   const [newPosition, setNewPosition] = useState(null);
   const [createError, setCreateError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
 
   const handleChange = (field) => (e) => {
     const value = e.target.value;
@@ -464,6 +471,12 @@ export default function DraftRules() {
     }
   };
 
+  const invalidSections = validationAttempted ? [
+    !formData.name.trim() && "name",
+    formData.budget < 1 && "budget",
+    (owners.length < 2 || !owners.every((o) => o.name.trim())) && "owners",
+  ].filter(Boolean) : [];
+
   const canCreate =
     !isSubmitting &&
     formData.name.trim() &&
@@ -487,7 +500,7 @@ export default function DraftRules() {
           minHeight: 360,
         }}
       >
-        <SectionNav sections={sections} activeId={activeSection} onSelect={setActiveSection} />
+        <SectionNav sections={sections} activeId={activeSection} onSelect={setActiveSection} invalidIds={invalidSections} />
         <Box sx={{ bgcolor: "#fef0e8", position: "relative" }}>
           {renderRightPanel()}
         </Box>
@@ -500,7 +513,10 @@ export default function DraftRules() {
       )}
 
       {isCreating && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+        <Box
+          sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
+          onClick={!canCreate ? () => setValidationAttempted(true) : undefined}
+        >
           <Button
             variant="contained"
             startIcon={<AddCircleOutlineIcon />}
