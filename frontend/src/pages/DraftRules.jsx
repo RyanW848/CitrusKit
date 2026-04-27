@@ -1,12 +1,12 @@
-import { useContext, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   IconButton,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
@@ -16,471 +16,536 @@ import CheckIcon from "@mui/icons-material/Check";
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import CitrusFab from "../components/CitrusFab";
-import client from "../api/citrusClient";
 import { AuthContext } from "../context/AuthContext";
-import { btnSx } from "../styles/formStyles";
-
-// ── default / mock data ───────────────────────────────────────────────────────
+import { createLeague, fetchLeagueById, updateLeague } from "../api/leaguesApi";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 const DEFAULT_SCORING = [
-  "Runs (R)", "Home Runs (HR)", "RBI", "Stolen Bases (SB)", "Batting Average (AVG)",
-  "Wins (W)", "Strikeouts (K)", "ERA", "WHIP", "Saves (SV)",
+  "Runs (R)",
+  "Home Runs (HR)",
+  "RBI",
+  "Stolen Bases (SB)",
+  "Batting Average (AVG)",
+  "Wins (W)",
+  "Strikeouts (K)",
+  "ERA",
+  "WHIP",
+  "Saves (SV)",
 ];
 
 const DEFAULT_POSITIONS = [
-  { abbr: "C",  name: "Catcher",          count: 2 },
-  { abbr: "1B", name: "1st Baseman",       count: 1 },
-  { abbr: "2B", name: "2nd Baseman",       count: 1 },
-  { abbr: "3B", name: "3rd Baseman",       count: 1 },
-  { abbr: "SS", name: "Shortstop",         count: 1 },
-  { abbr: "CI", name: "Corner Infielder",  count: 1 },
-  { abbr: "MI", name: "Middle Infielder",  count: 1 },
-  { abbr: "OF", name: "Outfielder",        count: 5 },
-  { abbr: "U",  name: "Utility",           count: 1 },
-  { abbr: "SP", name: "Starting Pitcher",  count: 6 },
-  { abbr: "RP", name: "Relief Pitcher",    count: 3 },
+  { abbr: "C", name: "Catcher", count: 2 },
+  { abbr: "1B", name: "1st Baseman", count: 1 },
+  { abbr: "2B", name: "2nd Baseman", count: 1 },
+  { abbr: "3B", name: "3rd Baseman", count: 1 },
+  { abbr: "SS", name: "Shortstop", count: 1 },
+  { abbr: "CI", name: "Corner Infielder", count: 1 },
+  { abbr: "MI", name: "Middle Infielder", count: 1 },
+  { abbr: "OF", name: "Outfielder", count: 5 },
+  { abbr: "U", name: "Utility", count: 1 },
+  { abbr: "SP", name: "Starting Pitcher", count: 6 },
+  { abbr: "RP", name: "Relief Pitcher", count: 3 },
 ];
 
-const MOCK_OWNERS = [
-  { id: "a", name: "Alice" },
-  { id: "b", name: "Bob" },
-  { id: "c", name: "Carol" },
-  { id: "d", name: "David" },
-  { id: "e", name: "Eve" },
-  { id: "f", name: "Frank" },
-];
+function ownerLetter(index) {
+  return String.fromCharCode(65 + index);
+}
 
-const MOCK_STATS = ["Runs", "Stat #2", "Stat #3"];
+function createDraftRulesForm(league) {
+  return {
+    name: league?.name || "",
+    budget: league?.budget ?? 260,
+    owners: Array.isArray(league?.owners)
+      ? league.owners.map((owner) => ({
+          id: owner.id,
+          name: owner.name || "",
+        }))
+      : [],
+    scoringTypes: Array.isArray(league?.scoringTypes) ? league.scoringTypes : [...DEFAULT_SCORING],
+    rosterPositions: Array.isArray(league?.rosterPositions) && league.rosterPositions.length > 0
+      ? league.rosterPositions.map((position) => ({
+          abbr: position.abbr || "",
+          name: position.name || "",
+          count: position.count ?? 1,
+          sortOrder: position.sortOrder,
+        }))
+      : DEFAULT_POSITIONS.map((position, index) => ({
+          ...position,
+          sortOrder: index + 1,
+        })),
+  };
+}
 
-const MOCK_POSITIONS = [
-  { abbr: "C",  name: "Catcher",          count: 2 },
-  { abbr: "1B", name: "1st Baseman",       count: 1 },
-  { abbr: "3B", name: "3rd Baseman",       count: 1 },
-  { abbr: "CI", name: "Corner Infielder",  count: 1 },
-  { abbr: "2B", name: "2nd Baseman",       count: 1 },
-  { abbr: "SS", name: "Shortstop",         count: 1 },
-  { abbr: "MI", name: "Middle Infielder",  count: 1 },
-  { abbr: "OF", name: "Outfielder",        count: 5 },
-];
-
-// ── section nav ───────────────────────────────────────────────────────────────
-
-function SectionNav({ sections, activeId, onSelect, invalidIds = [] }) {
+function NameBudgetPanel({ form, onNameChange, onBudgetChange }) {
   return (
-    <Box sx={{ bgcolor: "#fff", borderRight: "1px solid #e5d5c8", p: 1 }}>
-      {sections.map((section) => {
-        const isActive = activeId === section.id;
-        const isInvalid = invalidIds.includes(section.id);
-        return (
-          <Box
-            key={section.id}
-            onClick={() => onSelect(section.id)}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              px: 1.5,
-              py: 1.25,
-              cursor: "pointer",
-              border: isInvalid
-                ? "1.5px solid #d32f2f"
-                : isActive
-                ? "1.5px solid #8c7672"
-                : "1.5px solid transparent",
-              borderRadius: "8px",
-              bgcolor: isInvalid && !isActive ? "#fff5f5" : isActive ? "#f5f0ed" : "transparent",
-              "&:hover": { bgcolor: isInvalid && !isActive ? "#ffebeb" : isActive ? "#f5f0ed" : "#faf4f0" },
-            }}
-          >
-            <Box sx={{ color: isInvalid ? "#d32f2f" : "#6d5a57" }}>{section.icon}</Box>
-            <Typography sx={{ flexGrow: 1, fontSize: "0.95rem", fontWeight: isActive ? 600 : 400, color: isInvalid ? "#d32f2f" : "inherit" }}>
-              {section.label}
-            </Typography>
-            <Typography sx={{ fontSize: "0.85rem", color: isInvalid ? "#d32f2f" : "#888" }}>
-              {section.value}
-            </Typography>
-            <ChevronRightIcon sx={{ fontSize: 18, color: isInvalid ? "#d32f2f" : "#b0a0a0" }} />
-          </Box>
-        );
-      })}
+    <Box sx={{ p: 1.5, display: "grid", gap: 2 }}>
+      <TextField
+        label="League name"
+        value={form.name}
+        onChange={(event) => onNameChange(event.target.value)}
+        fullWidth
+      />
+      <TextField
+        label="Budget"
+        type="number"
+        value={form.budget}
+        onChange={(event) => onBudgetChange(event.target.value)}
+        fullWidth
+      />
     </Box>
   );
 }
 
-// ── main component ────────────────────────────────────────────────────────────
+function OwnersPanel({ owners, onOwnerChange, onAddOwner, onRemoveOwner }) {
+  const canRemoveOwner = owners.length > 1;
+
+  return (
+    <Box sx={{ p: 1.5, position: "relative", minHeight: 280 }}>
+      {owners.map((owner, index) => (
+        <Box
+          key={owner.id || `owner-${index}`}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            py: 1,
+            gap: 1,
+            borderBottom: "1px solid #e8d8cc",
+          }}
+        >
+          <Typography sx={{ width: 20, fontWeight: 700, color: "#8c7672", fontSize: "0.88rem" }}>
+            {ownerLetter(index)}
+          </Typography>
+          <TextField
+            size="small"
+            variant="standard"
+            label="Owner name"
+            value={owner.name}
+            onChange={(event) => onOwnerChange(index, event.target.value)}
+            sx={{ flexGrow: 1 }}
+          />
+          <IconButton
+            size="small"
+            sx={{ color: "#b0a0a0" }}
+            onClick={() => onRemoveOwner(index)}
+            disabled={!canRemoveOwner}
+          >
+            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
+      ))}
+
+      <CitrusFab
+        icon={<AddIcon />}
+        size={44}
+        onClick={onAddOwner}
+        sx={{ position: "absolute", bottom: 12, right: 12 }}
+      />
+    </Box>
+  );
+}
+
+function ScoringPanel({ stats, onStatChange, onAddStat, onRemoveStat }) {
+  return (
+    <Box sx={{ p: 1.5, position: "relative", minHeight: 280 }}>
+      {stats.map((stat, index) => (
+        <Box
+          key={`stat-${index}`}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            py: 1,
+            gap: 1,
+            borderBottom: "1px solid #e8d8cc",
+          }}
+        >
+          <StarBorderIcon sx={{ fontSize: 16, color: "#8c7672" }} />
+          <TextField
+            size="small"
+            variant="standard"
+            label="Scoring type"
+            value={stat}
+            onChange={(event) => onStatChange(index, event.target.value)}
+            sx={{ flexGrow: 1 }}
+          />
+          <IconButton size="small" sx={{ color: "#b0a0a0" }} onClick={() => onRemoveStat(index)}>
+            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
+      ))}
+
+      <CitrusFab
+        icon={<AddIcon />}
+        size={44}
+        onClick={onAddStat}
+        sx={{ position: "absolute", bottom: 12, right: 12 }}
+      />
+    </Box>
+  );
+}
+
+function PositionsPanel({ positions, onPositionChange, onAddPosition, onRemovePosition }) {
+  return (
+    <Box sx={{ p: 1.5, position: "relative", minHeight: 280 }}>
+      {positions.map((position, index) => (
+        <Box
+          key={`${position.abbr || "position"}-${index}`}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            py: 1,
+            gap: 1,
+            borderBottom: "1px solid #e8d8cc",
+          }}
+        >
+          <TextField
+            label="Abbr"
+            variant="standard"
+            value={position.abbr}
+            onChange={(event) => onPositionChange(index, "abbr", event.target.value.toUpperCase())}
+            sx={{ width: 64 }}
+            size="small"
+          />
+          <TextField
+            label="Name"
+            variant="standard"
+            value={position.name}
+            onChange={(event) => onPositionChange(index, "name", event.target.value)}
+            sx={{ flexGrow: 1 }}
+            size="small"
+          />
+          <TextField
+            label="Count"
+            variant="standard"
+            type="number"
+            value={position.count}
+            onChange={(event) => onPositionChange(index, "count", event.target.value)}
+            inputProps={{ min: 1, style: { textAlign: "right", width: 36, fontSize: "0.9rem" } }}
+            size="small"
+          />
+          <IconButton size="small" sx={{ color: "#b0a0a0" }} onClick={() => onRemovePosition(index)}>
+            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
+      ))}
+
+      <CitrusFab
+        icon={<AddIcon />}
+        size={44}
+        onClick={onAddPosition}
+        sx={{ position: "absolute", bottom: 12, right: 12 }}
+      />
+    </Box>
+  );
+}
 
 export default function DraftRules() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isCreating = !id;
   const { user } = useContext(AuthContext);
+  const isCreating = !id;
 
-  const [activeSection, setActiveSection] = useState("name");
-  const [formData, setFormData] = useState(
-    isCreating ? { name: "", budget: 260 } : { name: "Baseball Team", budget: 200 }
-  );
-  const [owners, setOwners] = useState(isCreating ? [] : MOCK_OWNERS);
+  const [activeSection, setActiveSection] = useState("owners");
+  const [form, setForm] = useState(() => createDraftRulesForm(null));
+  const [isLoading, setIsLoading] = useState(!isCreating);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    if (!isCreating || !user) return;
-    setOwners((prev) => prev.length === 0 ? [{ id: Date.now(), name: user.name }] : prev);
-  }, [user, isCreating]);
-  const [scoringStats, setScoringStats] = useState(isCreating ? DEFAULT_SCORING : MOCK_STATS);
-  const [positions, setPositions] = useState(isCreating ? DEFAULT_POSITIONS : MOCK_POSITIONS);
-  const [addingStat, setAddingStat] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationAttempted, setValidationAttempted] = useState(false);
+    if (!isCreating) {
+      return undefined;
+    }
 
-  const handleChange = (field) => (e) => {
-    const value = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: field === "budget" ? Number(value) : value,
-    }));
+    setForm((current) => {
+      if (current.owners.length > 0 || !user?.name) {
+        return current;
+      }
+
+      return {
+        ...current,
+        owners: [{ name: user.name }],
+      };
+    });
+
+    return undefined;
+  }, [isCreating, user]);
+
+  useEffect(() => {
+    if (isCreating) {
+      setIsLoading(false);
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    async function loadLeague() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const league = await fetchLeagueById(id);
+        if (isMounted) {
+          setForm(createDraftRulesForm(league));
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(getApiErrorMessage(err, "Unable to load league rules."));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadLeague();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, isCreating]);
+
+  const sectionValues = useMemo(() => {
+    return [
+      { id: "name", label: "League Name", icon: <TextFieldsIcon sx={{ fontSize: 18 }} />, value: form.name || "..." },
+      { id: "budget", label: "Budget", icon: <StarBorderIcon sx={{ fontSize: 18 }} />, value: form.budget ? `$${form.budget}` : "..." },
+      { id: "owners", label: "League Owners", icon: <PersonOutlineIcon sx={{ fontSize: 18 }} />, value: String(form.owners.length) },
+      { id: "scoring", label: "Scoring Criteria", icon: <CheckIcon sx={{ fontSize: 18 }} />, value: String(form.scoringTypes.length) },
+      {
+        id: "positions",
+        label: "Positions",
+        icon: <SyncAltIcon sx={{ fontSize: 18 }} />,
+        value: String(form.rosterPositions.reduce((sum, position) => sum + (Number(position.count) || 0), 0)),
+      },
+    ];
+  }, [form]);
+
+  const updateForm = (updater) => {
+    setForm((current) => updater(current));
   };
 
-  const handleCreateSubmit = async () => {
-    setCreateError("");
-    setIsSubmitting(true);
+  const payload = {
+    name: form.name.trim(),
+    budget: Number(form.budget),
+    teamCount: form.owners.length,
+    owners: form.owners.map((owner) => ({
+      ...(owner.id ? { id: owner.id } : {}),
+      name: owner.name.trim(),
+    })),
+    scoringTypes: form.scoringTypes.map((type) => type.trim()).filter(Boolean),
+    rosterPositions: form.rosterPositions.map((position, index) => ({
+      abbr: position.abbr.trim().toUpperCase(),
+      name: position.name.trim(),
+      count: Number(position.count),
+      sortOrder: index + 1,
+    })),
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError("");
+    setSuccessMessage("");
+
     try {
-      const response = await client.post("/leagues", {
-        name: formData.name.trim(),
-        teamCount: owners.length,
-        budget: formData.budget,
-        scoringTypes: scoringStats,
-        positions: positions.map(({ abbr, name, count }) => ({ abbr, name, count })),
-        owners: owners.map((o) => ({ name: o.name.trim() })),
-      });
-      navigate(`/draft/${response.data.id}/teams`);
+      if (isCreating) {
+        const createdLeague = await createLeague(payload);
+        navigate(`/draft/${createdLeague.id}/teams`);
+        return;
+      }
+
+      const updatedLeague = await updateLeague(id, payload);
+      setForm(createDraftRulesForm(updatedLeague));
+      setSuccessMessage("League rules saved.");
     } catch (err) {
-      setCreateError(err.response?.data?.error || "Creation failed");
+      setError(
+        getApiErrorMessage(
+          err,
+          isCreating ? "Unable to create league." : "Unable to save league rules."
+        )
+      );
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  const totalSlots = positions.reduce((s, p) => s + p.count, 0);
-
-  const sections = [
-    {
-      id: "name",
-      label: "League Name",
-      icon: <TextFieldsIcon sx={{ fontSize: 18 }} />,
-      value: formData.name.trim() || "–",
-    },
-    {
-      id: "budget",
-      label: "Budget",
-      icon: <StarBorderIcon sx={{ fontSize: 18 }} />,
-      value: `$${formData.budget}`,
-    },
-    {
-      id: "scoring",
-      label: "Scoring Criteria",
-      icon: <CheckIcon sx={{ fontSize: 18 }} />,
-      value: `${scoringStats.length} stats`,
-    },
-    {
-      id: "positions",
-      label: "Positions",
-      icon: <SyncAltIcon sx={{ fontSize: 18 }} />,
-      value: `${totalSlots} slots`,
-    },
-    {
-      id: "owners",
-      label: "League Owners",
-      icon: <PersonOutlineIcon sx={{ fontSize: 18 }} />,
-      value: `${owners.length}`,
-    },
-  ];
-
-  const fieldSx = {
-    "& .MuiInput-underline:before": { borderColor: "#d0bcb6" },
-    "& .MuiInput-underline:hover:before": { borderColor: "#8c7672" },
-    "& .MuiInput-underline:after": { borderColor: "#8c7672" },
-    "& .MuiInputLabel-root": { color: "#8c7672" },
-    "& .MuiInputLabel-root.Mui-focused": { color: "#6d5a57" },
-  };
-
-  const sectionLabel = (text) => (
-    <Typography
-      sx={{
-        fontSize: "0.75rem",
-        fontWeight: 600,
-        color: "#8c7672",
-        textTransform: "uppercase",
-        letterSpacing: 0.7,
-        mb: 2,
-      }}
-    >
-      {text}
-    </Typography>
-  );
-
   const renderRightPanel = () => {
-    // When creating, reserve bottom space so the FAB (rendered in the outer panel box) doesn't cover list rows.
-    // FAB is 44px tall at bottom: 12px, so pb: 8 (64px) gives safe clearance.
-    const fabPb = isCreating ? 8 : 0;
-
     switch (activeSection) {
       case "name":
-        return (
-          <Box sx={{ p: 2.5 }}>
-            {sectionLabel("League Name")}
-            {isCreating ? (
-              <TextField
-                fullWidth
-                variant="standard"
-                placeholder="e.g. Fantasy Baseball 2025"
-                value={formData.name}
-                onChange={handleChange("name")}
-                autoFocus
-                sx={fieldSx}
-              />
-            ) : (
-              <Typography sx={{ fontSize: "1rem", color: "#1a1a1a" }}>
-                {formData.name || "—"}
-              </Typography>
-            )}
-          </Box>
-        );
-
       case "budget":
         return (
-          <Box sx={{ p: 2.5 }}>
-            {sectionLabel("Auction Budget")}
-            {isCreating ? (
-              <TextField
-                fullWidth
-                variant="standard"
-                type="number"
-                value={formData.budget}
-                onChange={handleChange("budget")}
-                autoFocus
-                slotProps={{ htmlInput: { min: 1 } }}
-                sx={fieldSx}
-              />
-            ) : (
-              <Typography sx={{ fontSize: "1rem", color: "#1a1a1a" }}>
-                ${formData.budget}
-              </Typography>
-            )}
-          </Box>
+          <NameBudgetPanel
+            form={form}
+            onNameChange={(value) => updateForm((current) => ({ ...current, name: value }))}
+            onBudgetChange={(value) => updateForm((current) => ({ ...current, budget: value }))}
+          />
         );
-
-      case "scoring":
-        return (
-          <Box sx={{ p: 2.5, pb: fabPb }}>
-            {sectionLabel("Scoring Criteria — 5×5 Rotisserie")}
-            {scoringStats.map((stat, i) => (
-              <Box
-                key={i}
-                sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1, borderBottom: "1px solid #e8d8cc" }}
-              >
-                <StarBorderIcon sx={{ fontSize: 16, color: "#8c7672" }} />
-                <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{stat}</Typography>
-                {isCreating && (
-                  <IconButton
-                    size="small"
-                    sx={{ color: "#b0a0a0" }}
-                    onClick={() => setScoringStats(scoringStats.filter((_, j) => j !== i))}
-                  >
-                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                )}
-              </Box>
-            ))}
-            {isCreating && addingStat && (
-              <Box sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1 }}>
-                <StarBorderIcon sx={{ fontSize: 16, color: "#8c7672" }} />
-                <TextField
-                  variant="standard"
-                  placeholder="Stat name"
-                  size="small"
-                  autoFocus
-                  sx={{ flexGrow: 1, ...fieldSx }}
-                  onBlur={(e) => {
-                    const val = e.target.value.trim();
-                    if (val) setScoringStats([...scoringStats, val]);
-                    setAddingStat(false);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") e.target.blur();
-                    if (e.key === "Escape") setAddingStat(false);
-                  }}
-                />
-              </Box>
-            )}
-            {isCreating && (
-              <CitrusFab
-                icon={<AddIcon />}
-                size={44}
-                onClick={() => setAddingStat(true)}
-                sx={{ position: "absolute", bottom: 12, right: 12 }}
-              />
-            )}
-          </Box>
-        );
-
-      case "positions":
-        return (
-          <Box sx={{ p: 2.5, pb: fabPb }}>
-            {sectionLabel(`Roster Positions — ${totalSlots} slots`)}
-            {positions.map((pos, i) => (
-              <Box
-                key={i}
-                sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1, borderBottom: "1px solid #e8d8cc" }}
-              >
-                <Typography sx={{ width: 28, fontWeight: 700, color: "#8c7672", fontSize: "0.82rem", flexShrink: 0 }}>
-                  {pos.abbr}
-                </Typography>
-                <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{pos.name}</Typography>
-                {isCreating ? (
-                  <TextField
-                    variant="standard"
-                    type="number"
-                    value={pos.count}
-                    size="small"
-                    slotProps={{ htmlInput: { min: 0, style: { textAlign: "right", width: 28, fontSize: "0.9rem" } } }}
-                    sx={{ width: 44, ...fieldSx }}
-                    onChange={(e) =>
-                      setPositions(positions.map((p, j) =>
-                        j === i ? { ...p, count: Math.max(0, Number(e.target.value)) } : p
-                      ))
-                    }
-                  />
-                ) : (
-                  <Typography sx={{ fontSize: "0.9rem", color: "#555", minWidth: 24, textAlign: "right" }}>
-                    {pos.count}
-                  </Typography>
-                )}
-              </Box>
-            ))}
-          </Box>
-        );
-
       case "owners":
         return (
-          <Box sx={{ p: 2.5, pb: fabPb }}>
-            {sectionLabel(`League Owners — ${owners.length}`)}
-            {owners.map((owner, i) => (
-              <Box
-                key={owner.id}
-                sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1, borderBottom: "1px solid #e8d8cc" }}
-              >
-                <Typography sx={{ width: 22, fontWeight: 700, color: "#8c7672", fontSize: "0.85rem", flexShrink: 0 }}>
-                  {i + 1}
-                </Typography>
-                {isCreating && i === 0 ? (
-                  <>
-                    <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{owner.name}</Typography>
-                    <Typography sx={{ fontSize: "0.78rem", color: "#8c7672", fontStyle: "italic", flexShrink: 0 }}>
-                      (You)
-                    </Typography>
-                  </>
-                ) : isCreating ? (
-                  <>
-                    <TextField
-                      variant="standard"
-                      value={owner.name}
-                      placeholder="Owner name"
-                      size="small"
-                      sx={{ flexGrow: 1, ...fieldSx }}
-                      onChange={(e) =>
-                        setOwners(owners.map((o, j) => j === i ? { ...o, name: e.target.value } : o))
-                      }
-                    />
-                    <IconButton
-                      size="small"
-                      sx={{ color: "#b0a0a0" }}
-                      onClick={() => setOwners(owners.filter((_, j) => j !== i))}
-                    >
-                      <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </>
-                ) : (
-                  <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{owner.name}</Typography>
-                )}
-              </Box>
-            ))}
-            {isCreating && (
-              <CitrusFab
-                icon={<AddIcon />}
-                size={44}
-                onClick={() => setOwners([...owners, { id: Date.now(), name: "" }])}
-                sx={{ position: "absolute", bottom: 12, right: 12 }}
-              />
-            )}
-          </Box>
+          <OwnersPanel
+            owners={form.owners}
+            onOwnerChange={(index, value) => updateForm((current) => ({
+              ...current,
+              owners: current.owners.map((owner, ownerIndex) => (
+                ownerIndex === index ? { ...owner, name: value } : owner
+              )),
+            }))}
+            onAddOwner={() => updateForm((current) => ({
+              ...current,
+              owners: [...current.owners, { name: "" }],
+            }))}
+            onRemoveOwner={(index) => updateForm((current) => ({
+              ...current,
+              owners: current.owners.filter((_, ownerIndex) => ownerIndex !== index),
+            }))}
+          />
         );
-
+      case "scoring":
+        return (
+          <ScoringPanel
+            stats={form.scoringTypes}
+            onStatChange={(index, value) => updateForm((current) => ({
+              ...current,
+              scoringTypes: current.scoringTypes.map((stat, statIndex) => (
+                statIndex === index ? value : stat
+              )),
+            }))}
+            onAddStat={() => updateForm((current) => ({
+              ...current,
+              scoringTypes: [...current.scoringTypes, ""],
+            }))}
+            onRemoveStat={(index) => updateForm((current) => ({
+              ...current,
+              scoringTypes: current.scoringTypes.filter((_, statIndex) => statIndex !== index),
+            }))}
+          />
+        );
+      case "positions":
+        return (
+          <PositionsPanel
+            positions={form.rosterPositions}
+            onPositionChange={(index, field, value) => updateForm((current) => ({
+              ...current,
+              rosterPositions: current.rosterPositions.map((position, positionIndex) => (
+                positionIndex === index ? { ...position, [field]: value } : position
+              )),
+            }))}
+            onAddPosition={() => updateForm((current) => ({
+              ...current,
+              rosterPositions: [
+                ...current.rosterPositions,
+                { abbr: "", name: "", count: 1, sortOrder: current.rosterPositions.length + 1 },
+              ],
+            }))}
+            onRemovePosition={(index) => updateForm((current) => ({
+              ...current,
+              rosterPositions: current.rosterPositions.filter((_, positionIndex) => positionIndex !== index),
+            }))}
+          />
+        );
       default:
         return null;
     }
   };
 
-  const invalidSections = validationAttempted ? [
-    !formData.name.trim() && "name",
-    formData.budget < 1 && "budget",
-    (owners.length < 2 || !owners.every((o) => o.name.trim())) && "owners",
-  ].filter(Boolean) : [];
-
-  const canCreate =
-    !isSubmitting &&
-    formData.name.trim() &&
-    formData.budget >= 1 &&
-    owners.length >= 2 &&
-    owners.every((o) => o.name.trim());
-
   return (
     <PageLayout
-      title={isCreating ? "Create League" : "Rules"}
-      subtitle={isCreating ? "Set up your league before configuring rules." : "Configure the rules for your league"}
+      title="Rules"
+      subtitle={isCreating ? "Set up the core settings for your league" : "Configure the rules for your league"}
       showBell
     >
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.6fr",
-          border: "1px solid #e5d5c8",
-          borderRadius: "14px",
-          overflow: "hidden",
-          minHeight: 360,
-        }}
-      >
-        <SectionNav sections={sections} activeId={activeSection} onSelect={setActiveSection} invalidIds={invalidSections} />
-        <Box sx={{ bgcolor: "#fef0e8", position: "relative" }}>
-          {renderRightPanel()}
-        </Box>
-      </Box>
-
-      {isCreating && createError && (
-        <Alert severity="error" sx={{ mt: 2, borderRadius: "10px" }}>
-          {createError}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>
+          {error}
         </Alert>
       )}
 
-      {isCreating && (
-        <Box
-          sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
-          onClick={!canCreate ? () => setValidationAttempted(true) : undefined}
-        >
-          <Button
-            variant="contained"
-            startIcon={<AddCircleOutlineIcon />}
-            onClick={handleCreateSubmit}
-            disabled={!canCreate}
-            sx={{ ...btnSx, minWidth: 200 }}
-          >
-            {isSubmitting ? "Creating…" : "Create League"}
-          </Button>
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2, borderRadius: "10px" }}>
+          {successMessage}
+        </Alert>
+      )}
+
+      {isLoading ? (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
+          <CircularProgress size={22} />
+          <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem" }}>
+            Loading league rules...
+          </Typography>
         </Box>
+      ) : (
+        <>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1.6fr" },
+              border: "1px solid #e5d5c8",
+              borderRadius: "14px",
+              overflow: "hidden",
+              minHeight: 360,
+            }}
+          >
+            <Box sx={{ bgcolor: "#fff", borderRight: { xs: "none", md: "1px solid #e5d5c8" }, p: 1 }}>
+              {sectionValues.map((section) => {
+                const isActive = activeSection === section.id;
+                return (
+                  <Box
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      px: 1.5,
+                      py: 1.25,
+                      cursor: "pointer",
+                      border: isActive ? "1.5px solid #8c7672" : "1.5px solid transparent",
+                      borderRadius: "8px",
+                      bgcolor: isActive ? "#f5f0ed" : "transparent",
+                      "&:hover": { bgcolor: isActive ? "#f5f0ed" : "#faf4f0" },
+                    }}
+                  >
+                    <Box sx={{ color: "#6d5a57" }}>{section.icon}</Box>
+                    <Typography sx={{ flexGrow: 1, fontSize: "0.95rem", fontWeight: isActive ? 600 : 400 }}>
+                      {section.label}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.85rem", color: "#888" }}>
+                      {section.value}
+                    </Typography>
+                    <ChevronRightIcon sx={{ fontSize: 18, color: "#b0a0a0" }} />
+                  </Box>
+                );
+              })}
+            </Box>
+
+            <Box sx={{ bgcolor: "#fef0e8", position: "relative" }}>
+              {renderRightPanel()}
+            </Box>
+          </Box>
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={isSaving}
+              sx={{
+                bgcolor: "#f0956a",
+                borderRadius: "999px",
+                px: 3,
+                py: 1,
+                textTransform: "none",
+                fontWeight: 600,
+                boxShadow: "none",
+                "&:hover": { bgcolor: "#e8834f", boxShadow: "none" },
+              }}
+            >
+              {isSaving ? "Saving..." : isCreating ? "Create league" : "Save league rules"}
+            </Button>
+          </Box>
+        </>
       )}
 
       <DraftTabBar activeTab="rules" draftId={id} />
