@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -22,6 +22,7 @@ import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import CitrusFab from "../components/CitrusFab";
 import client from "../api/citrusClient";
+import { AuthContext } from "../context/AuthContext";
 import { btnSx } from "../styles/formStyles";
 
 // ── default / mock data ───────────────────────────────────────────────────────
@@ -117,12 +118,18 @@ export default function DraftRules() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isCreating = !id;
+  const { user } = useContext(AuthContext);
 
   const [activeSection, setActiveSection] = useState("name");
   const [formData, setFormData] = useState(
     isCreating ? { name: "", budget: 260 } : { name: "Baseball Team", budget: 200 }
   );
   const [owners, setOwners] = useState(isCreating ? [] : MOCK_OWNERS);
+
+  useEffect(() => {
+    if (!isCreating || !user) return;
+    setOwners((prev) => prev.length === 0 ? [{ id: Date.now(), name: user.name }] : prev);
+  }, [user, isCreating]);
   const [scoringStats, setScoringStats] = useState(isCreating ? DEFAULT_SCORING : MOCK_STATS);
   const [positions, setPositions] = useState(isCreating ? DEFAULT_POSITIONS : MOCK_POSITIONS);
   const [addingStat, setAddingStat] = useState(false);
@@ -430,7 +437,14 @@ export default function DraftRules() {
                 <Typography sx={{ width: 22, fontWeight: 700, color: "#8c7672", fontSize: "0.85rem", flexShrink: 0 }}>
                   {i + 1}
                 </Typography>
-                {isCreating ? (
+                {isCreating && i === 0 ? (
+                  <>
+                    <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{owner.name}</Typography>
+                    <Typography sx={{ fontSize: "0.78rem", color: "#8c7672", fontStyle: "italic", flexShrink: 0 }}>
+                      (You)
+                    </Typography>
+                  </>
+                ) : isCreating ? (
                   <>
                     <TextField
                       variant="standard"
