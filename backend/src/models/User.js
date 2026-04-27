@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password hash is required"],
     },
+    apiKey: {
+      type: String, 
+      default: null,
+    },
   },
   {
     timestamps: true,
