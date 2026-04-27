@@ -91,6 +91,19 @@ function normalizeRosterPositions(rosterPositions) {
     return { rosterPositions: normalized };
 }
 
+function normalizeOwners(owners) {
+    if (!Array.isArray(owners) || owners.length === 0) {
+        return [];
+    }
+
+    return owners
+        .map((owner) => ({
+            id: typeof owner === "object" && owner !== null ? owner.id || owner._id : undefined,
+            name: typeof owner === "string" ? owner.trim() : owner?.name?.trim(),
+        }))
+        .filter((owner) => owner.name);
+}
+
 async function findOwnedLeague(leagueId, userId) {
     const league = await League.findById(leagueId);
 
@@ -103,6 +116,39 @@ async function findOwnedLeague(leagueId, userId) {
     }
 
     return { league };
+}
+
+async function getLeaguePickUsage(leagueId) {
+    const picks = await DraftPick.find({ league: leagueId });
+    const usedOwnerIds = new Set(picks.map((pick) => pick.owner.toString()));
+    const usedSlotsByPosition = picks.reduce((positions, pick) => {
+        const currentMax = positions.get(pick.position) || 0;
+        positions.set(pick.position, Math.max(currentMax, pick.slot));
+        return positions;
+    }, new Map());
+
+    return {
+        picks,
+        usedOwnerIds,
+        usedSlotsByPosition,
+    };
+}
+
+function ownerIdsMatch(ownersA = [], ownersB = []) {
+    if (ownersA.length !== ownersB.length) {
+        return false;
+    }
+
+    return ownersA.every((owner, index) => (
+        owner._id.toString() === ownersB[index]._id.toString()
+    ));
+}
+
+function rosterPositionsSupportExistingPicks(rosterPositions, usedSlotsByPosition) {
+    return Array.from(usedSlotsByPosition.entries()).every(([abbr, usedSlotCount]) => {
+        const position = rosterPositions.find((item) => item.abbr === abbr);
+        return position && position.count >= usedSlotCount;
+    });
 }
 
 function ownerBelongsToLeague(league, ownerId) {
@@ -202,13 +248,7 @@ async function listLeagues(req, res) {
 // Create a new league
 async function createLeague(req, res) {
     const { name, teamCount, budget, scoringTypes, owners, rosterPositions } = req.body;
-    const normalizedOwners = Array.isArray(owners)
-        ? owners
-            .map((owner) => ({
-                name: typeof owner === "string" ? owner.trim() : owner?.name?.trim(),
-            }))
-            .filter((owner) => owner.name)
-        : [];
+    const normalizedOwners = normalizeOwners(owners);
 
     if (!name || !teamCount || !budget || !scoringTypes || normalizedOwners.length === 0) {
         return res.status(400).json({
@@ -247,6 +287,173 @@ async function createLeague(req, res) {
         console.error("CREATE LEAGUE ERROR:", error);
         res.status(500).json({
             error: "Error creating league"
+        });
+    }
+}
+
+async function updateLeague(req, res) {
+    const {
+        name,
+        teamCount,
+        budget,
+        scoringTypes,
+        owners,
+        rosterPositions,
+    } = req.body;
+
+    const hasName = name !== undefined;
+    const hasTeamCount = teamCount !== undefined;
+    const hasBudget = budget !== undefined;
+    const hasScoringTypes = scoringTypes !== undefined;
+    const hasOwners = owners !== undefined;
+    const hasRosterPositions = rosterPositions !== undefined;
+
+    if (!hasName && !hasTeamCount && !hasBudget && !hasScoringTypes && !hasOwners && !hasRosterPositions) {
+        return res.status(400).json({
+            error: "Provide at least one league field to update"
+        });
+    }
+
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const league = result.league;
+        const normalizedOwners = hasOwners ? normalizeOwners(owners) : null;
+        if (hasOwners && normalizedOwners.length === 0) {
+            return res.status(400).json({
+                error: "At least one league owner is required"
+            });
+        }
+
+        const nextTeamCount = hasTeamCount
+            ? Number(teamCount)
+            : (hasOwners ? normalizedOwners.length : league.teamCount);
+        if (!Number.isInteger(nextTeamCount) || nextTeamCount < 1) {
+            return res.status(400).json({
+                error: "teamCount must be a positive integer"
+            });
+        }
+
+        if (hasOwners && normalizedOwners.length !== nextTeamCount) {
+            return res.status(400).json({
+                error: "The number of league owners must match teamCount"
+            });
+        }
+
+        if (!hasOwners && hasTeamCount && nextTeamCount !== (league.owners || []).length) {
+            return res.status(400).json({
+                error: "teamCount must match the current number of league owners"
+            });
+        }
+
+        if (hasName) {
+            const trimmedName = typeof name === "string" ? name.trim() : "";
+            if (!trimmedName) {
+                return res.status(400).json({
+                    error: "League name is required"
+                });
+            }
+            league.name = trimmedName;
+        }
+
+        if (hasBudget) {
+            const normalizedBudget = Number(budget);
+            if (!Number.isFinite(normalizedBudget) || normalizedBudget < 1) {
+                return res.status(400).json({
+                    error: "budget must be a positive number"
+                });
+            }
+            league.budget = normalizedBudget;
+        }
+
+        if (hasScoringTypes) {
+            if (!Array.isArray(scoringTypes) || scoringTypes.length === 0) {
+                return res.status(400).json({
+                    error: "At least one scoring type is required"
+                });
+            }
+
+            const normalizedScoringTypes = scoringTypes
+                .map((type) => (typeof type === "string" ? type.trim() : ""))
+                .filter(Boolean);
+
+            if (normalizedScoringTypes.length === 0) {
+                return res.status(400).json({
+                    error: "At least one scoring type is required"
+                });
+            }
+
+            league.scoringTypes = normalizedScoringTypes;
+        }
+
+        const normalizedRosterPositions = hasRosterPositions
+            ? normalizeRosterPositions(rosterPositions)
+            : null;
+        if (normalizedRosterPositions?.error) {
+            return res.status(400).json({
+                error: normalizedRosterPositions.error
+            });
+        }
+
+        const { usedOwnerIds, usedSlotsByPosition } = await getLeaguePickUsage(league._id);
+
+        if (hasOwners && usedOwnerIds.size > 0) {
+            const ownerIdsById = new Map((league.owners || []).map((owner) => [owner._id.toString(), owner]));
+            const nextOwners = normalizedOwners.map((owner) => {
+                if (!owner.id) {
+                    return null;
+                }
+
+                return ownerIdsById.get(owner.id.toString())
+                    ? { _id: owner.id, name: owner.name }
+                    : null;
+            });
+
+            if (nextOwners.includes(null)) {
+                return res.status(400).json({
+                    error: "Owners with existing draft picks must keep their current ids"
+                });
+            }
+
+            if (!ownerIdsMatch(league.owners || [], nextOwners)) {
+                return res.status(400).json({
+                    error: "Cannot add, remove, or reorder owners after draft picks exist"
+                });
+            }
+
+            league.owners = nextOwners;
+        } else if (hasOwners) {
+            league.owners = normalizedOwners.map((owner) => ({ name: owner.name }));
+        }
+
+        if (hasRosterPositions) {
+            if (
+                usedSlotsByPosition.size > 0 &&
+                !rosterPositionsSupportExistingPicks(
+                    normalizedRosterPositions.rosterPositions,
+                    usedSlotsByPosition
+                )
+            ) {
+                return res.status(400).json({
+                    error: "Roster positions cannot remove or shrink slots that already contain draft picks"
+                });
+            }
+
+            league.rosterPositions = normalizedRosterPositions.rosterPositions;
+        }
+
+        league.teamCount = nextTeamCount;
+
+        await league.save();
+
+        return res.status(200).json(serializeLeague(league));
+    } catch (error) {
+        console.error("UPDATE LEAGUE ERROR:", error);
+        return res.status(500).json({
+            error: "Error updating league"
         });
     }
 }
@@ -457,6 +664,7 @@ async function deleteDraftPick(req, res) {
 module.exports = {
     listLeagues,
     createLeague,
+    updateLeague,
     getLeagueById,
     getDraftState,
     createDraftPick,

@@ -232,6 +232,193 @@ describe("GET /api/leagues/:leagueId", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Update  PATCH /api/leagues/:leagueId
+// ---------------------------------------------------------------------------
+describe("PATCH /api/leagues/:leagueId", () => {
+    let leagueId;
+    let owners;
+
+    beforeEach(async () => {
+        const res = await request(app)
+            .post("/api/leagues")
+            .set("Authorization", `Bearer ${token}`)
+            .send(validLeagueBody);
+        leagueId = res.body.id;
+        owners = res.body.owners;
+    });
+
+    it("returns 401 when no token is provided", async () => {
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .send({ name: "Updated League" });
+
+        expect(res.status).toBe(401);
+    });
+
+    it("returns 400 when no update fields are provided", async () => {
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("Provide at least one league field to update");
+    });
+
+    it("returns 403 when the league belongs to another user", async () => {
+        const bobRes = await request(app)
+            .post("/api/auth/register")
+            .send({ name: "Bob", email: "bob@b.com", password: "pass123" });
+
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${bobRes.body.token}`)
+            .send({ name: "Bob Update Attempt" });
+
+        expect(res.status).toBe(403);
+    });
+
+    it("updates league rules, owners, and roster positions", async () => {
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                name: "Updated League",
+                budget: 260,
+                scoringTypes: ["OBP", "SLG"],
+                teamCount: 2,
+                owners: [
+                    { name: "Owner Alpha" },
+                    { name: "Owner Beta" },
+                ],
+                rosterPositions: [
+                    { abbr: "C", name: "Catcher", count: 1 },
+                    { abbr: "OF", name: "Outfielder", count: 3 },
+                    { abbr: "UT", name: "Utility", count: 2 },
+                ],
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({
+            id: leagueId,
+            name: "Updated League",
+            budget: 260,
+            teamCount: 2,
+            scoringTypes: ["OBP", "SLG"],
+        });
+        expect(res.body.owners).toEqual([
+            expect.objectContaining({ name: "Owner Alpha", slot: 1 }),
+            expect.objectContaining({ name: "Owner Beta", slot: 2 }),
+        ]);
+        expect(res.body.rosterPositions).toEqual([
+            { abbr: "C", name: "Catcher", count: 1, sortOrder: 1 },
+            { abbr: "OF", name: "Outfielder", count: 3, sortOrder: 2 },
+            { abbr: "UT", name: "Utility", count: 2, sortOrder: 3 },
+        ]);
+
+        const saved = await League.findById(leagueId);
+        expect(saved.name).toBe("Updated League");
+        expect(saved.budget).toBe(260);
+        expect(saved.owners.map((owner) => owner.name)).toEqual(["Owner Alpha", "Owner Beta"]);
+    });
+
+    it("returns 400 when updated owners do not match teamCount", async () => {
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                teamCount: 3,
+                owners: [{ name: "Owner One" }, { name: "Owner Two" }],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("The number of league owners must match teamCount");
+    });
+
+    it("allows owner renames after draft picks exist when owner ids are preserved", async () => {
+        await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                position: "OF",
+                slot: 1,
+                amount: 30,
+            });
+
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                owners: [
+                    { id: owners[0].id, name: "Owner Prime" },
+                    { id: owners[1].id, name: "Owner Second" },
+                ],
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.owners).toEqual([
+            expect.objectContaining({ id: owners[0].id, name: "Owner Prime" }),
+            expect.objectContaining({ id: owners[1].id, name: "Owner Second" }),
+        ]);
+    });
+
+    it("returns 400 when owners are reordered after draft picks exist", async () => {
+        await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                position: "OF",
+                slot: 1,
+                amount: 30,
+            });
+
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                owners: [
+                    { id: owners[1].id, name: "Owner Two" },
+                    { id: owners[0].id, name: "Owner One" },
+                ],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("Cannot add, remove, or reorder owners after draft picks exist");
+    });
+
+    it("returns 400 when roster positions would remove a filled slot", async () => {
+        await request(app)
+            .post(`/api/leagues/${leagueId}/draft/picks`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                ownerId: owners[0].id,
+                playerName: "Aaron Judge",
+                position: "OF",
+                slot: 3,
+                amount: 30,
+            });
+
+        const res = await request(app)
+            .patch(`/api/leagues/${leagueId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                rosterPositions: [
+                    { abbr: "C", name: "Catcher", count: 2 },
+                    { abbr: "OF", name: "Outfielder", count: 2 },
+                    { abbr: "UT", name: "Utility", count: 1 },
+                ],
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("Roster positions cannot remove or shrink slots that already contain draft picks");
+    });
+});
+
+// ---------------------------------------------------------------------------
 // Draft state  GET /api/leagues/:leagueId/draft
 // ---------------------------------------------------------------------------
 describe("GET /api/leagues/:leagueId/draft", () => {

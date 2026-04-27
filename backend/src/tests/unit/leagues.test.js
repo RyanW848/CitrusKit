@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import mockingoose from "mockingoose";
 import mongoose from "mongoose";
 import League from "../../models/League.js";
-import { listLeagues, createLeague, getLeagueById } from "../../controllers/leagues.controller.js";
+import { listLeagues, createLeague, updateLeague, getLeagueById } from "../../controllers/leagues.controller.js";
 
 function mockRes() {
     const res = {};
@@ -142,6 +142,47 @@ describe("Leagues - Creation", () => {
         await createLeague(req, res);
 
         expect(res.status).toHaveBeenCalledWith(201);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Update League
+// ---------------------------------------------------------------------------
+describe("Leagues - Update", () => {
+    it("returns 400 when no update fields are provided", async () => {
+        const req = {
+            params: { leagueId: new mongoose.Types.ObjectId().toString() },
+            body: {},
+            user: { _id: FAKE_USER_ID },
+        };
+        const res = mockRes();
+
+        await updateLeague(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns 400 when updated owners do not match teamCount", async () => {
+        mockingoose(League).toReturn(fakeLeagueDoc({ createdBy: FAKE_USER_ID }), "findOne");
+
+        const req = {
+            params: { leagueId: new mongoose.Types.ObjectId().toString() },
+            body: {
+                teamCount: 3,
+                owners: [{ name: "Owner One" }, { name: "Owner Two" }],
+            },
+            user: { _id: FAKE_USER_ID },
+        };
+        const res = mockRes();
+
+        await updateLeague(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                error: "The number of league owners must match teamCount",
+            })
+        );
     });
 });
 

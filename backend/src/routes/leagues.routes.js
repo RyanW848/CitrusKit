@@ -5,6 +5,7 @@ const { protect } = require("../middleware/auth.middleware");
 const {
     listLeagues,
     createLeague,
+    updateLeague,
     getLeagueById,
     getDraftState,
     createDraftPick,
@@ -13,6 +14,7 @@ const {
 
 router.get("/", protect, listLeagues);
 router.post("/", protect, createLeague);
+router.patch("/:leagueId", protect, updateLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
 router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);
