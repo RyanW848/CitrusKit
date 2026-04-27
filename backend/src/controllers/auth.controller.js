@@ -1,12 +1,37 @@
 const bcrypt = require("bcryptjs");
+const axios = require("axios");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+
+const DYKB_BASE_URL = ProcessingInstruction.env.DYKB_BASE_URL || "https://do-u-know-ball.com";
+
+async function generateDYKBApiKey(jwtToken) {
+    try {
+        const response = await axios.post(
+            `${DYKB_BASE_URL}/api-keys/generate`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${jwtToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        return response.data.api_key ?? null;
+    } catch (error) {
+        console.error("Failed to generate API KEY:", error.response?.data || error.message);
+
+        return null;
+    }
+}
 
 function serializeUser(user) {
     return {
         id: user._id,
         name: user.name,
         email: user.email,
+        apiKey: user.apiKey ?? null,
     };
 }
 
@@ -15,14 +40,14 @@ async function register(req, res) {
         const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
-            return res.status(400).json({ 
-                error: "Please provide name, email, and password" 
+            return res.status(400).json({
+                error: "Please provide name, email, and password"
             });
         }
 
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-            return res.status(409).json({ 
+            return res.status(409).json({
                 error: "User already exists with this email"
             });
         }
@@ -37,7 +62,9 @@ async function register(req, res) {
         })
 
         const token = generateToken(user._id);
-        
+        const apiKey = await generateDYKBApiKey(token);
+
+        user.apiKey = apiKey;
         await user.save();
 
         return res.status(201).json({
@@ -55,7 +82,7 @@ async function login(req, res) {
     try {
         const { email, password } = req.body;
 
-        if ( !email || !password) {
+        if (!email || !password) {
             return res.status(400).json({
                 error: "Email and password are required"
             })
@@ -73,6 +100,18 @@ async function login(req, res) {
             return res.status(401).json({
                 error: "Invalid password"
             })
+        }
+
+        if (!user.apiKey) {
+            const token = generateToken(user._id);
+            const apiKey = await generateDYKBApiKey(token);
+
+            if (apiKey) {
+                user.apiKey = apiKey;
+                await user.save();
+            }
+
+            return res.status(200).json({ user: serializeUser(user), token });
         }
 
         const token = generateToken(user._id);

@@ -16,6 +16,7 @@ const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     const dx = x - cx, dy = y - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     const ox = (dx / dist) * 18, oy = (dy / dist) * 18;
+    
     return (
         <text
             x={x + ox} y={y + oy}
