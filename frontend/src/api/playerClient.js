@@ -12,48 +12,13 @@ const playerClient = axios.create({
   }
 });
 
-playerClient.interceptors.request.use((config) => {
-  const key = localStorage.getItem('DYKB_PLAYER_API_KEY');
-  if (key) {
-    config.headers['X-API-Key'] = key;
-  }
-
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-export const generateNewApiKey = async (jwtToken) => {
-  try {
-    const response = await axios.post(
-      'https://do-u-know-ball.com/api-keys/generate',
-      {}, // Empty body as per the spec
-      {
-        headers: {
-          Authorization: `Bearer ${jwtToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const { api_key } = response.data;
-
-    localStorage.setItem('DYKB_PLAYER_API_KEY', api_key);
-
-    return api_key;
-  } catch (error) {
-    console.error("Failed to generate API Key:", error.response?.data || error.message);
-    throw error;
-  }
-}
-
 export const getAllPlayers = async () => {
   const response = await playerClient.get('/players');
   return response.data.players;
 };
 
 export const getPlayerId = async (playerName, dateOfBirth = null) => {
-  const params = { playerName };
+  const params = { name: playerName };
 
   if (dateOfBirth) params.dob = dateOfBirth;
 
@@ -62,11 +27,11 @@ export const getPlayerId = async (playerName, dateOfBirth = null) => {
 }
 
 export const getPlayerStats = async (ids, year = null) => {
-  const params = { ids: Array.isArray(ids) ? ids.join(',') : ids };
+  const params = { players: Array.isArray(ids) ? ids.join(',') : ids };
 
   if (year) params.year = year;
 
-  const response = await playerClient.get('/player-stats', { params });
+  const response = await playerClient.get('/stats', { params });
   return response.data;
 }
 
@@ -90,6 +55,7 @@ export const getPlayerValues = async ({ budget, relevantStats, playersLeftToDraf
     budget,
     relevant_stats: Array.isArray(relevantStats) ? relevantStats.join(',') : relevantStats,
   };
+
   if (playersLeftToDraft != null) body.players_left_to_draft = playersLeftToDraft;
   if (unavailablePlayerIds) body.unavailable_player_ids = unavailablePlayerIds;
   if (playerIds) body.player_ids = playerIds;
