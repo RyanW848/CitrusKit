@@ -10,7 +10,7 @@ import { computeFiveTools, computePercentile, computeRank, RANKING_STATS } from 
 const accentColor = '#f97316';
 const dimColor    = '#fde0c8';
 
-// ─── Radar label ─────────────────────────────────────────────────────────────
+// Made with Claude Assistance
 const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     const dx = x - cx, dy = y - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -26,7 +26,7 @@ const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     );
 };
 
-// ─── Percentile bar ───────────────────────────────────────────────────────────
+// Changed to add dots on the bar, showing ranking amongst players
 const PercentileBar = ({ pct }) => {
     const barColor = pct >= 75 ? '#16a34a' : pct >= 50 ? accentColor : '#dc2626';
     return (
@@ -58,7 +58,7 @@ const PercentileBar = ({ pct }) => {
     );
 };
 
-// ─── Main Modal ───────────────────────────────────────────────────────────────
+// Claude Assistance
 export default function PlayerStatsModal({ open, onClose, playerResult, allPlayersStats }) {
     const [tab, setTab] = useState(0);
 
