@@ -18,6 +18,11 @@ export async function fetchLeagueById(leagueId) {
   return data;
 }
 
+export async function updateLeague(leagueId, payload) {
+  const { data } = await client.patch(`/leagues/${leagueId}`, payload);
+  return data;
+}
+
 export async function fetchDraftState(leagueId) {
   const { data } = await client.get(`/leagues/${leagueId}/draft`);
   return data;
