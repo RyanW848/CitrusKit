@@ -8,7 +8,7 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } fro
 import { computeFiveTools, computePercentile, computeRank, RANKING_STATS } from '../utils/playerStats';
 
 const accentColor = '#f97316';
-const dimColor    = '#fde0c8';
+const dimColor = '#fde0c8';
 
 // Created with Claude Assistance 
 
@@ -27,17 +27,36 @@ const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     );
 };
 
-const PercentileBar = ({ pct }) => (
-    <div style={{ position: 'relative', height: 6, background: dimColor, borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{
-            position: 'absolute', left: 0, top: 0, height: '100%',
-            width: `${pct}%`,
-            background: pct >= 75 ? '#16a34a' : pct >= 50 ? accentColor : '#dc2626',
-            borderRadius: 3,
-            transition: 'width 0.6s ease',
-        }} />
-    </div>
-);
+const PercentileBar = ({ pct }) => {
+    const barColor = pct >= 75 ? '#16a34a' : pct >= 50 ? accentColor : '#dc2626';
+    return (
+        <div style={{ position: 'relative', padding: '5px 0' }}>
+            <div style={{ position: 'relative', height: 6, background: dimColor, borderRadius: 3 }}>
+                <div style={{
+                    position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${pct}%`,
+                    background: barColor,
+                    borderRadius: 3,
+                    transition: 'width 0.6s ease',
+                }} />
+            </div>
+            <div style={{
+                position: 'absolute',
+                left: `${pct}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                background: barColor,
+                border: '2px solid #fff9f5',
+                boxShadow: `0 0 0 1.5px ${barColor}`,
+                transition: 'left 0.6s ease',
+                zIndex: 1,
+            }} />
+        </div>
+    );
+};
 
 export default function PlayerStatsModal({ open, onClose, playerResult, allPlayersStats }) {
     const [tab, setTab] = useState(0);
@@ -166,7 +185,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                                 ?.map(s => isFloat ? parseFloat(s[key]) : parseInt(s[key], 10))
                                 .filter(v => !isNaN(v));
 
-                            const pct  = allVals?.length ? computePercentile(val, allVals) : null;
+                            const pct = allVals?.length ? computePercentile(val, allVals) : null;
                             const rank = allVals?.length ? computeRank(val, allVals) : null;
                             const total = allVals?.length ?? null;
 
@@ -206,7 +225,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, allPlaye
                         })}
                         {!allPlayersStats?.length && (
                             <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.72rem', color: '#a3681e', textAlign: 'center', mt: 1 }}>
-                                Pass allPlayersStats prop to enable percentile rankings
+                                Need to add endpoints in API to fetch stats of all players
                             </Typography>
                         )}
                     </Box>
