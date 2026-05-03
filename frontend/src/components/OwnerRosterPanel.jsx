@@ -91,7 +91,9 @@ export default function OwnerRosterPanel({ owners, getRoster, rightSlot, editabl
       {/* Right – roster */}
       <Box sx={{ bgcolor: "#fef0e8", position: "relative", p: 1.5 }}>
         {roster.map((slot, i) => {
-          const isEditable = onSlotClick && editableOwnerId != null && selectedId === String(editableOwnerId);
+          const isEditable = onSlotClick && (
+            editableOwnerId == null || selectedId === String(editableOwnerId)
+          );
           return (
           <Box
             key={i}
