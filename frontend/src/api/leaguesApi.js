@@ -33,6 +33,11 @@ export async function createDraftPick(leagueId, payload) {
   return data;
 }
 
+export async function deleteDraftPick(leagueId, pickId) {
+  const { data } = await client.delete(`/leagues/${leagueId}/draft/picks/${pickId}`);
+  return data;
+}
+
 export async function createPlanPick(leagueId, payload) {
   const { data } = await client.post(`/leagues/${leagueId}/plan/picks`, payload);
   return data;
