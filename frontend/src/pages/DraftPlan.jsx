@@ -112,12 +112,25 @@ export default function DraftPlan() {
     const owner = draftState?.owners?.find((o) => String(o.id) === String(ownerId));
     if (!owner) return [];
     if (String(ownerId) === String(myOwner?.id)) {
-      return (owner.plannedRosterSlots ?? []).map(normalizePlanSlot);
+      const plannedSlots = owner.plannedRosterSlots ?? [];
+      const actualSlots = owner.rosterSlots ?? [];
+      return plannedSlots.map((planSlot, i) => {
+        const actualSlot = actualSlots[i];
+        if (actualSlot?.pick) {
+          return { ...normalizeActualSlot(actualSlot), isPlan: false, isActual: true };
+        }
+        return { ...normalizePlanSlot(planSlot), isPlan: !planSlot.isEmpty, isActual: false };
+      });
     }
-    return (owner.rosterSlots ?? []).map(normalizeActualSlot);
+    return (owner.rosterSlots ?? []).map((slot) => ({
+      ...normalizeActualSlot(slot),
+      isPlan: false,
+      isActual: false,
+    }));
   };
 
   const openDialog = (slot) => {
+    if (slot.isActual) return;
     setActiveSlot(slot);
     setMode("search");
     setSearchQuery("");

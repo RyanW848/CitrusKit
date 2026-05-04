@@ -98,7 +98,33 @@ export default function DraftDraft() {
 
   const getRoster = (ownerId) => {
     const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
-    return (owner?.rosterSlots || []).map((slot) => normalizeRosterSlot(slot, ownerId));
+    if (!owner) return [];
+    const rosterSlots = owner.rosterSlots || [];
+    const plannedSlots = owner.plannedRosterSlots || [];
+    return rosterSlots.map((slot, i) => {
+      if (slot.pick) {
+        return { ...normalizeRosterSlot(slot, ownerId), isActual: true, isPlan: false };
+      }
+      const planSlot = plannedSlots[i];
+      if (planSlot?.plan) {
+        return {
+          id: slot.id,
+          ownerId,
+          posAbbr: slot.abbr,
+          posName: slot.name,
+          position: slot.abbr,
+          slot: slot.slot,
+          pickId: null,
+          playerName: planSlot.plan.playerName,
+          price: planSlot.plan.plannedAmount ?? 0,
+          stat: null,
+          isEmpty: true,
+          isPlan: true,
+          isActual: false,
+        };
+      }
+      return { ...normalizeRosterSlot(slot, ownerId), isActual: false, isPlan: false };
+    });
   };
 
   const openDialog = (slot) => {
