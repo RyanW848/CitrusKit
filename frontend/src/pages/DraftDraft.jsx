@@ -9,121 +9,125 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
+  Paper,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
-import CitrusFab from "../components/CitrusFab";
+import OwnerRosterPanel from "../components/OwnerRosterPanel";
+import SearchBar from "../components/SearchBar";
 import { createDraftPick, fetchDraftState } from "../api/leaguesApi";
+import { getPlayerValues } from "../api/playerClient";
+import usePlayerStore from "../components/stores/usePlayerStore";
 
 const emptyPickForm = {
-  ownerId: "",
-  playerName: "",
-  position: "",
-  slot: "",
   amount: "",
   stat: "",
 };
 
-function ownerLetter(index) {
-  return String.fromCharCode(65 + index);
+function ownerLetter(slot) {
+  return String.fromCharCode(64 + slot);
 }
 
-function normalizePick(pick) {
-  return {
-    id: pick.id,
-    posAbbr: pick.position || "UT",
-    posName: pick.position || `Pick ${pick.pickNumber}`,
-    rosterSlot: pick.rosterSlot,
-    playerName: pick.playerName,
-    price: pick.amount,
-    stat: pick.stat || "...",
-  };
-}
-
-function normalizeRosterSlot(slot) {
+function normalizeRosterSlot(slot, ownerId) {
   return {
     id: slot.id,
+    ownerId,
     posAbbr: slot.abbr,
     posName: slot.name,
+    position: slot.abbr,
     slot: slot.slot,
-    rosterSlot: slot.id,
-    playerName: slot.pick?.playerName || "Select a player ...",
+    pickId: slot.pick?.id ?? null,
+    playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
-    stat: slot.pick?.stat || "...",
+    stat: slot.pick?.stat ?? null,
     isEmpty: !slot.pick,
   };
-}
-
-function createEmptyRows(count) {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `empty-${index}`,
-    posAbbr: index === 0 ? "UT" : "",
-    posName: index === 0 ? "Open" : "",
-    playerName: index === 0 ? "Select a player ..." : "",
-    price: 0,
-    stat: "...",
-    isEmpty: true,
-  }));
 }
 
 export default function DraftDraft() {
   const { id } = useParams();
   const [draftState, setDraftState] = useState(null);
-  const [selectedOwnerId, setSelectedOwnerId] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null);
   const [pickForm, setPickForm] = useState(emptyPickForm);
-  const [isSaving, setIsSaving] = useState(false);
+  const [dialogError, setDialogError] = useState("");
+  const [dialogSaving, setDialogSaving] = useState(false);
+  const [mode, setMode] = useState("search");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [customName, setCustomName] = useState("");
+  const [projectedValue, setProjectedValue] = useState(null);
+  const [valuationLoading, setValuationLoading] = useState(false);
 
-  const loadDraft = useCallback(async () => {
-    setIsLoading(true);
+  const { allPlayers, fetchAllPlayers } = usePlayerStore();
+  useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
+
+  const loadDraftState = useCallback(async () => {
+    setLoading(true);
     setError("");
 
     try {
       const data = await fetchDraftState(id);
       setDraftState(data);
-      setSelectedOwnerId((current) => current || data.owners?.[0]?.id || "");
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Unable to load draft");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    loadDraft();
-  }, [loadDraft]);
+    loadDraftState();
+  }, [loadDraftState]);
 
   const owners = useMemo(() => {
-    return (draftState?.owners || []).map((owner, index) => ({
-      ...owner,
-      letter: ownerLetter(index),
+    return (draftState?.owners || []).map((owner) => ({
+      id: owner.id,
+      letter: ownerLetter(owner.slot),
+      name: owner.name,
+      detail: `$${owner.remainingBudget}`,
     }));
   }, [draftState]);
 
-  const selectedOwner = owners.find((owner) => owner.id === selectedOwnerId) || owners[0];
-  const rosterPositions = draftState?.league?.rosterPositions || [];
+  const getRoster = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return (owner?.rosterSlots || []).map((slot) => normalizeRosterSlot(slot, ownerId));
+  };
 
-  const rosterRows = useMemo(() => {
-    if (selectedOwner?.rosterSlots?.length) {
-      return selectedOwner.rosterSlots.map(normalizeRosterSlot);
-    }
-
-    const picks = (selectedOwner?.roster || []).map(normalizePick);
-    return picks.length ? picks : createEmptyRows(8);
-  }, [selectedOwner]);
-
-  const openDraftDialog = () => {
-    setError("");
+  const openDialog = (slot) => {
+    setActiveSlot(slot);
     setPickForm({
-      ...emptyPickForm,
-      ownerId: selectedOwner?.id || owners[0]?.id || "",
+      amount: slot.playerName ? String(slot.price ?? 0) : "",
+      stat: slot.stat && slot.stat !== "..." ? slot.stat : "",
     });
+    setMode("search");
+    setSearchQuery("");
+    setSuggestions([]);
+    setSelectedPlayer(null);
+    setCustomName("");
+    setProjectedValue(null);
+    setDialogError("");
     setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setActiveSlot(null);
+    setPickForm(emptyPickForm);
+    setMode("search");
+    setSearchQuery("");
+    setSuggestions([]);
+    setSelectedPlayer(null);
+    setCustomName("");
+    setProjectedValue(null);
+    setDialogError("");
   };
 
   const handleFormChange = (field) => (event) => {
@@ -133,262 +137,286 @@ export default function DraftDraft() {
     }));
   };
 
-  const handleCreatePick = async (event) => {
-    event.preventDefault();
-    setError("");
-    setIsSaving(true);
+  const handleQueryChange = (query) => {
+    setSearchQuery(query);
+    setSelectedPlayer(null);
+    setProjectedValue(null);
+    setSuggestions(
+      query.length > 1
+        ? allPlayers.filter((player) => {
+            if (!player.name.toLowerCase().includes(query.toLowerCase())) return false;
+            if (!activeSlot?.position) return true;
+            const playerPositions = Array.isArray(player.positions)
+              ? player.positions
+              : (player.positions ? player.positions.split(",").map((item) => item.trim()) : []);
+            return playerPositions.some((position) => position === activeSlot.position);
+          }).slice(0, 6)
+        : []
+    );
+  };
 
+  const handleSelectPlayer = async (player) => {
+    setSelectedPlayer(player);
+    setSearchQuery(player.name);
+    setSuggestions([]);
+
+    if (!draftState?.league) return;
+    setValuationLoading(true);
     try {
-      await createDraftPick(id, {
-        ownerId: pickForm.ownerId,
-        playerName: pickForm.playerName.trim(),
-        position: pickForm.position.trim(),
-        slot: pickForm.slot ? Number(pickForm.slot) : undefined,
-        amount: Number(pickForm.amount),
-        stat: pickForm.stat.trim(),
+      const result = await getPlayerValues({
+        budget: draftState.league.budget,
+        relevantStats: draftState.league.scoringTypes,
+        playerIds: [player.id],
       });
-      setDialogOpen(false);
-      await loadDraft();
-    } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || "Unable to save draft pick");
+      const value =
+        result?.players?.[0]?.value ??
+        result?.valuations?.[player.id] ??
+        result?.[player.id] ??
+        null;
+      setProjectedValue(typeof value === "number" ? value : null);
+    } catch {
+      setProjectedValue(null);
     } finally {
-      setIsSaving(false);
+      setValuationLoading(false);
     }
   };
 
-  const canSavePick = pickForm.ownerId && pickForm.playerName.trim() && pickForm.amount !== "";
+  const handleCreatePick = async (event) => {
+    event.preventDefault();
+    if (!activeSlot) {
+      return;
+    }
+
+    const playerName = mode === "custom" ? customName.trim() : selectedPlayer?.name;
+    if (!playerName) {
+      setDialogError(mode === "custom" ? "Enter a player name" : "Select a player first");
+      return;
+    }
+
+    setDialogSaving(true);
+    setDialogError("");
+
+    try {
+      await createDraftPick(id, {
+        ownerId: activeSlot.ownerId,
+        playerName,
+        position: activeSlot.position,
+        slot: activeSlot.slot,
+        amount: Number(pickForm.amount),
+        stat: pickForm.stat.trim(),
+        playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+      });
+      closeDialog();
+      await loadDraftState();
+    } catch (err) {
+      setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to save draft pick");
+    } finally {
+      setDialogSaving(false);
+    }
+  };
+
+  const canSavePick = pickForm.amount !== "" && (
+    (mode === "custom" && customName.trim()) ||
+    (mode === "search" && selectedPlayer)
+  );
 
   return (
     <PageLayout title="Draft" subtitle="Follow along with your league's draft" showBell>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: "8px" }}>
-          {error}
-        </Alert>
-      )}
-
-      {isLoading ? (
+      {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />
           <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem" }}>Loading draft...</Typography>
         </Box>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr 1.6fr" },
-            border: "1px solid #e5d5c8",
-            borderRadius: "8px",
-            overflow: "hidden",
-            minHeight: 360,
-            bgcolor: "#fff",
-          }}
-        >
-          <Box sx={{ borderRight: { xs: "none", md: "1px solid #e5d5c8" }, bgcolor: "#fff", p: 1 }}>
-            {owners.map((owner) => {
-              const isSelected = selectedOwner?.id === owner.id;
-              return (
-                <Box
-                  key={owner.id}
-                  onClick={() => setSelectedOwnerId(owner.id)}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1,
-                    my: 0.5,
-                    border: isSelected ? "1.5px solid #8c7672" : "1.5px solid transparent",
-                    borderRadius: "8px",
-                    bgcolor: isSelected ? "#f5f0ed" : "transparent",
-                    cursor: "pointer",
-                    "&:hover": { bgcolor: "#faf4f0" },
-                  }}
-                >
-                  <Typography sx={{ width: 18, fontWeight: 700, color: "#6d5a57", fontSize: "0.8rem" }}>
-                    {owner.letter}
-                  </Typography>
-                  <Typography sx={{ flexGrow: 1, fontWeight: 500, fontSize: "0.9rem", color: "#1a1a1a" }}>
-                    {owner.name}
-                  </Typography>
-                  <Typography sx={{ color: "#8c7672", fontSize: "0.8rem" }}>
-                    ${owner.remainingBudget}
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
+      )}
 
-          <Box sx={{ bgcolor: "#fef0e8", p: 1.5, position: "relative" }}>
-            {rosterRows.map((slot, index) => (
-              <Box
-                key={slot.id}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  py: 0.8,
-                  borderBottom: index < rosterRows.length - 1 ? "1px solid #ead8cd" : "none",
-                  color: slot.isEmpty ? "#9b8d87" : "#1a1a1a",
-                }}
-              >
-                <Typography sx={{ width: 28, fontWeight: 700, color: "#6d5a57", fontSize: "0.76rem" }}>
-                  {slot.posAbbr}
-                </Typography>
-                <Typography sx={{ width: 104, fontSize: "0.82rem", color: "#333" }}>
-                  {slot.posName}{slot.slot ? ` ${slot.slot}` : ""}
-                </Typography>
-                <Typography
-                  sx={{
-                    flexGrow: 1,
-                    minWidth: 0,
-                    fontSize: "0.84rem",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    fontStyle: slot.isEmpty ? "italic" : "normal",
-                  }}
-                >
-                  {slot.playerName}
-                </Typography>
-                <Typography sx={{ width: 42, textAlign: "right", fontWeight: 600, fontSize: "0.82rem" }}>
-                  ${slot.price}
-                </Typography>
-                <Typography sx={{ width: 28, textAlign: "right", color: "#8c7672", fontSize: "0.78rem" }}>
-                  {slot.stat}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>
+          {error}
+        </Alert>
+      )}
+
+      {!loading && !error && (
+        <>
+          <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
+            Select an owner, then click an open roster slot to enter a drafted player.
+          </Alert>
+          <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+        </>
       )}
 
       <DraftTabBar activeTab="draft" draftId={id} />
 
-      <CitrusFab
-        icon={<span style={{ fontWeight: 700, fontSize: "1.1rem" }}>$</span>}
-        onClick={openDraftDialog}
-        size={44}
-        sx={{ position: "fixed", bottom: 24, right: 24, borderRadius: "8px" }}
-      />
-
       <Dialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeDialog}
         fullWidth
         maxWidth="sm"
         PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7" } }}
       >
         <Box component="form" onSubmit={handleCreatePick}>
-          <DialogTitle sx={{ pb: 1 }}>Draft Player</DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>
+            {activeSlot ? `${activeSlot.posAbbr} · ${activeSlot.posName}` : "Draft Slot"}
+          </DialogTitle>
           <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
-            <TextField
-              select
-              label="Owner"
-              value={pickForm.ownerId}
-              onChange={handleFormChange("ownerId")}
-              required
-              fullWidth
-            >
-              {owners.map((owner) => (
-                <MenuItem key={owner.id} value={owner.id}>
-                  {owner.name} · ${owner.remainingBudget} left
-                </MenuItem>
-              ))}
-            </TextField>
+            {dialogError && (
+              <Alert severity="error" sx={{ borderRadius: "8px" }}>
+                {dialogError}
+              </Alert>
+            )}
 
-            <TextField
-              label="Player"
-              value={pickForm.playerName}
-              onChange={handleFormChange("playerName")}
-              required
-              fullWidth
-            />
+            {activeSlot?.pickId ? (
+              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                  ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <ToggleButtonGroup
+                  value={mode}
+                  exclusive
+                  onChange={(_, value) => { if (value) setMode(value); }}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    "& .MuiToggleButton-root": {
+                      textTransform: "none",
+                      borderColor: "#d0bcb6",
+                      "&.Mui-selected": { bgcolor: "#f5f0ed", color: "#6d5a57", borderColor: "#8c7672" },
+                    },
+                  }}
+                >
+                  <ToggleButton value="search">Search Players</ToggleButton>
+                  <ToggleButton value="custom">Custom Player</ToggleButton>
+                </ToggleButtonGroup>
 
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              <TextField
-                select
-                label="Position"
-                value={pickForm.position}
-                onChange={(event) => {
-                  const nextPosition = event.target.value;
-                  setPickForm((current) => ({
-                    ...current,
-                    position: nextPosition,
-                    slot: "",
-                  }));
-                }}
-                fullWidth
-              >
-                <MenuItem value="">
-                  Next open slot
-                </MenuItem>
-                {rosterPositions.map((position) => (
-                  <MenuItem key={position.abbr} value={position.abbr}>
-                    {position.abbr} · {position.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Slot"
-                value={pickForm.slot}
-                onChange={handleFormChange("slot")}
-                fullWidth
-                disabled={!pickForm.position}
-              >
-                <MenuItem value="">
-                  First open
-                </MenuItem>
-                {(rosterPositions.find((position) => position.abbr === pickForm.position)?.count
-                  ? Array.from({
-                      length: rosterPositions.find((position) => position.abbr === pickForm.position).count,
-                    })
-                  : []
-                ).map((_, index) => (
-                  <MenuItem key={index + 1} value={index + 1}>
-                    {pickForm.position}-{index + 1}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
+                {mode === "search" ? (
+                  <Box sx={{ position: "relative" }}>
+                    <SearchBar
+                      value={searchQuery}
+                      onChange={(event) => handleQueryChange(event.target.value)}
+                      onClear={() => handleQueryChange("")}
+                      placeholder="Search for a player..."
+                      sx={{ mb: 0 }}
+                    />
+                    {suggestions.length > 0 && (
+                      <Paper
+                        elevation={4}
+                        sx={{ position: "absolute", width: "100%", zIndex: 10, mt: 0.5, borderRadius: "8px", overflow: "hidden" }}
+                      >
+                        {suggestions.map((player, index) => (
+                          <Box
+                            key={player.id}
+                            onClick={() => handleSelectPlayer(player)}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.5,
+                              px: 2,
+                              py: 1,
+                              cursor: "pointer",
+                              borderBottom: index < suggestions.length - 1 ? "1px solid #f0e8e4" : "none",
+                              "&:hover": { bgcolor: "#fdf6f2" },
+                            }}
+                          >
+                            {player.headshotUrl && (
+                              <img
+                                src={player.headshotUrl}
+                                alt={player.name}
+                                style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                              />
+                            )}
+                            <Box>
+                              <Typography sx={{ fontWeight: 500, fontSize: "0.9rem" }}>{player.name}</Typography>
+                              <Typography sx={{ fontSize: "0.78rem", color: "#9a8a84" }}>
+                                {Array.isArray(player.positions) ? player.positions.join(" · ") : player.positions}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Paper>
+                    )}
+                    {selectedPlayer && (
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "#fef0e8", borderRadius: "8px" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          {selectedPlayer.headshotUrl && (
+                            <img
+                              src={selectedPlayer.headshotUrl}
+                              alt={selectedPlayer.name}
+                              style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                            />
+                          )}
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 600, fontSize: "0.95rem" }}>{selectedPlayer.name}</Typography>
+                            <Typography sx={{ fontSize: "0.8rem", color: "#8c7672" }}>
+                              {Array.isArray(selectedPlayer.positions)
+                                ? selectedPlayer.positions.join(" · ")
+                                : selectedPlayer.positions}
+                            </Typography>
+                          </Box>
+                          {valuationLoading && <CircularProgress size={16} sx={{ color: "#8c7672", flexShrink: 0 }} />}
+                          {!valuationLoading && projectedValue !== null && (
+                            <Typography sx={{ fontWeight: 700, color: "#6d5a57", fontSize: "0.9rem", flexShrink: 0 }}>
+                              ~${Math.round(projectedValue)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Player name"
+                    value={customName}
+                    onChange={(event) => setCustomName(event.target.value)}
+                    autoFocus
+                  />
+                )}
 
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              <TextField
-                label="Amount"
-                type="number"
-                value={pickForm.amount}
-                onChange={handleFormChange("amount")}
-                required
-                fullWidth
-                slotProps={{ htmlInput: { min: 0 } }}
-              />
-              <TextField
-                label="Stat"
-                value={pickForm.stat}
-                onChange={handleFormChange("stat")}
-                placeholder="S1"
-                fullWidth
-              />
-            </Box>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+                  <TextField
+                    label="Amount"
+                    type="number"
+                    value={pickForm.amount}
+                    onChange={handleFormChange("amount")}
+                    required
+                    fullWidth
+                    slotProps={{ htmlInput: { min: 0 } }}
+                  />
+                  <TextField
+                    label="Stat"
+                    value={pickForm.stat}
+                    onChange={handleFormChange("stat")}
+                    placeholder="S1"
+                    fullWidth
+                  />
+                </Box>
+              </>
+            )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setDialogOpen(false)} disabled={isSaving} sx={{ color: "#6d5a57" }}>
-              Cancel
+            <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
+              Close
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={!canSavePick || isSaving}
-              sx={{
-                bgcolor: "#f4c9b3",
-                color: "#3f332f",
-                boxShadow: "none",
-                borderRadius: "8px",
-                "&:hover": { bgcolor: "#efb997", boxShadow: "none" },
-              }}
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </Button>
+            {!activeSlot?.pickId && (
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={!canSavePick || dialogSaving}
+                sx={{
+                  bgcolor: "#f4c9b3",
+                  color: "#3f332f",
+                  boxShadow: "none",
+                  borderRadius: "8px",
+                  "&:hover": { bgcolor: "#efb997", boxShadow: "none" },
+                }}
+              >
+                {dialogSaving ? "Saving..." : "Save"}
+              </Button>
+            )}
           </DialogActions>
         </Box>
       </Dialog>

@@ -77,6 +77,11 @@ export default function OwnerRosterPanel({ owners, getRoster, rightSlot, editabl
               <Typography sx={{ flexGrow: 1, fontWeight: 500, fontSize: "0.95rem" }}>
                 {owner.name}
               </Typography>
+              {owner.detail ? (
+                <Typography sx={{ fontSize: "0.8rem", color: "#8c7672", flexShrink: 0 }}>
+                  {owner.detail}
+                </Typography>
+              ) : null}
               <IconButton size="small" sx={{ color: "#b0a0a0", p: 0.25 }}>
                 <MoreHorizIcon sx={{ fontSize: 18 }} />
               </IconButton>
