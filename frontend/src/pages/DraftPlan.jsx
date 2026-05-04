@@ -258,13 +258,13 @@ export default function DraftPlan() {
         onClose={closeDialog}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "14px" } }}
+        PaperProps={{ sx: { borderRadius: "14px", overflow: "visible" } }}
       >
         <DialogTitle sx={{ fontSize: "1rem", fontWeight: 600, pb: 1 }}>
           {activeSlot ? `${activeSlot.posAbbr} — ${activeSlot.posName}` : ""}
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent sx={{ overflow: "visible" }}>
           {activeSlot && !activeSlot.isEmpty ? (
             <Box>
               <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{activeSlot.playerName}</Typography>

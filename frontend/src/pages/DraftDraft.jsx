@@ -278,13 +278,13 @@ export default function DraftDraft() {
         onClose={closeDialog}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7" } }}
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
       >
         <Box component="form" onSubmit={handleCreatePick}>
           <DialogTitle sx={{ pb: 1 }}>
             {activeSlot ? `${activeSlot.posAbbr} · ${activeSlot.posName}` : "Draft Slot"}
           </DialogTitle>
-          <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
+          <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
             {dialogError && (
               <Alert severity="error" sx={{ borderRadius: "8px" }}>
                 {dialogError}

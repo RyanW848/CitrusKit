@@ -1,6 +1,16 @@
 const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
 const PlanPick = require("../models/PlanPick");
+const MinorLeaguePick = require("../models/MinorLeaguePick");
+
+function serializeMinorLeaguePick(pick) {
+    return {
+        id: pick._id,
+        owner: pick.owner,
+        player: pick.player,
+        playerName: pick.playerName,
+    };
+}
 
 function serializePlanPick(pick) {
     return {
@@ -239,10 +249,11 @@ function buildPlannedRosterSlots(league, ownerPlans) {
         });
 }
 
-function buildDraftState(league, picks, planPicks = []) {
+function buildDraftState(league, picks, planPicks = [], minorLeaguePicks = []) {
     const ownerStates = (league.owners || []).map((owner, index) => {
         const ownerPicks = picks.filter((pick) => pick.owner.toString() === owner._id.toString());
         const ownerPlans = planPicks.filter((p) => p.owner.toString() === owner._id.toString());
+        const ownerMinorLeague = minorLeaguePicks.filter((p) => p.owner.toString() === owner._id.toString());
         const spent = ownerPicks.reduce((sum, pick) => sum + pick.amount, 0);
 
         return {
@@ -255,6 +266,7 @@ function buildDraftState(league, picks, planPicks = []) {
             roster: ownerPicks.map(serializeDraftPick),
             rosterSlots: buildRosterSlots(league, ownerPicks),
             plannedRosterSlots: buildPlannedRosterSlots(league, ownerPlans),
+            minorLeaguePlayers: ownerMinorLeague.map(serializeMinorLeaguePick),
         };
     });
 
@@ -522,12 +534,13 @@ async function getDraftState(req, res) {
             return res.status(result.status).json({ error: result.error });
         }
 
-        const [picks, planPicks] = await Promise.all([
+        const [picks, planPicks, minorLeaguePicks] = await Promise.all([
             DraftPick.find({ league: result.league._id }).sort({ pickNumber: 1 }),
             PlanPick.find({ league: result.league._id }),
+            MinorLeaguePick.find({ league: result.league._id }),
         ]);
 
-        return res.status(200).json(buildDraftState(result.league, picks, planPicks));
+        return res.status(200).json(buildDraftState(result.league, picks, planPicks, minorLeaguePicks));
     } catch (error) {
         console.error("GET DRAFT STATE ERROR:", error);
         return res.status(500).json({
@@ -770,6 +783,64 @@ async function deletePlanPick(req, res) {
     }
 }
 
+async function createMinorLeaguePick(req, res) {
+    try {
+        const { ownerId, playerName, playerId } = req.body;
+
+        if (!ownerId || !playerName) {
+            return res.status(400).json({ error: "ownerId and playerName are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        if (!ownerBelongsToLeague(result.league, ownerId)) {
+            return res.status(400).json({ error: "ownerId must belong to the league" });
+        }
+
+        const pick = await MinorLeaguePick.create({
+            league: result.league._id,
+            owner: ownerId,
+            player: playerId || undefined,
+            playerName: playerName.trim(),
+        });
+
+        return res.status(201).json(serializeMinorLeaguePick(pick));
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(409).json({ error: "Player is already on this owner's minor league team" });
+        }
+        console.error("CREATE MINOR LEAGUE PICK ERROR:", err);
+        return res.status(500).json({ error: "Error creating minor league pick" });
+    }
+}
+
+async function deleteMinorLeaguePick(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const pick = await MinorLeaguePick.findOne({
+            _id: req.params.pickId,
+            league: result.league._id,
+        });
+
+        if (!pick) {
+            return res.status(404).json({ error: "Minor league pick not found" });
+        }
+
+        await pick.deleteOne();
+        return res.status(200).json({ deleted: true, pick: serializeMinorLeaguePick(pick) });
+    } catch (err) {
+        console.error("DELETE MINOR LEAGUE PICK ERROR:", err);
+        return res.status(500).json({ error: "Error deleting minor league pick" });
+    }
+}
+
 module.exports = {
     listLeagues,
     createLeague,
@@ -780,4 +851,6 @@ module.exports = {
     deleteDraftPick,
     createPlanPick,
     deletePlanPick,
+    createMinorLeaguePick,
+    deleteMinorLeaguePick,
 };

@@ -47,3 +47,13 @@ export async function deletePlanPick(leagueId, pickId) {
   const { data } = await client.delete(`/leagues/${leagueId}/plan/picks/${pickId}`);
   return data;
 }
+
+export async function createMinorLeaguePick(leagueId, payload) {
+  const { data } = await client.post(`/leagues/${leagueId}/minor-league/picks`, payload);
+  return data;
+}
+
+export async function deleteMinorLeaguePick(leagueId, pickId) {
+  const { data } = await client.delete(`/leagues/${leagueId}/minor-league/picks/${pickId}`);
+  return data;
+}

@@ -22,6 +22,8 @@ import SearchBar from "../components/SearchBar";
 import {
   createDraftPick,
   deleteDraftPick,
+  createMinorLeaguePick,
+  deleteMinorLeaguePick,
   fetchDraftState,
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
@@ -70,11 +72,21 @@ export default function DraftTeams() {
   const [projectedValue, setProjectedValue] = useState(null);
   const [valuationLoading, setValuationLoading] = useState(false);
 
+  const [mlDialogOpen, setMlDialogOpen] = useState(false);
+  const [mlDialogOwnerId, setMlDialogOwnerId] = useState(null);
+  const [mlMode, setMlMode] = useState("search");
+  const [mlSearchQuery, setMlSearchQuery] = useState("");
+  const [mlSuggestions, setMlSuggestions] = useState([]);
+  const [mlSelectedPlayer, setMlSelectedPlayer] = useState(null);
+  const [mlCustomName, setMlCustomName] = useState("");
+  const [mlSaving, setMlSaving] = useState(false);
+  const [mlError, setMlError] = useState("");
+
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
-  const loadDraftState = useCallback(async () => {
-    setLoading(true);
+  const loadDraftState = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
 
     try {
@@ -83,7 +95,7 @@ export default function DraftTeams() {
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Unable to load teams");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [id]);
 
@@ -128,6 +140,70 @@ export default function DraftTeams() {
       }
       return { ...normalizeRosterSlot(slot, ownerId), isActual: false, isPlan: false };
     });
+  };
+
+  const getMinorLeague = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return owner?.minorLeaguePlayers ?? [];
+  };
+
+  const openMlDialog = (ownerId) => {
+    setMlDialogOwnerId(ownerId);
+    setMlMode("search");
+    setMlSearchQuery("");
+    setMlSuggestions([]);
+    setMlSelectedPlayer(null);
+    setMlCustomName("");
+    setMlError("");
+    setMlDialogOpen(true);
+  };
+
+  const closeMlDialog = () => {
+    setMlDialogOpen(false);
+    setMlDialogOwnerId(null);
+  };
+
+  const handleMlQueryChange = (query) => {
+    setMlSearchQuery(query);
+    setMlSelectedPlayer(null);
+    setMlSuggestions(
+      query.length > 1
+        ? allPlayers.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 6)
+        : []
+    );
+  };
+
+  const handleSaveMinorLeague = async () => {
+    const playerName = mlMode === "custom" ? mlCustomName.trim() : mlSelectedPlayer?.name;
+    if (!playerName) {
+      setMlError(mlMode === "custom" ? "Enter a player name" : "Select a player first");
+      return;
+    }
+    setMlSaving(true);
+    setMlError("");
+    try {
+      await createMinorLeaguePick(id, {
+        ownerId: mlDialogOwnerId,
+        playerName,
+        playerId: mlMode === "custom" ? undefined : mlSelectedPlayer?.id,
+      });
+      closeMlDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setMlError(err.response?.data?.error || "Unable to add player");
+    } finally {
+      setMlSaving(false);
+    }
+  };
+
+  const handleRemoveMinorLeague = async (player) => {
+    try {
+      await deleteMinorLeaguePick(id, player.id);
+      await loadDraftState(true);
+    } catch {
+      // silently reload to reflect true state
+      await loadDraftState(true);
+    }
   };
 
   const openDialog = (slot) => {
@@ -237,7 +313,7 @@ export default function DraftTeams() {
         playerId: mode === "custom" ? undefined : selectedPlayer?.id,
       });
       closeDialog();
-      await loadDraftState();
+      await loadDraftState(true);
     } catch (err) {
       setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to save team data");
     } finally {
@@ -256,7 +332,7 @@ export default function DraftTeams() {
     try {
       await deleteDraftPick(id, activeSlot.pickId);
       closeDialog();
-      await loadDraftState();
+      await loadDraftState(true);
     } catch (err) {
       setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to remove player");
     } finally {
@@ -285,8 +361,113 @@ export default function DraftTeams() {
       )}
 
       {!loading && !error && (
-        <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+        <OwnerRosterPanel
+          owners={owners}
+          getRoster={getRoster}
+          onSlotClick={openDialog}
+          getMinorLeague={getMinorLeague}
+          onAddMinorLeaguePlayer={openMlDialog}
+          onRemoveMinorLeaguePlayer={handleRemoveMinorLeague}
+        />
       )}
+
+      <Dialog
+        open={mlDialogOpen}
+        onClose={closeMlDialog}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>Add Minor League Player</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
+          {mlError && (
+            <Alert severity="error" sx={{ borderRadius: "8px" }}>{mlError}</Alert>
+          )}
+          <ToggleButtonGroup
+            value={mlMode}
+            exclusive
+            onChange={(_, value) => { if (value) setMlMode(value); }}
+            size="small"
+            fullWidth
+            sx={{
+              "& .MuiToggleButton-root": {
+                textTransform: "none",
+                borderColor: "#d0bcb6",
+                "&.Mui-selected": { bgcolor: "#f5f0ed", color: "#6d5a57", borderColor: "#8c7672" },
+              },
+            }}
+          >
+            <ToggleButton value="search">Search Players</ToggleButton>
+            <ToggleButton value="custom">Custom Player</ToggleButton>
+          </ToggleButtonGroup>
+          {mlMode === "search" ? (
+            <Box sx={{ position: "relative" }}>
+              <SearchBar
+                value={mlSearchQuery}
+                onChange={(event) => handleMlQueryChange(event.target.value)}
+                onClear={() => handleMlQueryChange("")}
+                placeholder="Search for a player..."
+                sx={{ mb: 0 }}
+              />
+              {mlSuggestions.length > 0 && (
+                <Paper
+                  elevation={4}
+                  sx={{ position: "absolute", width: "100%", zIndex: 10, mt: 0.5, borderRadius: "8px", overflow: "hidden" }}
+                >
+                  {mlSuggestions.map((player, index) => (
+                    <Box
+                      key={player.id}
+                      onClick={() => { setMlSelectedPlayer(player); setMlSearchQuery(player.name); setMlSuggestions([]); }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        px: 2,
+                        py: 1,
+                        cursor: "pointer",
+                        borderBottom: index < mlSuggestions.length - 1 ? "1px solid #f0e8e4" : "none",
+                        "&:hover": { bgcolor: "#fdf6f2" },
+                      }}
+                    >
+                      {player.headshotUrl && (
+                        <img src={player.headshotUrl} alt={player.name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      )}
+                      <Box>
+                        <Typography sx={{ fontWeight: 500, fontSize: "0.9rem" }}>{player.name}</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: "#9a8a84" }}>
+                          {Array.isArray(player.positions) ? player.positions.join(" · ") : player.positions}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+          ) : (
+            <TextField
+              fullWidth
+              variant="standard"
+              label="Player name"
+              value={mlCustomName}
+              onChange={(event) => setMlCustomName(event.target.value)}
+              autoFocus
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeMlDialog} disabled={mlSaving} sx={{ color: "#6d5a57" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveMinorLeague}
+            disabled={mlSaving || (mlMode === "search" ? !mlSelectedPlayer : !mlCustomName.trim())}
+            sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+          >
+            {mlSaving ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <DraftTabBar activeTab="teams" draftId={id} />
 
@@ -295,13 +476,13 @@ export default function DraftTeams() {
         onClose={closeDialog}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7" } }}
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
       >
         <Box component="form" onSubmit={handleCreatePick}>
           <DialogTitle sx={{ pb: 1 }}>
             {activeSlot ? `${activeSlot.posAbbr} · ${activeSlot.posName}` : "Team Slot"}
           </DialogTitle>
-          <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
+          <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
             {dialogError && (
               <Alert severity="error" sx={{ borderRadius: "8px" }}>
                 {dialogError}
