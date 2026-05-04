@@ -172,10 +172,11 @@ export default function DraftDraft() {
         ? allPlayers.filter((player) => {
             if (!player.name.toLowerCase().includes(query.toLowerCase())) return false;
             if (!activeSlot?.position) return true;
+            const searchPos = (activeSlot.position === "SP" || activeSlot.position === "RP") ? "P" : activeSlot.position;
             const playerPositions = Array.isArray(player.positions)
               ? player.positions
               : (player.positions ? player.positions.split(",").map((item) => item.trim()) : []);
-            return playerPositions.some((position) => position === activeSlot.position);
+            return playerPositions.some((position) => position === searchPos);
           }).slice(0, 6)
         : []
     );
