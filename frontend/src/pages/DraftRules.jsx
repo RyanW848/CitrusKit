@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   IconButton,
   TextField,
@@ -134,7 +135,6 @@ export default function DraftRules() {
 
   const [activeSection, setActiveSection] = useState("name");
   const [formData, setFormData] = useState(() => createDefaultForm(user));
-  const [addingStat, setAddingStat] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -302,53 +302,44 @@ export default function DraftRules() {
 
       case "scoring":
         return (
-          <Box sx={{ p: 2.5, pb: fabPb }}>
+          <Box sx={{ p: 2.5 }}>
             {sectionLabel("Scoring Criteria")}
-            {formData.scoringTypes.map((stat, index) => (
-              <Box
-                key={`${stat}-${index}`}
-                sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1, borderBottom: "1px solid #e8d8cc" }}
-              >
-                <StarBorderIcon sx={{ fontSize: 16, color: "#8c7672" }} />
-                <Typography sx={{ flexGrow: 1, fontSize: "0.95rem" }}>{stat}</Typography>
-                <IconButton
-                  size="small"
-                  sx={{ color: "#b0a0a0" }}
-                  onClick={() => setScoringTypes(formData.scoringTypes.filter((_, itemIndex) => itemIndex !== index))}
+            {DEFAULT_SCORING.map((stat) => {
+              const checked = formData.scoringTypes.includes(stat);
+              return (
+                <Box
+                  key={stat}
+                  onClick={() =>
+                    setScoringTypes(
+                      checked
+                        ? formData.scoringTypes.filter((s) => s !== stat)
+                        : [...formData.scoringTypes, stat]
+                    )
+                  }
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    py: 0.5,
+                    gap: 0.5,
+                    borderBottom: "1px solid #e8d8cc",
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "rgba(140, 118, 114, 0.05)", borderRadius: "4px" },
+                  }}
                 >
-                  <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Box>
-            ))}
-            {addingStat && (
-              <Box sx={{ display: "flex", alignItems: "center", py: 0.75, gap: 1 }}>
-                <StarBorderIcon sx={{ fontSize: 16, color: "#8c7672" }} />
-                <TextField
-                  variant="standard"
-                  placeholder="Stat name"
-                  size="small"
-                  autoFocus
-                  sx={{ flexGrow: 1, ...fieldSx }}
-                  onBlur={(event) => {
-                    const value = event.target.value.trim();
-                    if (value) {
-                      setScoringTypes([...formData.scoringTypes, value]);
-                    }
-                    setAddingStat(false);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") event.target.blur();
-                    if (event.key === "Escape") setAddingStat(false);
-                  }}
-                />
-              </Box>
-            )}
-            <CitrusFab
-              icon={<AddIcon />}
-              size={44}
-              onClick={() => setAddingStat(true)}
-              sx={{ position: "absolute", bottom: 12, right: 12 }}
-            />
+                  <Checkbox
+                    checked={checked}
+                    size="small"
+                    disableRipple
+                    sx={{
+                      color: "#c4aba6",
+                      "&.Mui-checked": { color: "#8c7672" },
+                      p: 0.5,
+                    }}
+                  />
+                  <Typography sx={{ fontSize: "0.95rem" }}>{stat}</Typography>
+                </Box>
+              );
+            })}
           </Box>
         );
 
