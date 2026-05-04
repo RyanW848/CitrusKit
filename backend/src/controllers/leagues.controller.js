@@ -783,6 +783,40 @@ async function deletePlanPick(req, res) {
     }
 }
 
+async function updatePlanPick(req, res) {
+    try {
+        const { position } = req.body;
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const league = result.league;
+        const normalizedPosition = position?.trim().toUpperCase();
+        if (!normalizedPosition || !findRosterPosition(league, normalizedPosition)) {
+            return res.status(400).json({ error: "position must match a league roster position" });
+        }
+
+        const plan = await PlanPick.findOne({
+            _id: req.params.pickId,
+            league: league._id,
+        });
+
+        if (!plan) {
+            return res.status(404).json({ error: "Plan pick not found" });
+        }
+
+        plan.position = normalizedPosition;
+        await plan.save();
+
+        return res.status(200).json(serializePlanPick(plan));
+    } catch (err) {
+        console.error("UPDATE PLAN PICK ERROR:", err);
+        return res.status(500).json({ error: "Error updating plan pick" });
+    }
+}
+
 async function createMinorLeaguePick(req, res) {
     try {
         const { ownerId, playerName, playerId } = req.body;
@@ -851,6 +885,7 @@ module.exports = {
     deleteDraftPick,
     createPlanPick,
     deletePlanPick,
+    updatePlanPick,
     createMinorLeaguePick,
     deleteMinorLeaguePick,
 };

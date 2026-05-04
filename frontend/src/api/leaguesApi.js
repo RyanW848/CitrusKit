@@ -48,6 +48,11 @@ export async function deletePlanPick(leagueId, pickId) {
   return data;
 }
 
+export async function updatePlanPick(leagueId, pickId, payload) {
+  const { data } = await client.patch(`/leagues/${leagueId}/plan/picks/${pickId}`, payload);
+  return data;
+}
+
 export async function createMinorLeaguePick(leagueId, payload) {
   const { data } = await client.post(`/leagues/${leagueId}/minor-league/picks`, payload);
   return data;

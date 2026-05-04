@@ -25,6 +25,7 @@ import {
   fetchDraftState,
   createPlanPick as apiCreatePlanPick,
   deletePlanPick as apiDeletePlanPick,
+  updatePlanPick as apiUpdatePlanPick,
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
@@ -34,7 +35,17 @@ function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
 }
 
-function normalizePlanSlot(slot) {
+function normalizePlanSlot(slot, allPlayers = []) {
+  const planPlayerId = slot.plan?.player ?? null;
+  let playerPositions = null;
+  if (planPlayerId) {
+    const found = allPlayers.find((p) => String(p.id) === String(planPlayerId));
+    if (found) {
+      playerPositions = Array.isArray(found.positions)
+        ? found.positions
+        : (found.positions ? found.positions.split(",").map((s) => s.trim()) : []);
+    }
+  }
   return {
     id: slot.plan?.id ?? null,
     posAbbr: slot.abbr,
@@ -44,7 +55,21 @@ function normalizePlanSlot(slot) {
     stat: null,
     position: slot.abbr,
     isEmpty: !slot.plan,
+    planPlayerId,
+    playerPositions,
   };
+}
+
+function isEligibleForSlot(playerPositions, slotAbbr) {
+  if (!playerPositions) return true; // custom player: allow anywhere
+  const expanded =
+    (slotAbbr === "SP" || slotAbbr === "RP") ? ["P"] :
+    slotAbbr === "CI" ? ["1B", "3B"] :
+    slotAbbr === "MI" ? ["2B", "SS"] :
+    slotAbbr === "U" ? null :
+    [slotAbbr];
+  if (expanded === null) return true; // U slot accepts anything
+  return playerPositions.some((pos) => expanded.includes(pos));
 }
 
 function normalizeActualSlot(slot) {
@@ -134,7 +159,7 @@ export default function DraftPlan() {
         if (actualSlot?.pick) {
           return { ...normalizeActualSlot(actualSlot), isPlan: false, isActual: true };
         }
-        return { ...normalizePlanSlot(planSlot), isPlan: !planSlot.isEmpty, isActual: false };
+        return { ...normalizePlanSlot(planSlot, allPlayers), isPlan: !planSlot.isEmpty, isActual: false };
       });
     }
     return (owner.rosterSlots ?? []).map((slot) => ({
@@ -277,6 +302,37 @@ export default function DraftPlan() {
     }
   };
 
+  const canDrop = useCallback((fromSlot, toSlot) => {
+    if (!fromSlot.isPlan || fromSlot.isActual) return false;
+    if (toSlot.isActual) return false;
+    return isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr);
+  }, []);
+
+  const handleDropSlot = useCallback(async (fromSlot, toSlot) => {
+    if (!fromSlot.id && !toSlot.id) return;
+    if (fromSlot.posAbbr === toSlot.posAbbr) return;
+    const fromOrigPos = fromSlot.posAbbr;
+    const toOrigPos = toSlot.posAbbr;
+    try {
+      if (fromSlot.id) await apiUpdatePlanPick(id, fromSlot.id, { position: toSlot.posAbbr });
+      if (toSlot.id) await apiUpdatePlanPick(id, toSlot.id, { position: fromSlot.posAbbr });
+      const action = {
+        undo: async () => {
+          if (fromSlot.id) await apiUpdatePlanPick(id, fromSlot.id, { position: fromOrigPos });
+          if (toSlot.id) await apiUpdatePlanPick(id, toSlot.id, { position: toOrigPos });
+        },
+        redo: async () => {
+          if (fromSlot.id) await apiUpdatePlanPick(id, fromSlot.id, { position: toOrigPos });
+          if (toSlot.id) await apiUpdatePlanPick(id, toSlot.id, { position: fromOrigPos });
+        },
+      };
+      push(action);
+      loadData(true);
+    } catch {
+      loadData(true);
+    }
+  }, [id, push, loadData]);
+
   return (
     <PageLayout
       title="Plan"
@@ -302,6 +358,8 @@ export default function DraftPlan() {
             getRoster={getRoster}
             editableOwnerId={myOwner?.id}
             onSlotClick={openDialog}
+            canDrop={canDrop}
+            onDropSlot={handleDropSlot}
           />
         </>
       )}
