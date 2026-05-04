@@ -15,6 +15,8 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import RedoIcon from "@mui/icons-material/Redo";
+import UndoIcon from "@mui/icons-material/Undo";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
@@ -28,6 +30,7 @@ import {
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
+import useUndoRedo from "../hooks/useUndoRedo";
 
 const emptyPickForm = {
   amount: "",
@@ -102,6 +105,18 @@ export default function DraftTeams() {
   useEffect(() => {
     loadDraftState();
   }, [loadDraftState]);
+
+  const { push, undo, redo, canUndo, canRedo } = useUndoRedo(() => loadDraftState(true));
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (e.key === "y" || (e.key === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   const owners = useMemo(() => {
     return (draftState?.owners || []).map((owner) => ({
@@ -179,14 +194,23 @@ export default function DraftTeams() {
       setMlError(mlMode === "custom" ? "Enter a player name" : "Select a player first");
       return;
     }
+    const mlPayload = {
+      ownerId: mlDialogOwnerId,
+      playerName,
+      playerId: mlMode === "custom" ? undefined : mlSelectedPlayer?.id,
+    };
     setMlSaving(true);
     setMlError("");
     try {
-      await createMinorLeaguePick(id, {
-        ownerId: mlDialogOwnerId,
-        playerName,
-        playerId: mlMode === "custom" ? undefined : mlSelectedPlayer?.id,
-      });
+      const newPick = await createMinorLeaguePick(id, mlPayload);
+      const action = {
+        undo: async () => deleteMinorLeaguePick(id, newPick.id),
+        redo: async () => {
+          const rePick = await createMinorLeaguePick(id, mlPayload);
+          action.undo = async () => deleteMinorLeaguePick(id, rePick.id);
+        },
+      };
+      push(action);
       closeMlDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -199,9 +223,18 @@ export default function DraftTeams() {
   const handleRemoveMinorLeague = async (player) => {
     try {
       await deleteMinorLeaguePick(id, player.id);
+      const removePayload = { ownerId: player.owner, playerName: player.playerName };
+      const originalId = player.id;
+      const action = {
+        undo: async () => {
+          const newPick = await createMinorLeaguePick(id, removePayload);
+          action.redo = async () => deleteMinorLeaguePick(id, newPick.id);
+        },
+        redo: async () => deleteMinorLeaguePick(id, originalId),
+      };
+      push(action);
       await loadDraftState(true);
     } catch {
-      // silently reload to reflect true state
       await loadDraftState(true);
     }
   };
@@ -289,9 +322,7 @@ export default function DraftTeams() {
 
   const handleCreatePick = async (event) => {
     event.preventDefault();
-    if (!activeSlot) {
-      return;
-    }
+    if (!activeSlot) return;
 
     const playerName = mode === "custom" ? customName.trim() : selectedPlayer?.name;
     if (!playerName) {
@@ -299,19 +330,28 @@ export default function DraftTeams() {
       return;
     }
 
+    const payload = {
+      ownerId: activeSlot.ownerId,
+      playerName,
+      position: activeSlot.position,
+      slot: activeSlot.slot,
+      amount: Number(pickForm.amount),
+      stat: pickForm.stat.trim(),
+      playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+    };
+
     setDialogSaving(true);
     setDialogError("");
-
     try {
-      await createDraftPick(id, {
-        ownerId: activeSlot.ownerId,
-        playerName,
-        position: activeSlot.position,
-        slot: activeSlot.slot,
-        amount: Number(pickForm.amount),
-        stat: pickForm.stat.trim(),
-        playerId: mode === "custom" ? undefined : selectedPlayer?.id,
-      });
+      const newPick = await createDraftPick(id, payload);
+      const action = {
+        undo: async () => deleteDraftPick(id, newPick.id),
+        redo: async () => {
+          const rePick = await createDraftPick(id, payload);
+          action.undo = async () => deleteDraftPick(id, rePick.id);
+        },
+      };
+      push(action);
       closeDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -322,15 +362,30 @@ export default function DraftTeams() {
   };
 
   const handleDeletePick = async () => {
-    if (!activeSlot?.pickId) {
-      return;
-    }
+    if (!activeSlot?.pickId) return;
+
+    const pickId = activeSlot.pickId;
+    const slotSnapshot = {
+      ownerId: activeSlot.ownerId,
+      playerName: activeSlot.playerName,
+      position: activeSlot.position,
+      slot: activeSlot.slot,
+      amount: activeSlot.price,
+      stat: activeSlot.stat || "",
+    };
 
     setDialogSaving(true);
     setDialogError("");
-
     try {
-      await deleteDraftPick(id, activeSlot.pickId);
+      await deleteDraftPick(id, pickId);
+      const action = {
+        undo: async () => {
+          const newPick = await createDraftPick(id, slotSnapshot);
+          action.redo = async () => deleteDraftPick(id, newPick.id);
+        },
+        redo: async () => deleteDraftPick(id, pickId),
+      };
+      push(action);
       closeDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -346,7 +401,15 @@ export default function DraftTeams() {
   );
 
   return (
-    <PageLayout title="Teams" subtitle="Pre-input team data" showBell>
+    <PageLayout
+      title="Teams"
+      subtitle="Pre-input team data"
+      showBell
+      actions={<>
+        <Button size="small" variant="outlined" startIcon={<UndoIcon />} onClick={undo} disabled={!canUndo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Undo</Button>
+        <Button size="small" variant="outlined" startIcon={<RedoIcon />} onClick={redo} disabled={!canRedo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Redo</Button>
+      </>}
+    >
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />
@@ -361,14 +424,16 @@ export default function DraftTeams() {
       )}
 
       {!loading && !error && (
-        <OwnerRosterPanel
-          owners={owners}
-          getRoster={getRoster}
-          onSlotClick={openDialog}
-          getMinorLeague={getMinorLeague}
-          onAddMinorLeaguePlayer={openMlDialog}
-          onRemoveMinorLeaguePlayer={handleRemoveMinorLeague}
-        />
+        <>
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            onSlotClick={openDialog}
+            getMinorLeague={getMinorLeague}
+            onAddMinorLeaguePlayer={openMlDialog}
+            onRemoveMinorLeaguePlayer={handleRemoveMinorLeague}
+          />
+        </>
       )}
 
       <Dialog

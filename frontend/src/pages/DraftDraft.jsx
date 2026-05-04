@@ -15,13 +15,16 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import RedoIcon from "@mui/icons-material/Redo";
+import UndoIcon from "@mui/icons-material/Undo";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import SearchBar from "../components/SearchBar";
-import { createDraftPick, fetchDraftState } from "../api/leaguesApi";
+import { createDraftPick, deleteDraftPick, fetchDraftState } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
+import useUndoRedo from "../hooks/useUndoRedo";
 
 const emptyPickForm = {
   amount: "",
@@ -69,8 +72,8 @@ export default function DraftDraft() {
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
-  const loadDraftState = useCallback(async () => {
-    setLoading(true);
+  const loadDraftState = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
 
     try {
@@ -79,13 +82,25 @@ export default function DraftDraft() {
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Unable to load draft");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
     loadDraftState();
   }, [loadDraftState]);
+
+  const { push, undo, redo, canUndo, canRedo } = useUndoRedo(() => loadDraftState(true));
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (e.key === "y" || (e.key === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   const owners = useMemo(() => {
     return (draftState?.owners || []).map((owner) => ({
@@ -220,21 +235,30 @@ export default function DraftDraft() {
       return;
     }
 
+    const payload = {
+      ownerId: activeSlot.ownerId,
+      playerName,
+      position: activeSlot.position,
+      slot: activeSlot.slot,
+      amount: Number(pickForm.amount),
+      stat: pickForm.stat.trim(),
+      playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+    };
+
     setDialogSaving(true);
     setDialogError("");
-
     try {
-      await createDraftPick(id, {
-        ownerId: activeSlot.ownerId,
-        playerName,
-        position: activeSlot.position,
-        slot: activeSlot.slot,
-        amount: Number(pickForm.amount),
-        stat: pickForm.stat.trim(),
-        playerId: mode === "custom" ? undefined : selectedPlayer?.id,
-      });
+      const newPick = await createDraftPick(id, payload);
+      const action = {
+        undo: async () => deleteDraftPick(id, newPick.id),
+        redo: async () => {
+          const rePick = await createDraftPick(id, payload);
+          action.undo = async () => deleteDraftPick(id, rePick.id);
+        },
+      };
+      push(action);
       closeDialog();
-      await loadDraftState();
+      await loadDraftState(true);
     } catch (err) {
       setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to save draft pick");
     } finally {
@@ -248,7 +272,15 @@ export default function DraftDraft() {
   );
 
   return (
-    <PageLayout title="Draft" subtitle="Follow along with your league's draft" showBell>
+    <PageLayout
+      title="Draft"
+      subtitle="Follow along with your league's draft"
+      showBell
+      actions={<>
+        <Button size="small" variant="outlined" startIcon={<UndoIcon />} onClick={undo} disabled={!canUndo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Undo</Button>
+        <Button size="small" variant="outlined" startIcon={<RedoIcon />} onClick={redo} disabled={!canRedo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Redo</Button>
+      </>}
+    >
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />

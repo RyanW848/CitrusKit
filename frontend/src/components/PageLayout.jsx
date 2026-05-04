@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 export default function PageLayout({
   title,
   subtitle,
+  actions,
   showBell = false,
   showHome = true,
   onBellClick,
@@ -78,11 +79,12 @@ export default function PageLayout({
 
         {/* Title */}
         {title && (
-          <Typography
-            sx={{ fontSize: "2rem", fontWeight: 700, color: "#1a1a1a", mb: 0.5 }}
-          >
-            {title}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "2rem", fontWeight: 700, color: "#1a1a1a" }}>
+              {title}
+            </Typography>
+            {actions && <Box sx={{ display: "flex", gap: 1 }}>{actions}</Box>}
+          </Box>
         )}
         {subtitle && (
           <Typography sx={{ fontSize: "0.88rem", color: "#666", mb: 4 }}>

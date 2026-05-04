@@ -15,6 +15,8 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import RedoIcon from "@mui/icons-material/Redo";
+import UndoIcon from "@mui/icons-material/Undo";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
@@ -26,6 +28,7 @@ import {
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
+import useUndoRedo from "../hooks/useUndoRedo";
 
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
@@ -89,15 +92,27 @@ export default function DraftPlan() {
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
-  const loadData = useCallback(() => {
-    setLoading(true);
+  const loadData = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     return fetchDraftState(id)
       .then(setDraftState)
       .catch((err) => setError(err.response?.data?.error || "Failed to load draft data"))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   }, [id]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const { push, undo, redo, canUndo, canRedo } = useUndoRedo(() => loadData(true));
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (e.key === "y" || (e.key === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   // Owner at slot 1 is always the current user (matches DraftRules seeding convention)
   const myOwner = draftState?.owners?.[0] ?? null;
@@ -200,18 +215,27 @@ export default function DraftPlan() {
       setDialogError(mode === "custom" ? "Enter a player name" : "Select a player first");
       return;
     }
+    const payload = {
+      ownerId: myOwner.id,
+      playerName,
+      position: activeSlot.position,
+      plannedAmount: plannedAmount !== "" ? Number(plannedAmount) : 0,
+      playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+    };
     setDialogSaving(true);
     setDialogError("");
     try {
-      await apiCreatePlanPick(id, {
-        ownerId: myOwner.id,
-        playerName,
-        position: activeSlot.position,
-        plannedAmount: plannedAmount !== "" ? Number(plannedAmount) : 0,
-        playerId: mode === "custom" ? undefined : selectedPlayer?.id,
-      });
+      const newPick = await apiCreatePlanPick(id, payload);
+      const action = {
+        undo: async () => apiDeletePlanPick(id, newPick.id),
+        redo: async () => {
+          const rePick = await apiCreatePlanPick(id, payload);
+          action.undo = async () => apiDeletePlanPick(id, rePick.id);
+        },
+      };
+      push(action);
       closeDialog();
-      loadData();
+      loadData(true);
     } catch (err) {
       setDialogError(err.response?.data?.error || "Failed to save");
     } finally {
@@ -221,12 +245,27 @@ export default function DraftPlan() {
 
   const handleRemove = async () => {
     if (!activeSlot?.id) return;
+    const pickId = activeSlot.id;
+    const deletePayload = {
+      ownerId: myOwner.id,
+      playerName: activeSlot.playerName,
+      position: activeSlot.position,
+      plannedAmount: activeSlot.price,
+    };
     setDialogSaving(true);
     setDialogError("");
     try {
-      await apiDeletePlanPick(id, activeSlot.id);
+      await apiDeletePlanPick(id, pickId);
+      const action = {
+        undo: async () => {
+          const newPick = await apiCreatePlanPick(id, deletePayload);
+          action.redo = async () => apiDeletePlanPick(id, newPick.id);
+        },
+        redo: async () => apiDeletePlanPick(id, pickId),
+      };
+      push(action);
       closeDialog();
-      loadData();
+      loadData(true);
     } catch (err) {
       setDialogError(err.response?.data?.error || "Failed to remove");
     } finally {
@@ -235,7 +274,15 @@ export default function DraftPlan() {
   };
 
   return (
-    <PageLayout title="Plan" subtitle="Plan your team" showBell>
+    <PageLayout
+      title="Plan"
+      subtitle="Plan your team"
+      showBell
+      actions={<>
+        <Button size="small" variant="outlined" startIcon={<UndoIcon />} onClick={undo} disabled={!canUndo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Undo</Button>
+        <Button size="small" variant="outlined" startIcon={<RedoIcon />} onClick={redo} disabled={!canRedo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Redo</Button>
+      </>}
+    >
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress sx={{ color: "#8c7672" }} />
@@ -245,12 +292,14 @@ export default function DraftPlan() {
         <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>{error}</Alert>
       )}
       {!loading && !error && (
-        <OwnerRosterPanel
-          owners={owners}
-          getRoster={getRoster}
-          editableOwnerId={myOwner?.id}
-          onSlotClick={openDialog}
-        />
+        <>
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            editableOwnerId={myOwner?.id}
+            onSlotClick={openDialog}
+          />
+        </>
       )}
 
       <Dialog
