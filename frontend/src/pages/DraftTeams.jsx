@@ -284,11 +284,15 @@ export default function DraftTeams() {
         ? allPlayers.filter((player) => {
             if (!player.name.toLowerCase().includes(query.toLowerCase())) return false;
             if (!activeSlot?.position) return true;
-            const searchPos = (activeSlot.position === "SP" || activeSlot.position === "RP") ? "P" : activeSlot.position;
+            const searchPositions =
+              (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
+              activeSlot.position === "CI" ? ["1B", "3B"] :
+              activeSlot.position === "MI" ? ["2B", "SS"] :
+              [activeSlot.position];
             const playerPositions = Array.isArray(player.positions)
               ? player.positions
               : (player.positions ? player.positions.split(",").map((item) => item.trim()) : []);
-            return playerPositions.some((position) => position === searchPos);
+            return playerPositions.some((position) => searchPositions.includes(position));
           }).slice(0, 6)
         : []
     );

@@ -172,11 +172,15 @@ export default function DraftPlan() {
         ? allPlayers.filter((p) => {
             if (!p.name.toLowerCase().includes(q.toLowerCase())) return false;
             if (!activeSlot?.position) return true;
-            const searchPos = (activeSlot.position === "SP" || activeSlot.position === "RP") ? "P" : activeSlot.position;
+            const searchPositions =
+              (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
+              activeSlot.position === "CI" ? ["1B", "3B"] :
+              activeSlot.position === "MI" ? ["2B", "SS"] :
+              [activeSlot.position];
             const playerPositions = Array.isArray(p.positions)
               ? p.positions
               : (p.positions ? p.positions.split(",").map((s) => s.trim()) : []);
-            return playerPositions.some((pos) => pos === searchPos);
+            return playerPositions.some((pos) => searchPositions.includes(pos));
           }).slice(0, 6)
         : []
     );
