@@ -1,17 +1,14 @@
 import React, { useEffect } from 'react';
 import { IconButton, CircularProgress } from '@mui/material';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import SearchBarImport from './SearchBar.jsx';
-import PlayerStatsModalImport from './PlayerStatsModal.jsx';
+import SearchBar from './SearchBar';
+import PlayerStatsModal from './PlayerStatsModal';
 import usePlayerStore from './stores/usePlayerStore';
-
-const SearchBar = SearchBarImport?.default ?? SearchBarImport;
-const PlayerStatsModal = PlayerStatsModalImport?.default ?? PlayerStatsModalImport;
 
 const PlayerSearch = () => {
     const {
         query, suggestions, statsLoading,
-        allPlayers, playerResult, modalOpen,
+        allPlayers, playerResult, selectedPlayerEntry, modalOpen,
         fetchAllPlayers, setQuery, clearSearch,
         selectPlayer, setModalOpen,
     } = usePlayerStore();
@@ -20,12 +17,10 @@ const PlayerSearch = () => {
 
     const triggerSearch = () => {
         if (!query.trim() || statsLoading) return;
-
         const exactMatch = allPlayers.find(
             p => p.name.toLowerCase() === query.trim().toLowerCase()
         );
         const target = exactMatch || suggestions[0];
-
         if (target) {
             selectPlayer(target);
         } else {
@@ -131,6 +126,7 @@ const PlayerSearch = () => {
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
                 playerResult={playerResult}
+                playerEntry={selectedPlayerEntry}
                 allPlayersStats={null}
             />
         </>

@@ -1,7 +1,5 @@
-// Normalizes (given the range of the values) from 0 to 100
 export const clamp = (val, max) => Math.min(100, Math.round((val / max) * 100));
 
-// Claude assisted 
 const RADAR_PROFILES = {
     hitter: [
         { label: 'Contact', compute: s => clamp(parseFloat(s.avg  || 0) * 1000, 320) },
@@ -39,7 +37,7 @@ const RADAR_PROFILES = {
         { label: 'Holds',   compute: s => clamp(s.holds  || 0, 35) },
     ],
 };
- 
+
 const resolveRadarProfile = (position = '') => {
     const p = position.trim().toUpperCase();
     if (p.includes('STARTING') || p === 'SP' || p.includes('STARTER')) return RADAR_PROFILES.sp;
@@ -50,7 +48,6 @@ const resolveRadarProfile = (position = '') => {
     return RADAR_PROFILES.hitter;
 };
 
-
 export const computeRadarData = (stats = {}, position = '') => {
     const profile = resolveRadarProfile(position);
     return profile.map(({ label, compute }) => ({ tool: label, value: compute(stats) }));
@@ -58,21 +55,15 @@ export const computeRadarData = (stats = {}, position = '') => {
 
 export const computePercentile = (value, allValues) => {
     if (!allValues?.length) return 0;
-
     const below = allValues.filter(v => v < value).length;
-
     return Math.round((below / allValues.length) * 100);
-}
+};
 
 export const computeRank = (value, allValues) => {
     if (!allValues?.length) return null;
-
     return allValues.filter(v => v > value).length + 1;
 };
 
-/**
- * All possible stat rows with display metadata.
- */
 export const ALL_STATS = [
     // Hitting
     { key: 'avg',                label: 'Batting Avg',       isFloat: true  },
@@ -109,17 +100,13 @@ export const ALL_STATS = [
     { key: 'assists',            label: 'Assists',           isFloat: false },
     { key: 'fieldingPercentage', label: 'Fielding %',        isFloat: true  },
 ];
- 
-/**
- * Which stat keys are relevant per position.
- * The modal filters ALL_STATS down to only these keys for the given position.
- */
+
 const HITTING_CORE = [
     'avg', 'homeRuns', 'rbi', 'stolenBases', 'obp', 'slg', 'ops',
     'hits', 'doubles', 'triples', 'runs', 'strikeOuts', 'baseOnBalls', 'gamesPlayed',
 ];
 const FIELDING_CORE = ['errors', 'assists', 'fieldingPercentage'];
- 
+
 export const POSITION_STATS = {
     SP: [
         'era', 'wins', 'losses', 'inningsPitched', 'strikeOutsPitching',
@@ -129,7 +116,7 @@ export const POSITION_STATS = {
         'era', 'saves', 'holds', 'wins', 'losses', 'inningsPitched',
         'strikeOutsPitching', 'whip', 'earnedRuns', 'gamesPlayed',
     ],
-    CL: [ // Closer — same as RP but saves front and center
+    CL: [
         'saves', 'era', 'holds', 'inningsPitched', 'strikeOutsPitching',
         'whip', 'earnedRuns', 'gamesPlayed',
     ],
@@ -141,26 +128,23 @@ export const POSITION_STATS = {
     '3B': [ ...HITTING_CORE, ...FIELDING_CORE ],
     SS: [  ...HITTING_CORE, ...FIELDING_CORE ],
     LF: [  ...HITTING_CORE, ...FIELDING_CORE ],
-    CF: [  ...HITTING_CORE, 'stolenBases', ...FIELDING_CORE ], // speed extra relevant
+    CF: [  ...HITTING_CORE, 'stolenBases', ...FIELDING_CORE ],
     RF: [  ...HITTING_CORE, ...FIELDING_CORE ],
     OF: [  ...HITTING_CORE, ...FIELDING_CORE ],
-    DH: [  ...HITTING_CORE ], // no fielding for DH
+    DH: [  ...HITTING_CORE ], 
+    UT: [  ...HITTING_CORE, ...FIELDING_CORE ], 
 };
- 
-/**
- * Given a position string from the API (e.g. "Starting Pitcher", "SP", "RF"),
- * returns the list of relevant stat definitions from ALL_STATS.
- */
+
 export const getStatsForPosition = (position = '') => {
     const p = position.trim().toUpperCase();
- 
-    // Normalize verbose position names the API might return
+
     const normalized =
-        p.includes('STARTING') || p === 'STARTER'   ? 'SP' :
+        p === 'P' || p.includes('STARTING') || p === 'STARTER' ? 'SP' :
         p.includes('RELIEF')   || p === 'RELIEVER'   ? 'RP' :
         p.includes('CLOSER')                          ? 'CL' :
-        p.includes('PITCHER')                         ? 'SP' : // fallback for generic "Pitcher"
+        p.includes('PITCHER')                         ? 'SP' :
         p.includes('DESIGNATED')                      ? 'DH' :
+        p === 'UT' || p.includes('UTIL')              ? 'UT' :
         p.includes('CENTER')                          ? 'CF' :
         p.includes('LEFT')                            ? 'LF' :
         p.includes('RIGHT')                           ? 'RF' :
@@ -171,14 +155,32 @@ export const getStatsForPosition = (position = '') => {
         p.includes('FIRST')                           ? '1B' :
         p.includes('CATCH')                           ? 'C'  :
         p; // already short form
- 
+
     const keys = POSITION_STATS[normalized] ?? HITTING_CORE; // default to hitting
     return ALL_STATS.filter(s => keys.includes(s.key));
 };
- 
-/**
- * Builds the headshot URL from an MLB ID.
- * https://securea.mlb.com/mlb/images/players/head_shot/{mlbId}.jpg
- */
+
+export const expandPosition = (position = '') => {
+    const p = position.trim().toUpperCase();
+
+    if (p.includes('TWO-WAY') || p.includes('TWO WAY')) return ['SP', 'DH'];
+
+    if (p.includes('STARTING') || p.includes('STARTER')) return ['SP'];
+    if (p.includes('CLOSER'))                             return ['CL'];
+    if (p.includes('RELIEF') || p === 'RELIEVER')        return ['RP'];
+    if (p.includes('PITCHER'))                            return ['SP'];
+    if (p.includes('DESIGNATED'))                         return ['DH'];
+    if (p.includes('CENTER'))                             return ['CF'];
+    if (p.includes('LEFT FIELD') || p === 'LEFT FIELDER') return ['LF'];
+    if (p.includes('RIGHT FIELD') || p === 'RIGHT FIELDER') return ['RF'];
+    if (p.includes('OUTFIELD'))                           return ['OF'];
+    if (p.includes('SHORTSTOP') || p.includes('SHORT STOP')) return ['SS'];
+    if (p.includes('THIRD'))                              return ['3B'];
+    if (p.includes('SECOND'))                             return ['2B'];
+    if (p.includes('FIRST'))                              return ['1B'];
+    if (p.includes('CATCH'))                              return ['C'];
+
+    return [p];
+};
 export const getHeadshotUrl = (mlbId) =>
     mlbId ? `https://securea.mlb.com/mlb/images/players/head_shot/${mlbId}.jpg` : null;
