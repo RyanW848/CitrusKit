@@ -22,10 +22,11 @@ import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import SearchBar from "../components/SearchBar";
-import { createDraftPick, deleteDraftPick, fetchDraftState } from "../api/leaguesApi";
+import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
+import useNotes from "../hooks/useNotes";
 import PlayerPickerModal from "../components/PlayerPickerModal"
 
 const emptyPickForm = {
@@ -46,6 +47,7 @@ function normalizeRosterSlot(slot, ownerId) {
     position: slot.abbr,
     slot: slot.slot,
     pickId: slot.pick?.id ?? null,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -70,6 +72,21 @@ export default function DraftDraft() {
   const [customName, setCustomName] = useState("");
   const [projectedValue, setProjectedValue] = useState(null);
   const [valuationLoading, setValuationLoading] = useState(false);
+
+  const [taxiDialogOpen, setTaxiDialogOpen] = useState(false);
+  const [taxiDialogOwnerId, setTaxiDialogOwnerId] = useState(null);
+  const [taxiMode, setTaxiMode] = useState("search");
+  const [taxiSearchQuery, setTaxiSearchQuery] = useState("");
+  const [taxiSuggestions, setTaxiSuggestions] = useState([]);
+  const [taxiSelectedPlayer, setTaxiSelectedPlayer] = useState(null);
+  const [taxiCustomName, setTaxiCustomName] = useState("");
+  const [taxiSaving, setTaxiSaving] = useState(false);
+  const [taxiError, setTaxiError] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [taxiNoteText, setTaxiNoteText] = useState("");
+
+  const { load: loadNotes, findNote, saveNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
@@ -158,6 +175,8 @@ export default function DraftDraft() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    const existing = findNote(slot.playerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setDialogOpen(true);
   };
 
@@ -172,6 +191,7 @@ export default function DraftDraft() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    setNoteText("");
   };
 
   const handleFormChange = (field) => (event) => {
@@ -208,6 +228,8 @@ export default function DraftDraft() {
     setSelectedPlayer(player);
     setSearchQuery(player.name);
     setSuggestions([]);
+    const existing = findNote(player.id, player.name);
+    if (existing) setNoteText(existing.note ?? "");
 
     if (!draftState?.league) return;
     setValuationLoading(true);
@@ -264,6 +286,15 @@ export default function DraftDraft() {
         },
       };
       push(action);
+      const playerName = mode === "custom" ? customName.trim() : selectedPlayer?.name;
+      if (noteText.trim() && playerName) {
+        saveNote({
+          playerName,
+          playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+          note: noteText.trim(),
+          isCustom: mode === "custom",
+        });
+      }
       closeDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -273,16 +304,162 @@ export default function DraftDraft() {
     }
   };
 
+  const handleSaveNote = async () => {
+    if (!activeSlot) return;
+    const playerName = activeSlot.playerName;
+    if (!playerName) return;
+    await saveNote({
+      playerName,
+      playerId: activeSlot.playerId || undefined,
+      note: noteText.trim(),
+      isCustom: !activeSlot.playerId,
+    });
+    closeDialog();
+  };
+
   const canSavePick = pickForm.amount !== "" && (
     (mode === "custom" && customName.trim()) ||
     (mode === "search" && selectedPlayer)
   );
 
+  const handleDeletePick = async () => {
+    if (!activeSlot?.pickId) return;
+
+    const pickId = activeSlot.pickId;
+    const slotSnapshot = {
+      ownerId: activeSlot.ownerId,
+      playerName: activeSlot.playerName,
+      position: activeSlot.position,
+      slot: activeSlot.slot,
+      amount: activeSlot.price,
+      stat: activeSlot.stat || "",
+    };
+
+    setDialogSaving(true);
+    setDialogError("");
+    try {
+      await deleteDraftPick(id, pickId);
+      const action = {
+        undo: async () => {
+          const newPick = await createDraftPick(id, slotSnapshot);
+          action.redo = async () => deleteDraftPick(id, newPick.id);
+        },
+        redo: async () => deleteDraftPick(id, pickId),
+      };
+      push(action);
+      closeDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to remove player");
+    } finally {
+      setDialogSaving(false);
+    }
+  };
+
+  const allRostersFull = useMemo(() => {
+    if (!draftState?.owners?.length) return false;
+    return draftState.owners.every((owner) =>
+      (owner.rosterSlots || []).every((slot) => slot.pick !== null)
+    );
+  }, [draftState]);
+
+  const getTaxi = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return owner?.taxiPlayers ?? [];
+  };
+
+  const openTaxiDialog = (ownerId) => {
+    setTaxiDialogOwnerId(ownerId);
+    setTaxiMode("search");
+    setTaxiSearchQuery("");
+    setTaxiSuggestions([]);
+    setTaxiSelectedPlayer(null);
+    setTaxiCustomName("");
+    setTaxiError("");
+    setTaxiNoteText("");
+    setTaxiDialogOpen(true);
+  };
+
+  const closeTaxiDialog = () => {
+    setTaxiDialogOpen(false);
+    setTaxiDialogOwnerId(null);
+    setTaxiNoteText("");
+  };
+
+  const handleTaxiQueryChange = (query) => {
+    setTaxiSearchQuery(query);
+    setTaxiSelectedPlayer(null);
+    setTaxiSuggestions(
+      query.length > 1
+        ? allPlayers.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 6)
+        : []
+    );
+  };
+
+  const handleSaveTaxiPick = async () => {
+    const playerName = taxiMode === "custom" ? taxiCustomName.trim() : taxiSelectedPlayer?.name;
+    if (!playerName) {
+      setTaxiError(taxiMode === "custom" ? "Enter a player name" : "Select a player first");
+      return;
+    }
+    const payload = {
+      ownerId: taxiDialogOwnerId,
+      playerName,
+      playerId: taxiMode === "custom" ? undefined : taxiSelectedPlayer?.id,
+    };
+    setTaxiSaving(true);
+    setTaxiError("");
+    try {
+      const newPick = await createTaxiPick(id, payload);
+      const action = {
+        undo: async () => deleteTaxiPick(id, newPick.id),
+        redo: async () => {
+          const rePick = await createTaxiPick(id, payload);
+          action.undo = async () => deleteTaxiPick(id, rePick.id);
+        },
+      };
+      push(action);
+      if (taxiNoteText.trim() && playerName) {
+        saveNote({
+          playerName,
+          playerId: taxiMode === "custom" ? undefined : taxiSelectedPlayer?.id,
+          note: taxiNoteText.trim(),
+          isCustom: taxiMode === "custom",
+        });
+      }
+      closeTaxiDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setTaxiError(err.response?.data?.error || "Unable to add player");
+    } finally {
+      setTaxiSaving(false);
+    }
+  };
+
+  const handleRemoveTaxiPick = async (player) => {
+    try {
+      await deleteTaxiPick(id, player.id);
+      const removePayload = { ownerId: player.owner, playerName: player.playerName };
+      const originalId = player.id;
+      const action = {
+        undo: async () => {
+          const newPick = await createTaxiPick(id, removePayload);
+          action.redo = async () => deleteTaxiPick(id, newPick.id);
+        },
+        redo: async () => deleteTaxiPick(id, originalId),
+      };
+      push(action);
+      await loadDraftState(true);
+    } catch {
+      await loadDraftState(true);
+    }
+  };
+
   return (
     <PageLayout
       title="Draft"
       subtitle="Follow along with your league's draft"
-      showBell
+      //showBell
       actions={<>
         <Button size="small" variant="outlined" startIcon={<UndoIcon />} onClick={undo} disabled={!canUndo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Undo</Button>
         <Button size="small" variant="outlined" startIcon={<RedoIcon />} onClick={redo} disabled={!canRedo} sx={{ textTransform: "none", borderColor: "#d0bcb6", color: "#6d5a57", "&:hover": { borderColor: "#8c7672", bgcolor: "rgba(140,118,114,0.06)" }, "&.Mui-disabled": { borderColor: "#e8d8cc", color: "#c4aba6" } }}>Redo</Button>
@@ -306,9 +483,125 @@ export default function DraftDraft() {
           <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
             Select an owner, then click an open roster slot to enter a drafted player.
           </Alert>
-          <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            onSlotClick={openDialog}
+            getTaxi={getTaxi}
+            onAddTaxiPlayer={openTaxiDialog}
+            onRemoveTaxiPlayer={handleRemoveTaxiPick}
+            taxiEnabled={allRostersFull}
+          />
         </>
       )}
+
+      <Dialog
+        open={taxiDialogOpen}
+        onClose={closeTaxiDialog}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>Add Taxi Squad Player</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
+          {taxiError && (
+            <Alert severity="error" sx={{ borderRadius: "8px" }}>{taxiError}</Alert>
+          )}
+          <ToggleButtonGroup
+            value={taxiMode}
+            exclusive
+            onChange={(_, value) => { if (value) setTaxiMode(value); }}
+            size="small"
+            fullWidth
+            sx={{
+              "& .MuiToggleButton-root": {
+                textTransform: "none",
+                borderColor: "#d0bcb6",
+                "&.Mui-selected": { bgcolor: "#f5f0ed", color: "#6d5a57", borderColor: "#8c7672" },
+              },
+            }}
+          >
+            <ToggleButton value="search">Search Players</ToggleButton>
+            <ToggleButton value="custom">Custom Player</ToggleButton>
+          </ToggleButtonGroup>
+          {taxiMode === "search" ? (
+            <Box sx={{ position: "relative" }}>
+              <SearchBar
+                value={taxiSearchQuery}
+                onChange={(event) => handleTaxiQueryChange(event.target.value)}
+                onClear={() => handleTaxiQueryChange("")}
+                placeholder="Search for a player..."
+                sx={{ mb: 0 }}
+              />
+              {taxiSuggestions.length > 0 && (
+                <Paper
+                  elevation={4}
+                  sx={{ position: "absolute", width: "100%", zIndex: 10, mt: 0.5, borderRadius: "8px", overflow: "hidden" }}
+                >
+                  {taxiSuggestions.map((player, index) => (
+                    <Box
+                      key={player.id}
+                      onClick={() => { setTaxiSelectedPlayer(player); setTaxiSearchQuery(player.name); setTaxiSuggestions([]); }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        px: 2,
+                        py: 1,
+                        cursor: "pointer",
+                        borderBottom: index < taxiSuggestions.length - 1 ? "1px solid #f0e8e4" : "none",
+                        "&:hover": { bgcolor: "#fdf6f2" },
+                      }}
+                    >
+                      {player.headshotUrl && (
+                        <img src={player.headshotUrl} alt={player.name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      )}
+                      <Box>
+                        <Typography sx={{ fontWeight: 500, fontSize: "0.9rem" }}>{player.name}</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: "#9a8a84" }}>
+                          {Array.isArray(player.positions) ? player.positions.join(" · ") : player.positions}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+          ) : (
+            <TextField
+              fullWidth
+              variant="standard"
+              label="Player name"
+              value={taxiCustomName}
+              onChange={(event) => setTaxiCustomName(event.target.value)}
+              autoFocus
+            />
+          )}
+          <TextField
+            fullWidth
+            variant="standard"
+            label="Note (optional)"
+            value={taxiNoteText}
+            onChange={(event) => setTaxiNoteText(event.target.value)}
+            multiline
+            minRows={2}
+            placeholder="Add a note about this player..."
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeTaxiDialog} disabled={taxiSaving} sx={{ color: "#6d5a57" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveTaxiPick}
+            disabled={taxiSaving || (taxiMode === "search" ? !taxiSelectedPlayer : !taxiCustomName.trim())}
+            sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+          >
+            {taxiSaving ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <DraftTabBar activeTab="draft" draftId={id} />
 
@@ -331,12 +624,24 @@ export default function DraftDraft() {
             )}
 
             {activeSlot?.pickId ? (
-              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-                <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
-                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                  ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
-                </Typography>
-              </Box>
+              <>
+                <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                  <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                    ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
+                  </Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note (optional)"
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  multiline
+                  minRows={2}
+                  placeholder="Add a note about this player..."
+                />
+              </>
             ) : (
               <>
                 {/* Checking function */}
@@ -492,13 +797,38 @@ export default function DraftDraft() {
                     fullWidth
                   />
                 </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note (optional)"
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  multiline
+                  minRows={2}
+                  placeholder="Add a note about this player..."
+                />
               </>
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
+            {activeSlot?.pickId && (
+              <Button onClick={handleDeletePick} disabled={dialogSaving} sx={{ color: "#b24b3c", mr: "auto" }}>
+                {dialogSaving ? "Removing..." : "Remove"}
+              </Button>
+            )}
             <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
               Close
             </Button>
+            {activeSlot?.pickId && (
+              <Button
+                variant="contained"
+                onClick={handleSaveNote}
+                disabled={dialogSaving}
+                sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+              >
+                Save Note
+              </Button>
+            )}
             {!activeSlot?.pickId && (
               <Button
                 type="submit"

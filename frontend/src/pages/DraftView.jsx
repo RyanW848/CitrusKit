@@ -9,12 +9,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  TextField,
   Typography,
 } from "@mui/material";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import { fetchDraftState } from "../api/leaguesApi";
+import useNotes from "../hooks/useNotes";
 
 import PlayerStatsModal from '../components/PlayerStatsModal';
 import usePlayerStore from '../components/stores/usePlayerStore';
@@ -32,6 +34,7 @@ function normalizeRosterSlot(slot, ownerId) {
     position: slot.abbr,
     slot: slot.slot,
     pickId: slot.pick?.id ?? null,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -46,6 +49,10 @@ export default function DraftView() {
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState(null);
+  const [noteText, setNoteText] = useState("");
+
+  const { load: loadNotes, findNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const { allPlayers } = usePlayerStore();
 const [statsResult, setStatsResult] = useState(null);
@@ -81,11 +88,25 @@ const [statsResult, setStatsResult] = useState(null);
     return (owner?.rosterSlots || []).map((slot) => normalizeRosterSlot(slot, ownerId));
   };
 
+  const allRostersFull = useMemo(() => {
+    if (!draftState?.owners?.length) return false;
+    return draftState.owners.every((owner) =>
+      (owner.rosterSlots || []).every((slot) => slot.pick !== null)
+    );
+  }, [draftState]);
+
+  const getTaxi = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return owner?.taxiPlayers ?? [];
+  };
+
   const openDialog = (slot) => {
     if (slot.isEmpty) {
       return;
     }
 
+    const existing = findNote(slot.playerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setActiveSlot(slot);
     setDialogOpen(true);
   };
@@ -93,10 +114,11 @@ const [statsResult, setStatsResult] = useState(null);
   const closeDialog = () => {
     setDialogOpen(false);
     setActiveSlot(null);
+    setNoteText("");
   };
 
   return (
-    <PageLayout title="View" subtitle="View your finished league" showBell>
+    <PageLayout title="View" subtitle="View your finished league" /*showBell*/>
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />
@@ -115,7 +137,13 @@ const [statsResult, setStatsResult] = useState(null);
           <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
             This view matches the Teams layout, but stays read-only. Click a filled slot to inspect the player.
           </Alert>
-          <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            onSlotClick={openDialog}
+            getTaxi={getTaxi}
+            taxiEnabled={allRostersFull}
+          />
         </>
       )}
 
@@ -133,20 +161,34 @@ const [statsResult, setStatsResult] = useState(null);
         </DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 1.5, pt: 1 }}>
           {activeSlot && (
-            <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-              <Typography sx={{ fontWeight: 600, fontSize: "1rem" }}>
-                {activeSlot.playerName}
-              </Typography>
-              <Typography sx={{ color: "#8c7672", fontSize: "0.9rem", mt: 0.5 }}>
-                {activeSlot.position}{activeSlot.slot ? `-${activeSlot.slot}` : ""}
-              </Typography>
-              <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 1 }}>
-                Price: ${activeSlot.price}
-              </Typography>
-              <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 0.5 }}>
-                Stat: {activeSlot.stat || "..."}
-              </Typography>
-            </Box>
+            <>
+              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                <Typography sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                  {activeSlot.playerName}
+                </Typography>
+                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem", mt: 0.5 }}>
+                  {activeSlot.position}{activeSlot.slot ? `-${activeSlot.slot}` : ""}
+                </Typography>
+                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 1 }}>
+                  Price: ${activeSlot.price}
+                </Typography>
+                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 0.5 }}>
+                  Stat: {activeSlot.stat || "..."}
+                </Typography>
+              </Box>
+              {noteText && (
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note"
+                  value={noteText}
+                  multiline
+                  minRows={2}
+                  InputProps={{ readOnly: true }}
+                  sx={{ "& .MuiInputBase-input": { color: "#6d5a57" } }}
+                />
+              )}
+            </>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

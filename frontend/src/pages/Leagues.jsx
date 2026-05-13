@@ -7,6 +7,7 @@ import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import { AuthContext } from "../context/AuthContext";
 import client from "../api/citrusClient";
+import { deleteLeague } from "../api/leaguesApi";
 
 export default function Leagues() {
   const { user } = useContext(AuthContext);
@@ -44,7 +45,7 @@ export default function Leagues() {
     <PageLayout
       title="Leagues"
       subtitle="View all of your saved leagues"
-      showBell
+      //showBell
     >
       <Box sx={{ position: "relative" }}>
         {error && (
@@ -64,6 +65,10 @@ export default function Leagues() {
             key={league.id}
             league={league}
             onClick={() => navigate(`/draft/${league.id}/rules`)}
+            onDelete={async (id) => {
+              await deleteLeague(id);
+              setLeagues((prev) => prev.filter((l) => l.id !== id));
+            }}
           />
         ))}
 

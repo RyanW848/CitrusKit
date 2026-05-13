@@ -23,6 +23,11 @@ export async function updateLeague(leagueId, payload) {
   return data;
 }
 
+export async function deleteLeague(leagueId) {
+  const { data } = await client.delete(`/leagues/${leagueId}`);
+  return data;
+}
+
 export async function fetchDraftState(leagueId) {
   const { data } = await client.get(`/leagues/${leagueId}/draft`);
   return data;
@@ -60,5 +65,20 @@ export async function createMinorLeaguePick(leagueId, payload) {
 
 export async function deleteMinorLeaguePick(leagueId, pickId) {
   const { data } = await client.delete(`/leagues/${leagueId}/minor-league/picks/${pickId}`);
+  return data;
+}
+
+export async function createTaxiPick(leagueId, payload) {
+  const { data } = await client.post(`/leagues/${leagueId}/taxi/picks`, payload);
+  return data;
+}
+
+export async function deleteTaxiPick(leagueId, pickId) {
+  const { data } = await client.delete(`/leagues/${leagueId}/taxi/picks/${pickId}`);
+  return data;
+}
+
+export async function seedTestLeague(checkpoint) {
+  const { data } = await client.post("/leagues/test-seed", { checkpoint });
   return data;
 }

@@ -1,0 +1,2618 @@
+{
+  "league": {
+    "name": "2026 Test Draft",
+    "teamCount": 9,
+    "budget": 260,
+    "scoringTypes": [
+      "R",
+      "HR",
+      "RBI",
+      "SB",
+      "AVG",
+      "W",
+      "K",
+      "SV",
+      "ERA",
+      "WHIP"
+    ],
+    "owners": [
+      "Team A",
+      "Team B",
+      "Team C",
+      "Team D",
+      "Team E",
+      "Team F",
+      "Team G",
+      "Team H",
+      "Team I"
+    ],
+    "rosterPositions": [
+      {
+        "abbr": "C",
+        "name": "Catcher",
+        "count": 2,
+        "sortOrder": 1
+      },
+      {
+        "abbr": "1B",
+        "name": "1st Base",
+        "count": 1,
+        "sortOrder": 2
+      },
+      {
+        "abbr": "3B",
+        "name": "3rd Base",
+        "count": 1,
+        "sortOrder": 3
+      },
+      {
+        "abbr": "CI",
+        "name": "Corner Infielder",
+        "count": 1,
+        "sortOrder": 4
+      },
+      {
+        "abbr": "2B",
+        "name": "2nd Base",
+        "count": 1,
+        "sortOrder": 5
+      },
+      {
+        "abbr": "SS",
+        "name": "Shortstop",
+        "count": 1,
+        "sortOrder": 6
+      },
+      {
+        "abbr": "MI",
+        "name": "Middle Infielder",
+        "count": 1,
+        "sortOrder": 7
+      },
+      {
+        "abbr": "OF",
+        "name": "Outfielder",
+        "count": 5,
+        "sortOrder": 8
+      },
+      {
+        "abbr": "UT",
+        "name": "Utility",
+        "count": 1,
+        "sortOrder": 9
+      },
+      {
+        "abbr": "P",
+        "name": "Pitcher",
+        "count": 9,
+        "sortOrder": 10
+      }
+    ]
+  },
+  "preDraftPicks": [
+    {
+      "wonBy": "Team A",
+      "playerName": "Drake Baldwin",
+      "position": "C",
+      "slot": 1,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1001,
+      "player": "686948"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Francisco Alvarez",
+      "position": "C",
+      "slot": 1,
+      "salary": 10,
+      "stat": "S1",
+      "pickNumber": 1002,
+      "player": "682626"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Hunter Goodman",
+      "position": "C",
+      "slot": 1,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1003,
+      "player": "696100"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Gabriel Moreno",
+      "position": "C",
+      "slot": 2,
+      "salary": 10,
+      "stat": "S1",
+      "pickNumber": 1004,
+      "player": "672515"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Spencer Horwitz",
+      "position": "1B",
+      "slot": 1,
+      "salary": 3,
+      "stat": "S1",
+      "pickNumber": 1005,
+      "player": "687462"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Ronny Mauricio",
+      "position": "3B",
+      "slot": 1,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1006,
+      "player": "677595"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Max Muncy",
+      "position": "3B",
+      "slot": 1,
+      "salary": 9,
+      "stat": "S1",
+      "pickNumber": 1007,
+      "player": "571970"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Xavier Edwards",
+      "position": "2B",
+      "slot": 1,
+      "salary": 23,
+      "stat": "S1",
+      "pickNumber": 1008,
+      "player": "669364"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Brice Turang",
+      "position": "2B",
+      "slot": 1,
+      "salary": 7,
+      "stat": "L2",
+      "pickNumber": 1009,
+      "player": "668930"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Nico Hoerner",
+      "position": "2B",
+      "slot": 1,
+      "salary": 17,
+      "stat": "S1",
+      "pickNumber": 1010,
+      "player": "663538"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "CJ Abrams",
+      "position": "SS",
+      "slot": 1,
+      "salary": 20,
+      "stat": "X",
+      "pickNumber": 1011,
+      "player": "682928"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Trea Turner",
+      "position": "SS",
+      "slot": 1,
+      "salary": 34,
+      "stat": "S1",
+      "pickNumber": 1012,
+      "player": "607208"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Francisco Lindor",
+      "position": "SS",
+      "slot": 1,
+      "salary": 36,
+      "stat": "S1",
+      "pickNumber": 1013,
+      "player": "596019"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Geraldo Perdomo",
+      "position": "SS",
+      "slot": 1,
+      "salary": 1,
+      "stat": "X",
+      "pickNumber": 1014,
+      "player": "672695"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Alec Burleson",
+      "position": "OF",
+      "slot": 1,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1015,
+      "player": "676475"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Jackson Merrill",
+      "position": "OF",
+      "slot": 1,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1016,
+      "player": "701538"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Corbin Carroll",
+      "position": "OF",
+      "slot": 1,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1017,
+      "player": "682998"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Brandon Marsh",
+      "position": "OF",
+      "slot": 1,
+      "salary": 1,
+      "stat": "X",
+      "pickNumber": 1018,
+      "player": "669016"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Juan Soto",
+      "position": "OF",
+      "slot": 1,
+      "salary": 47,
+      "stat": "S1",
+      "pickNumber": 1019,
+      "player": "665742"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Michael Harris II",
+      "position": "OF",
+      "slot": 2,
+      "salary": 20,
+      "stat": "X",
+      "pickNumber": 1020,
+      "player": "671739"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Pete Crow-Armstrong",
+      "position": "OF",
+      "slot": 2,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1021,
+      "player": "691718"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "James Wood",
+      "position": "OF",
+      "slot": 2,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1022,
+      "player": "695578"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Kyle Tucker",
+      "position": "OF",
+      "slot": 2,
+      "salary": 44,
+      "stat": "S1",
+      "pickNumber": 1023,
+      "player": "663656"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Jordan Walker",
+      "position": "OF",
+      "slot": 3,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1024,
+      "player": "691023"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Kyle Schwarber",
+      "position": "UT",
+      "slot": 1,
+      "salary": 23,
+      "stat": "S1",
+      "pickNumber": 1025,
+      "player": "656941"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Shota Imanaga",
+      "position": "P",
+      "slot": 1,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1026,
+      "player": "684007"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Sandy Alcantara",
+      "position": "P",
+      "slot": 1,
+      "salary": 1,
+      "stat": "X",
+      "pickNumber": 1027,
+      "player": "645261"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Matthew Boyd",
+      "position": "P",
+      "slot": 1,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1028,
+      "player": "571510"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Mitch Keller",
+      "position": "P",
+      "slot": 1,
+      "salary": 7,
+      "stat": "S1",
+      "pickNumber": 1029,
+      "player": "656605"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Andrew Abbott",
+      "position": "P",
+      "slot": 1,
+      "salary": 4,
+      "stat": "X",
+      "pickNumber": 1030,
+      "player": "671096"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Cade Horton",
+      "position": "P",
+      "slot": 2,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1031,
+      "player": "690990"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Michael King",
+      "position": "P",
+      "slot": 2,
+      "salary": 16,
+      "stat": "X",
+      "pickNumber": 1032,
+      "player": "650633"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Brandon Woodruff",
+      "position": "P",
+      "slot": 2,
+      "salary": 4,
+      "stat": "S1",
+      "pickNumber": 1033,
+      "player": "605540"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Freddy Peralta",
+      "position": "P",
+      "slot": 2,
+      "salary": 25,
+      "stat": "S1",
+      "pickNumber": 1034,
+      "player": "642547"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Brandon Pfaadt",
+      "position": "P",
+      "slot": 3,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1035,
+      "player": "694297"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Spencer Strider",
+      "position": "P",
+      "slot": 3,
+      "salary": 16,
+      "stat": "S1",
+      "pickNumber": 1036,
+      "player": "675911"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Paul Skenes",
+      "position": "P",
+      "slot": 3,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1037,
+      "player": "694973"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Jacob Misiorowski",
+      "position": "P",
+      "slot": 4,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1038,
+      "player": "694819"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Yoshinobu Yamamoto",
+      "position": "P",
+      "slot": 4,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1039,
+      "player": "808967"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Nestor Cortes",
+      "position": "P",
+      "slot": 4,
+      "salary": 14,
+      "stat": "LX",
+      "pickNumber": 1040,
+      "player": null
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Raisel Iglesias",
+      "position": "P",
+      "slot": 9,
+      "salary": 18,
+      "stat": "X",
+      "pickNumber": 1041,
+      "player": "628452"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Carson Kelly",
+      "position": "C",
+      "slot": 1,
+      "salary": 2,
+      "stat": "S1",
+      "pickNumber": 1042,
+      "player": "608348"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Agust\u00edn Ram\u00edrez",
+      "position": "C",
+      "slot": 1,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1043,
+      "player": "682663"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Michael Busch",
+      "position": "1B",
+      "slot": 1,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1044,
+      "player": "683737"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Freddie Freeman",
+      "position": "1B",
+      "slot": 1,
+      "salary": 31,
+      "stat": "S1",
+      "pickNumber": 1045,
+      "player": "518692"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Nolan Arenado",
+      "position": "3B",
+      "slot": 1,
+      "salary": 11,
+      "stat": "S1",
+      "pickNumber": 1046,
+      "player": "571448"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Manny Machado",
+      "position": "3B",
+      "slot": 1,
+      "salary": 33,
+      "stat": "X",
+      "pickNumber": 1047,
+      "player": "592518"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Pavin Smith",
+      "position": "CI",
+      "slot": 1,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1048,
+      "player": "656976"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Masyn Winn",
+      "position": "SS",
+      "slot": 1,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1049,
+      "player": "691026"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Elly De La Cruz",
+      "position": "SS",
+      "slot": 1,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1050,
+      "player": "682829"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Willy Adames",
+      "position": "SS",
+      "slot": 1,
+      "salary": 11,
+      "stat": "X",
+      "pickNumber": 1051,
+      "player": "642715"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Dansby Swanson",
+      "position": "MI",
+      "slot": 1,
+      "salary": 8,
+      "stat": "S1",
+      "pickNumber": 1052,
+      "player": "621020"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Sal Frelick",
+      "position": "OF",
+      "slot": 1,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1053,
+      "player": "686217"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Ronald Acu\u00f1a Jr.",
+      "position": "OF",
+      "slot": 1,
+      "salary": 31,
+      "stat": "S1",
+      "pickNumber": 1054,
+      "player": "660670"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Jung Hoo Lee",
+      "position": "OF",
+      "slot": 1,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1055,
+      "player": "808982"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Victor Scott II",
+      "position": "OF",
+      "slot": 1,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1056,
+      "player": "687363"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Jackson Chourio",
+      "position": "OF",
+      "slot": 2,
+      "salary": 10,
+      "stat": "F2",
+      "pickNumber": 1057,
+      "player": "694192"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Mike Yastrzemski",
+      "position": "OF",
+      "slot": 2,
+      "salary": 2,
+      "stat": "X",
+      "pickNumber": 1058,
+      "player": "573262"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Seiya Suzuki",
+      "position": "OF",
+      "slot": 2,
+      "salary": 18,
+      "stat": "X",
+      "pickNumber": 1059,
+      "player": "673548"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Dylan Crews",
+      "position": "OF",
+      "slot": 3,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1060,
+      "player": "686611"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Reynaldo L\u00f3pez",
+      "position": "P",
+      "slot": 1,
+      "salary": 4,
+      "stat": "X",
+      "pickNumber": 1061,
+      "player": "625643"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Cade Cavalli",
+      "position": "P",
+      "slot": 1,
+      "salary": 5,
+      "stat": "F1",
+      "pickNumber": 1062,
+      "player": "676917"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Michael McGreevy",
+      "position": "P",
+      "slot": 2,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1063,
+      "player": "700241"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Nick Lodolo",
+      "position": "P",
+      "slot": 2,
+      "salary": 7,
+      "stat": "S1",
+      "pickNumber": 1064,
+      "player": "666157"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Logan Webb",
+      "position": "P",
+      "slot": 2,
+      "salary": 28,
+      "stat": "S1",
+      "pickNumber": 1065,
+      "player": "657277"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Grant Holmes",
+      "position": "P",
+      "slot": 2,
+      "salary": 5,
+      "stat": "S1",
+      "pickNumber": 1066,
+      "player": "656550"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Chris Sale",
+      "position": "P",
+      "slot": 3,
+      "salary": 15,
+      "stat": "F3",
+      "pickNumber": 1067,
+      "player": "519242"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Jes\u00fas Luzardo",
+      "position": "P",
+      "slot": 3,
+      "salary": 1,
+      "stat": "S1",
+      "pickNumber": 1068,
+      "player": "666200"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Cristopher S\u00e1nchez",
+      "position": "P",
+      "slot": 3,
+      "salary": 9,
+      "stat": "L2",
+      "pickNumber": 1069,
+      "player": "650911"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Jameson Taillon",
+      "position": "P",
+      "slot": 4,
+      "salary": 1,
+      "stat": "X",
+      "pickNumber": 1070,
+      "player": "592791"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Nick Pivetta",
+      "position": "P",
+      "slot": 4,
+      "salary": 13,
+      "stat": "S1",
+      "pickNumber": 1071,
+      "player": "601713"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Brady Singer",
+      "position": "P",
+      "slot": 5,
+      "salary": 4,
+      "stat": "S1",
+      "pickNumber": 1072,
+      "player": "663903"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Robbie Ray",
+      "position": "P",
+      "slot": 5,
+      "salary": 15,
+      "stat": "S1",
+      "pickNumber": 1073,
+      "player": "592662"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Shohei Ohtani",
+      "position": "P",
+      "slot": 8,
+      "salary": 46,
+      "stat": "L2",
+      "pickNumber": 1074,
+      "player": "660271"
+    }
+  ],
+  "minorLeaguePicks": [
+    {
+      "wonBy": "Team A",
+      "playerName": "Jeferson Quero",
+      "player": "691620"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Kody Hoese",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "James Triantos",
+      "player": "701649"
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Harry Ford",
+      "player": "695670"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Chase Burns",
+      "player": "695505"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Edwin Arroyo",
+      "player": "695490"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Jesus Made",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Cam Collier",
+      "player": null
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Cooper Pratt",
+      "player": "806198"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Andrew Painter",
+      "player": "691725"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Starlyn Caba",
+      "player": null
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Hedbert Perez",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Josuar De Jesus Gonzalez",
+      "player": null
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Bubba Chandler",
+      "player": "696149"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Rhett Lowder",
+      "player": "695076"
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Emil Morales",
+      "player": null
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Esmerlyn Valdez",
+      "player": "699013"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Luis Pena",
+      "player": null
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Nolan McLean",
+      "player": "690997"
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Aiva Arquette",
+      "player": null
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Eli Willits",
+      "player": null
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Mois\u00e9s Ballesteros",
+      "player": "694208"
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Jefferson Rojas",
+      "player": null
+    },
+    {
+      "wonBy": "Team D",
+      "playerName": "Cam Caminiti",
+      "player": null
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Cristian Hernandez",
+      "player": null
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Kevin Alc\u00e1ntara",
+      "player": "682634"
+    },
+    {
+      "wonBy": "Team B",
+      "playerName": "Liam Doyle",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Joendry Vargas",
+      "player": null
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Ethan Holliday",
+      "player": null
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Edwin Florentino",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Jett Williams",
+      "player": null
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Seaver King",
+      "player": null
+    },
+    {
+      "wonBy": "Team A",
+      "playerName": "Robby Snelling",
+      "player": null
+    },
+    {
+      "wonBy": "Team C",
+      "playerName": "Jodue De Paula",
+      "player": null
+    },
+    {
+      "wonBy": "Team E",
+      "playerName": "Ethan Conrad",
+      "player": null
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Joe Mack",
+      "player": "691788"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Dalton Rushing",
+      "player": "687221"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Owen Caissie",
+      "player": "683357"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Seth Hernandez",
+      "player": null
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Ryan Clifford",
+      "player": null
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Sal Stewart",
+      "player": "701398"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Delvin Perez",
+      "player": null
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Konnor Griffin",
+      "player": "804606"
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Roki Sasaki",
+      "player": "808963"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Justin Crawford",
+      "player": "702222"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Ed Howard",
+      "player": null
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Ethan Salas",
+      "player": null
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Logan Henderson",
+      "player": "701656"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Termarr Johnson",
+      "player": null
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Hunter Bishop",
+      "player": null
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Rainiel Rodriguez",
+      "player": null
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Jonah Tong",
+      "player": "804636"
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Steele Hall",
+      "player": null
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Drew Gilbert",
+      "player": "687551"
+    },
+    {
+      "wonBy": "Team I",
+      "playerName": "Alfredo Duno",
+      "player": null
+    },
+    {
+      "wonBy": "Team F",
+      "playerName": "Thomas White",
+      "player": null
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Aidan Miller",
+      "player": null
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Hudson Head",
+      "player": null
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "A.J. Ewing",
+      "player": null
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Mike Sirota",
+      "player": null
+    },
+    {
+      "wonBy": "Team G",
+      "playerName": "Tink Hence",
+      "player": "693311"
+    },
+    {
+      "wonBy": "Team H",
+      "playerName": "Ryan Waldschmidt",
+      "player": null
+    }
+  ],
+  "auctionPicks": [
+    {
+      "pickNumber": 1,
+      "nominatedBy": "Team E",
+      "playerName": "William Contreras",
+      "position": "C",
+      "slot": 1,
+      "wonBy": "Team D",
+      "salary": 25,
+      "stat": "S2",
+      "player": "661388"
+    },
+    {
+      "pickNumber": 2,
+      "nominatedBy": "Team A",
+      "playerName": "Daylen Lile",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team E",
+      "salary": 12,
+      "stat": "S2",
+      "player": "695734"
+    },
+    {
+      "pickNumber": 3,
+      "nominatedBy": "Team F",
+      "playerName": "Fernando Tatis Jr.",
+      "position": "OF",
+      "slot": 2,
+      "wonBy": "Team H",
+      "salary": 43,
+      "stat": "S2",
+      "player": "665487"
+    },
+    {
+      "pickNumber": 4,
+      "nominatedBy": "Team H",
+      "playerName": "Mookie Betts",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team D",
+      "salary": 28,
+      "stat": "S2",
+      "player": "605141"
+    },
+    {
+      "pickNumber": 5,
+      "nominatedBy": "Team G",
+      "playerName": "Ketel Marte",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 38,
+      "stat": "S2",
+      "player": "606466"
+    },
+    {
+      "pickNumber": 6,
+      "nominatedBy": "Team B",
+      "playerName": "Marcus Semien",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 18,
+      "stat": "S2",
+      "player": "543760"
+    },
+    {
+      "pickNumber": 7,
+      "nominatedBy": "Team C",
+      "playerName": "Bryce Harper",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team C",
+      "salary": 36,
+      "stat": "S2",
+      "player": "547180"
+    },
+    {
+      "pickNumber": 8,
+      "nominatedBy": "Team D",
+      "playerName": "Bo Bichette",
+      "position": "3B",
+      "slot": 1,
+      "wonBy": "Team H",
+      "salary": 33,
+      "stat": "S2",
+      "player": "666182"
+    },
+    {
+      "pickNumber": 9,
+      "nominatedBy": "Team I",
+      "playerName": "Ozzie Albies",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 25,
+      "stat": "S2",
+      "player": "645277"
+    },
+    {
+      "pickNumber": 10,
+      "nominatedBy": "Team E",
+      "playerName": "Eugenio Su\u00e1rez",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 25,
+      "stat": "S2",
+      "player": "553993"
+    },
+    {
+      "pickNumber": 11,
+      "nominatedBy": "Team A",
+      "playerName": "Austin Riley",
+      "position": "3B",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 31,
+      "stat": "S2",
+      "player": "663586"
+    },
+    {
+      "pickNumber": 12,
+      "nominatedBy": "Team F",
+      "playerName": "Miguel Rojas",
+      "position": "SS",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 1,
+      "stat": "S2",
+      "player": "500743"
+    },
+    {
+      "pickNumber": 13,
+      "nominatedBy": "Team H",
+      "playerName": "Alex Bregman",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team B",
+      "salary": 26,
+      "stat": "S2",
+      "player": "608324"
+    },
+    {
+      "pickNumber": 14,
+      "nominatedBy": "Team G",
+      "playerName": "Blake Snell",
+      "position": "P",
+      "slot": 3,
+      "wonBy": "Team C",
+      "salary": 11,
+      "stat": "S2",
+      "player": "605483"
+    },
+    {
+      "pickNumber": 15,
+      "nominatedBy": "Team B",
+      "playerName": "Zac Gallen",
+      "position": "P",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 15,
+      "stat": "S2",
+      "player": "668678"
+    },
+    {
+      "pickNumber": 16,
+      "nominatedBy": "Team C",
+      "playerName": "Mason Miller",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team B",
+      "salary": 32,
+      "stat": "S2",
+      "player": "695243"
+    },
+    {
+      "pickNumber": 17,
+      "nominatedBy": "Team D",
+      "playerName": "Otto Lopez",
+      "position": "SS",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 13,
+      "stat": "S2",
+      "player": "672640"
+    },
+    {
+      "pickNumber": 18,
+      "nominatedBy": "Team I",
+      "playerName": "Ezequiel Tovar",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 11,
+      "stat": "S2",
+      "player": "678662"
+    },
+    {
+      "pickNumber": 19,
+      "nominatedBy": "Team E",
+      "playerName": "Matt Chapman",
+      "position": "3B",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 20,
+      "stat": "S2",
+      "player": "656305"
+    },
+    {
+      "pickNumber": 20,
+      "nominatedBy": "Team A",
+      "playerName": "Alec Bohm",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 11,
+      "stat": "S2",
+      "player": "664761"
+    },
+    {
+      "pickNumber": 21,
+      "nominatedBy": "Team F",
+      "playerName": "Matt Olson",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 35,
+      "stat": "S2",
+      "player": "621566"
+    },
+    {
+      "pickNumber": 22,
+      "nominatedBy": "Team H",
+      "playerName": "Kyle Stowers",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team C",
+      "salary": 17,
+      "stat": "S2",
+      "player": "669065"
+    },
+    {
+      "pickNumber": 23,
+      "nominatedBy": "Team G",
+      "playerName": "Tyler Glasnow",
+      "position": "P",
+      "slot": 4,
+      "wonBy": "Team C",
+      "salary": 18,
+      "stat": "S2",
+      "player": "607192"
+    },
+    {
+      "pickNumber": 24,
+      "nominatedBy": "Team B",
+      "playerName": "Will Smith",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team D",
+      "salary": 18,
+      "stat": "S2",
+      "player": "669257"
+    },
+    {
+      "pickNumber": 25,
+      "nominatedBy": "Team C",
+      "playerName": "Edwin D\u00edaz",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team C",
+      "salary": 31,
+      "stat": "S2",
+      "player": "621242"
+    },
+    {
+      "pickNumber": 26,
+      "nominatedBy": "Team D",
+      "playerName": "Luis Garc\u00eda Jr.",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team B",
+      "salary": 11,
+      "stat": "S2",
+      "player": "671277"
+    },
+    {
+      "pickNumber": 27,
+      "nominatedBy": "Team I",
+      "playerName": "Eury P\u00e9rez",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team C",
+      "salary": 25,
+      "stat": "S2",
+      "player": "691587"
+    },
+    {
+      "pickNumber": 28,
+      "nominatedBy": "Team E",
+      "playerName": "Luis Robert Jr.",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team I",
+      "salary": 27,
+      "stat": "S2",
+      "player": "673357"
+    },
+    {
+      "pickNumber": 29,
+      "nominatedBy": "Team A",
+      "playerName": "Brandon Lowe",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 18,
+      "stat": "S2",
+      "player": "664040"
+    },
+    {
+      "pickNumber": 30,
+      "nominatedBy": "Team F",
+      "playerName": "Devin Williams",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team A",
+      "salary": 18,
+      "stat": "S2",
+      "player": "642207"
+    },
+    {
+      "pickNumber": 31,
+      "nominatedBy": "Team H",
+      "playerName": "Ian Happ",
+      "position": "OF",
+      "slot": 2,
+      "wonBy": "Team A",
+      "salary": 17,
+      "stat": "S2",
+      "player": "664023"
+    },
+    {
+      "pickNumber": 32,
+      "nominatedBy": "Team G",
+      "playerName": "Aaron Nola",
+      "position": "P",
+      "slot": 2,
+      "wonBy": "Team D",
+      "salary": 9,
+      "stat": "S2",
+      "player": "605400"
+    },
+    {
+      "pickNumber": 33,
+      "nominatedBy": "Team B",
+      "playerName": "TJ Friedl",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team D",
+      "salary": 8,
+      "stat": "S2",
+      "player": "670770"
+    },
+    {
+      "pickNumber": 34,
+      "nominatedBy": "Team C",
+      "playerName": "Jhoan Duran",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team B",
+      "salary": 30,
+      "stat": "S2",
+      "player": "661395"
+    },
+    {
+      "pickNumber": 35,
+      "nominatedBy": "Team D",
+      "playerName": "Xander Bogaerts",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 7,
+      "stat": "S2",
+      "player": "593428"
+    },
+    {
+      "pickNumber": 36,
+      "nominatedBy": "Team I",
+      "playerName": "Rafael Devers",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 33,
+      "stat": "S2",
+      "player": "646240"
+    },
+    {
+      "pickNumber": 37,
+      "nominatedBy": "Team E",
+      "playerName": "Merrill Kelly",
+      "position": "P",
+      "slot": 3,
+      "wonBy": "Team D",
+      "salary": 12,
+      "stat": "S2",
+      "player": "518876"
+    },
+    {
+      "pickNumber": 38,
+      "nominatedBy": "Team A",
+      "playerName": "Jorge Polanco",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team G",
+      "salary": 20,
+      "stat": "S2",
+      "player": "593871"
+    },
+    {
+      "pickNumber": 39,
+      "nominatedBy": "Team F",
+      "playerName": "Mickey Moniak",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team F",
+      "salary": 16,
+      "stat": "S2",
+      "player": "666160"
+    },
+    {
+      "pickNumber": 40,
+      "nominatedBy": "Team H",
+      "playerName": "Zack Wheeler",
+      "position": "P",
+      "slot": 4,
+      "wonBy": "Team D",
+      "salary": 21,
+      "stat": "S2",
+      "player": "554430"
+    },
+    {
+      "pickNumber": 41,
+      "nominatedBy": "Team G",
+      "playerName": "Emmet Sheehan",
+      "position": "P",
+      "slot": 3,
+      "wonBy": "Team H",
+      "salary": 20,
+      "stat": "S2",
+      "player": "686218"
+    },
+    {
+      "pickNumber": 42,
+      "nominatedBy": "Team B",
+      "playerName": "Teoscar Hern\u00e1ndez",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team A",
+      "salary": 18,
+      "stat": "S2",
+      "player": "606192"
+    },
+    {
+      "pickNumber": 43,
+      "nominatedBy": "Team C",
+      "playerName": "Daniel Palencia",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team B",
+      "salary": 18,
+      "stat": "S2",
+      "player": "694037"
+    },
+    {
+      "pickNumber": 44,
+      "nominatedBy": "Team D",
+      "playerName": "Spencer Steer",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 16,
+      "stat": "S2",
+      "player": "668715"
+    },
+    {
+      "pickNumber": 45,
+      "nominatedBy": "Team I",
+      "playerName": "Brenton Doyle",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team I",
+      "salary": 14,
+      "stat": "S2",
+      "player": "686668"
+    },
+    {
+      "pickNumber": 46,
+      "nominatedBy": "Team E",
+      "playerName": "Bryson Stott",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team C",
+      "salary": 17,
+      "stat": "S2",
+      "player": "681082"
+    },
+    {
+      "pickNumber": 47,
+      "nominatedBy": "Team A",
+      "playerName": "Joe Musgrove",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team A",
+      "salary": 5,
+      "stat": "S2",
+      "player": "605397"
+    },
+    {
+      "pickNumber": 48,
+      "nominatedBy": "Team F",
+      "playerName": "Carlos Santana",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 5,
+      "stat": "S2",
+      "player": "467793"
+    },
+    {
+      "pickNumber": 49,
+      "nominatedBy": "Team H",
+      "playerName": "J.T. Realmuto",
+      "position": "C",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 7,
+      "stat": "S2",
+      "player": "592663"
+    },
+    {
+      "pickNumber": 50,
+      "nominatedBy": "Team G",
+      "playerName": "Trevor Megill",
+      "position": "P",
+      "slot": 4,
+      "wonBy": "Team G",
+      "salary": 17,
+      "stat": "S2",
+      "player": "656730"
+    },
+    {
+      "pickNumber": 51,
+      "nominatedBy": "Team B",
+      "playerName": "Miguel Amaya",
+      "position": "C",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 2,
+      "stat": "S2",
+      "player": "665804"
+    },
+    {
+      "pickNumber": 52,
+      "nominatedBy": "Team C",
+      "playerName": "Oneil Cruz",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team G",
+      "salary": 29,
+      "stat": "S2",
+      "player": "665833"
+    },
+    {
+      "pickNumber": 53,
+      "nominatedBy": "Team D",
+      "playerName": "Christian Yelich",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team H",
+      "salary": 21,
+      "stat": "S2",
+      "player": "592885"
+    },
+    {
+      "pickNumber": 54,
+      "nominatedBy": "Team I",
+      "playerName": "Luis Arraez",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team D",
+      "salary": 14,
+      "stat": "S2",
+      "player": "650333"
+    },
+    {
+      "pickNumber": 55,
+      "nominatedBy": "Team E",
+      "playerName": "Jakob Marsee",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team I",
+      "salary": 20,
+      "stat": "S2",
+      "player": "805300"
+    },
+    {
+      "pickNumber": 56,
+      "nominatedBy": "Team A",
+      "playerName": "Noelvi Marte",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team A",
+      "salary": 22,
+      "stat": "S2",
+      "player": "682622"
+    },
+    {
+      "pickNumber": 57,
+      "nominatedBy": "Team F",
+      "playerName": "Liam Hicks",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team E",
+      "salary": 2,
+      "stat": "S2",
+      "player": "689414"
+    },
+    {
+      "pickNumber": 58,
+      "nominatedBy": "Team H",
+      "playerName": "Hunter Greene",
+      "position": "P",
+      "slot": 4,
+      "wonBy": "Team H",
+      "salary": 4,
+      "stat": "S2",
+      "player": "668881"
+    },
+    {
+      "pickNumber": 59,
+      "nominatedBy": "Team G",
+      "playerName": "Emilio Pag\u00e1n",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team E",
+      "salary": 18,
+      "stat": "S2",
+      "player": "641941"
+    },
+    {
+      "pickNumber": 60,
+      "nominatedBy": "Team B",
+      "playerName": "Ryan O'Hearn",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team F",
+      "salary": 9,
+      "stat": "S2",
+      "player": "656811"
+    },
+    {
+      "pickNumber": 61,
+      "nominatedBy": "Team C",
+      "playerName": "Andy Pages",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team G",
+      "salary": 17,
+      "stat": "S2",
+      "player": "681624"
+    },
+    {
+      "pickNumber": 62,
+      "nominatedBy": "Team D",
+      "playerName": "Bryan Reynolds",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team H",
+      "salary": 16,
+      "stat": "S2",
+      "player": "668804"
+    },
+    {
+      "pickNumber": 63,
+      "nominatedBy": "Team I",
+      "playerName": "Freddy Fermin",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team I",
+      "salary": 4,
+      "stat": "S2",
+      "player": "666023"
+    },
+    {
+      "pickNumber": 64,
+      "nominatedBy": "Team E",
+      "playerName": "Matt McLain",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team D",
+      "salary": 10,
+      "stat": "S2",
+      "player": "680574"
+    },
+    {
+      "pickNumber": 65,
+      "nominatedBy": "Team A",
+      "playerName": "Ryan Walker",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team E",
+      "salary": 9,
+      "stat": "S2",
+      "player": "676254"
+    },
+    {
+      "pickNumber": 66,
+      "nominatedBy": "Team F",
+      "playerName": "Tyler Stephenson",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team F",
+      "salary": 7,
+      "stat": "S2",
+      "player": "663886"
+    },
+    {
+      "pickNumber": 67,
+      "nominatedBy": "Team H",
+      "playerName": "Tanner Scott",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team A",
+      "salary": 2,
+      "stat": "S2",
+      "player": "656945"
+    },
+    {
+      "pickNumber": 68,
+      "nominatedBy": "Team G",
+      "playerName": "Edward Cabrera",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team B",
+      "salary": 11,
+      "stat": "S2",
+      "player": "665795"
+    },
+    {
+      "pickNumber": 69,
+      "nominatedBy": "Team B",
+      "playerName": "Patrick Bailey",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team B",
+      "salary": 3,
+      "stat": "S2",
+      "player": "672275"
+    },
+    {
+      "pickNumber": 70,
+      "nominatedBy": "Team C",
+      "playerName": "Heliot Ramos",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team H",
+      "salary": 10,
+      "stat": "S2",
+      "player": "671218"
+    },
+    {
+      "pickNumber": 71,
+      "nominatedBy": "Team D",
+      "playerName": "Adolis Garc\u00eda",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team E",
+      "salary": 11,
+      "stat": "S2",
+      "player": "666969"
+    },
+    {
+      "pickNumber": 72,
+      "nominatedBy": "Team I",
+      "playerName": "Andrew Vaughn",
+      "position": "1B",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 17,
+      "stat": "S2",
+      "player": "683734"
+    },
+    {
+      "pickNumber": 73,
+      "nominatedBy": "Team E",
+      "playerName": "Tommy Edman",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 1,
+      "stat": "S2",
+      "player": "669242"
+    },
+    {
+      "pickNumber": 74,
+      "nominatedBy": "Team A",
+      "playerName": "Matt Svanson",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team F",
+      "salary": 8,
+      "stat": "S2",
+      "player": "694335"
+    },
+    {
+      "pickNumber": 75,
+      "nominatedBy": "Team F",
+      "playerName": "Pete Fairbanks",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team F",
+      "salary": 10,
+      "stat": "S2",
+      "player": "664126"
+    },
+    {
+      "pickNumber": 76,
+      "nominatedBy": "Team H",
+      "playerName": "Brett Baty",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team H",
+      "salary": 5,
+      "stat": "S2",
+      "player": "683146"
+    },
+    {
+      "pickNumber": 77,
+      "nominatedBy": "Team G",
+      "playerName": "Dennis Santana",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team F",
+      "salary": 8,
+      "stat": "S2",
+      "player": "642701"
+    },
+    {
+      "pickNumber": 78,
+      "nominatedBy": "Team B",
+      "playerName": "Tyler Freeman",
+      "position": "OF",
+      "slot": 3,
+      "wonBy": "Team B",
+      "salary": 5,
+      "stat": "S2",
+      "player": "671289"
+    },
+    {
+      "pickNumber": 79,
+      "nominatedBy": "Team C",
+      "playerName": "Ram\u00f3n Laureano",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team F",
+      "salary": 12,
+      "stat": "S2",
+      "player": "657656"
+    },
+    {
+      "pickNumber": 80,
+      "nominatedBy": "Team D",
+      "playerName": "Jordan Beck",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team C",
+      "salary": 8,
+      "stat": "S2",
+      "player": "687597"
+    },
+    {
+      "pickNumber": 81,
+      "nominatedBy": "Team I",
+      "playerName": "Willi Castro",
+      "position": "3B",
+      "slot": 1,
+      "wonBy": "Team C",
+      "salary": 2,
+      "stat": "S2",
+      "player": "650489"
+    },
+    {
+      "pickNumber": 82,
+      "nominatedBy": "Team E",
+      "playerName": "Connor Norby",
+      "position": "3B",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 3,
+      "stat": "S2",
+      "player": "681393"
+    },
+    {
+      "pickNumber": 83,
+      "nominatedBy": "Team A",
+      "playerName": "Joey Wentz",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team H",
+      "salary": 2,
+      "stat": "S2",
+      "player": "666214"
+    },
+    {
+      "pickNumber": 84,
+      "nominatedBy": "Team F",
+      "playerName": "Kevin Ginkel",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team F",
+      "salary": 3,
+      "stat": "S2",
+      "player": "656464"
+    },
+    {
+      "pickNumber": 85,
+      "nominatedBy": "Team H",
+      "playerName": "Kodai Senga",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team C",
+      "salary": 4,
+      "stat": "S2",
+      "player": "673540"
+    },
+    {
+      "pickNumber": 86,
+      "nominatedBy": "Team G",
+      "playerName": "Tyler Mahle",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team I",
+      "salary": 2,
+      "stat": "S2",
+      "player": "641816"
+    },
+    {
+      "pickNumber": 87,
+      "nominatedBy": "Team B",
+      "playerName": "Abner Uribe",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team D",
+      "salary": 5,
+      "stat": "S2",
+      "player": "682842"
+    },
+    {
+      "pickNumber": 88,
+      "nominatedBy": "Team C",
+      "playerName": "Robert Suarez",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team E",
+      "salary": 4,
+      "stat": "S2",
+      "player": "663158"
+    },
+    {
+      "pickNumber": 89,
+      "nominatedBy": "Team D",
+      "playerName": "Ryne Nelson",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team D",
+      "salary": 3,
+      "stat": "S2",
+      "player": "669194"
+    },
+    {
+      "pickNumber": 90,
+      "nominatedBy": "Team I",
+      "playerName": "Nolan Gorman",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team H",
+      "salary": 2,
+      "stat": "S2",
+      "player": "669357"
+    },
+    {
+      "pickNumber": 91,
+      "nominatedBy": "Team E",
+      "playerName": "Kyle Karros",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team E",
+      "salary": 1,
+      "stat": "S2",
+      "player": "691720"
+    },
+    {
+      "pickNumber": 92,
+      "nominatedBy": "Team A",
+      "playerName": "Ben Brown",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team A",
+      "salary": 1,
+      "stat": "S2",
+      "player": "676962"
+    },
+    {
+      "pickNumber": 93,
+      "nominatedBy": "Team H",
+      "playerName": "Tobias Myers",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team A",
+      "salary": 2,
+      "stat": "S2",
+      "player": "668964"
+    },
+    {
+      "pickNumber": 94,
+      "nominatedBy": "Team G",
+      "playerName": "Quinn Priester",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team B",
+      "salary": 4,
+      "stat": "S2",
+      "player": "682990"
+    },
+    {
+      "pickNumber": 95,
+      "nominatedBy": "Team B",
+      "playerName": "Lourdes Gurriel Jr.",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team B",
+      "salary": 1,
+      "stat": "S2",
+      "player": "666971"
+    },
+    {
+      "pickNumber": 96,
+      "nominatedBy": "Team C",
+      "playerName": "Matt Shaw",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team D",
+      "salary": 2,
+      "stat": "S2",
+      "player": "807713"
+    },
+    {
+      "pickNumber": 97,
+      "nominatedBy": "Team D",
+      "playerName": "Gavin Sheets",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team A",
+      "salary": 4,
+      "stat": "S2",
+      "player": "657757"
+    },
+    {
+      "pickNumber": 98,
+      "nominatedBy": "Team I",
+      "playerName": "Jake Cronenworth",
+      "position": "2B",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 2,
+      "stat": "S2",
+      "player": "630105"
+    },
+    {
+      "pickNumber": 99,
+      "nominatedBy": "Team E",
+      "playerName": "Eduardo Rodriguez",
+      "position": "P",
+      "slot": 5,
+      "wonBy": "Team G",
+      "salary": 2,
+      "stat": "S2",
+      "player": "593958"
+    },
+    {
+      "pickNumber": 100,
+      "nominatedBy": "Team A",
+      "playerName": "Luis Torrens",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team A",
+      "salary": 1,
+      "stat": "S2",
+      "player": "620443"
+    },
+    {
+      "pickNumber": 101,
+      "nominatedBy": "Team H",
+      "playerName": "Sean Manaea",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team D",
+      "salary": 2,
+      "stat": "S2",
+      "player": "640455"
+    },
+    {
+      "pickNumber": 102,
+      "nominatedBy": "Team G",
+      "playerName": "Dustin May",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "669160"
+    },
+    {
+      "pickNumber": 103,
+      "nominatedBy": "Team B",
+      "playerName": "Jake Mangum",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team B",
+      "salary": 3,
+      "stat": "S2",
+      "player": "663968"
+    },
+    {
+      "pickNumber": 104,
+      "nominatedBy": "Team C",
+      "playerName": "Marcell Ozuna",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team C",
+      "salary": 2,
+      "stat": "S2",
+      "player": "542303"
+    },
+    {
+      "pickNumber": 105,
+      "nominatedBy": "Team D",
+      "playerName": "Garrett Mitchell",
+      "position": "OF",
+      "slot": 4,
+      "wonBy": "Team D",
+      "salary": 3,
+      "stat": "S2",
+      "player": "669003"
+    },
+    {
+      "pickNumber": 106,
+      "nominatedBy": "Team I",
+      "playerName": "TJ Rumfield",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 1,
+      "stat": "S2",
+      "player": "681198"
+    },
+    {
+      "pickNumber": 107,
+      "nominatedBy": "Team E",
+      "playerName": "David Peterson",
+      "position": "P",
+      "slot": 6,
+      "wonBy": "Team H",
+      "salary": 2,
+      "stat": "S2",
+      "player": "656849"
+    },
+    {
+      "pickNumber": 108,
+      "nominatedBy": "Team A",
+      "playerName": "Mark Vientos",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team B",
+      "salary": 2,
+      "stat": "S2",
+      "player": "668901"
+    },
+    {
+      "pickNumber": 109,
+      "nominatedBy": "Team H",
+      "playerName": "Keibert Ruiz",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team H",
+      "salary": 1,
+      "stat": "S2",
+      "player": "660688"
+    },
+    {
+      "pickNumber": 110,
+      "nominatedBy": "Team G",
+      "playerName": "Joey Bart",
+      "position": "C",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "663698"
+    },
+    {
+      "pickNumber": 111,
+      "nominatedBy": "Team B",
+      "playerName": "Joey Ortiz",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team B",
+      "salary": 3,
+      "stat": "S2",
+      "player": "687401"
+    },
+    {
+      "pickNumber": 112,
+      "nominatedBy": "Team C",
+      "playerName": "Brady House",
+      "position": "CI",
+      "slot": 1,
+      "wonBy": "Team C",
+      "salary": 1,
+      "stat": "S2",
+      "player": "691781"
+    },
+    {
+      "pickNumber": 113,
+      "nominatedBy": "Team D",
+      "playerName": "Harrison Bader",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team H",
+      "salary": 2,
+      "stat": "S2",
+      "player": "664056"
+    },
+    {
+      "pickNumber": 114,
+      "nominatedBy": "Team I",
+      "playerName": "Max Meyer",
+      "position": "P",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 3,
+      "stat": "S2",
+      "player": "676974"
+    },
+    {
+      "pickNumber": 115,
+      "nominatedBy": "Team E",
+      "playerName": "Matthew Liberatore",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team E",
+      "salary": 1,
+      "stat": "S2",
+      "player": "669461"
+    },
+    {
+      "pickNumber": 116,
+      "nominatedBy": "Team A",
+      "playerName": "Mike Tauchman",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team A",
+      "salary": 1,
+      "stat": "S2",
+      "player": null
+    },
+    {
+      "pickNumber": 117,
+      "nominatedBy": "Team H",
+      "playerName": "Chad Patrick",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team H",
+      "salary": 1,
+      "stat": "S2",
+      "player": "694477"
+    },
+    {
+      "pickNumber": 118,
+      "nominatedBy": "Team G",
+      "playerName": "Henry Davis",
+      "position": "C",
+      "slot": 2,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "680779"
+    },
+    {
+      "pickNumber": 119,
+      "nominatedBy": "Team C",
+      "playerName": "Braxton Ashcraft",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team I",
+      "salary": 4,
+      "stat": "S2",
+      "player": "677952"
+    },
+    {
+      "pickNumber": 120,
+      "nominatedBy": "Team D",
+      "playerName": "Lars Nootbaar",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team D",
+      "salary": 1,
+      "stat": "S2",
+      "player": "663457"
+    },
+    {
+      "pickNumber": 121,
+      "nominatedBy": "Team I",
+      "playerName": "Jake McCarthy",
+      "position": "UT",
+      "slot": 1,
+      "wonBy": "Team I",
+      "salary": 3,
+      "stat": "S2",
+      "player": "664983"
+    },
+    {
+      "pickNumber": 122,
+      "nominatedBy": "Team E",
+      "playerName": "Jorge Mateo",
+      "position": "OF",
+      "slot": 5,
+      "wonBy": "Team E",
+      "salary": 1,
+      "stat": "S2",
+      "player": "622761"
+    },
+    {
+      "pickNumber": 123,
+      "nominatedBy": "Team H",
+      "playerName": "Alex Vesia",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team H",
+      "salary": 1,
+      "stat": "S2",
+      "player": "681911"
+    },
+    {
+      "pickNumber": 124,
+      "nominatedBy": "Team G",
+      "playerName": "Nick Castellanos",
+      "position": "MI",
+      "slot": 1,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "592206"
+    },
+    {
+      "pickNumber": 125,
+      "nominatedBy": "Team C",
+      "playerName": "Corbin Burnes",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team C",
+      "salary": 1,
+      "stat": "S2",
+      "player": "669203"
+    },
+    {
+      "pickNumber": 126,
+      "nominatedBy": "Team D",
+      "playerName": "Luke Weaver",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team H",
+      "salary": 3,
+      "stat": "S2",
+      "player": "596133"
+    },
+    {
+      "pickNumber": 127,
+      "nominatedBy": "Team I",
+      "playerName": "Jaxon Wiggins",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team I",
+      "salary": 1,
+      "stat": "S2",
+      "player": null
+    },
+    {
+      "pickNumber": 128,
+      "nominatedBy": "Team E",
+      "playerName": "Riley O'Brien",
+      "position": "P",
+      "slot": 7,
+      "wonBy": "Team G",
+      "salary": 3,
+      "stat": "S2",
+      "player": "676617"
+    },
+    {
+      "pickNumber": 129,
+      "nominatedBy": "Team G",
+      "playerName": "Clay Holmes",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "605280"
+    },
+    {
+      "pickNumber": 130,
+      "nominatedBy": "Team C",
+      "playerName": "Spencer Schwellenbach",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team C",
+      "salary": 1,
+      "stat": "S2",
+      "player": "680885"
+    },
+    {
+      "pickNumber": 131,
+      "nominatedBy": "Team D",
+      "playerName": "JP Sears",
+      "position": "P",
+      "slot": 8,
+      "wonBy": "Team D",
+      "salary": 1,
+      "stat": "S2",
+      "player": "676664"
+    },
+    {
+      "pickNumber": 132,
+      "nominatedBy": "Team E",
+      "playerName": "Jeremiah Estrada",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team E",
+      "salary": 1,
+      "stat": "S2",
+      "player": "669093"
+    },
+    {
+      "pickNumber": 133,
+      "nominatedBy": "Team G",
+      "playerName": "Clayton Beeter",
+      "position": "P",
+      "slot": 9,
+      "wonBy": "Team G",
+      "salary": 1,
+      "stat": "S2",
+      "player": "690925"
+    }
+  ],
+  "checkpoints": [
+    0,
+    10,
+    50,
+    100,
+    130
+  ]
+}

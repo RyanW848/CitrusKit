@@ -54,8 +54,9 @@ const DEFAULT_POSITIONS = [
   { abbr: "MI", name: "Middle Infielder", count: 1 },
   { abbr: "OF", name: "Outfielder", count: 5 },
   { abbr: "U", name: "Utility", count: 1 },
-  { abbr: "SP", name: "Starting Pitcher", count: 6 },
-  { abbr: "RP", name: "Relief Pitcher", count: 3 },
+  { abbr: "P", name: "Pitcher", count: 9 }
+  //{ abbr: "SP", name: "Starting Pitcher", count: 6 },
+  //{ abbr: "RP", name: "Relief Pitcher", count: 3 },
 ];
 
 function createDefaultForm(user) {
@@ -492,7 +493,7 @@ export default function DraftRules() {
     <PageLayout
       title={isCreating ? "Create League" : "Rules"}
       subtitle={isCreating ? "Set up your league before configuring rules." : "Configure the rules for your league"}
-      showBell
+      //showBell
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>

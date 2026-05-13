@@ -6,6 +6,7 @@ const {
     listLeagues,
     createLeague,
     updateLeague,
+    deleteLeague,
     getLeagueById,
     getDraftState,
     createDraftPick,
@@ -15,11 +16,16 @@ const {
     updatePlanPick,
     createMinorLeaguePick,
     deleteMinorLeaguePick,
+    createTaxiPick,
+    deleteTaxiPick,
+    seedTestLeague,
 } = require("../controllers/leagues.controller");
 
 router.get("/", protect, listLeagues);
 router.post("/", protect, createLeague);
+router.post("/test-seed", protect, seedTestLeague);
 router.patch("/:leagueId", protect, updateLeague);
+router.delete("/:leagueId", protect, deleteLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
 router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);
@@ -28,6 +34,8 @@ router.patch("/:leagueId/plan/picks/:pickId", protect, updatePlanPick);
 router.delete("/:leagueId/plan/picks/:pickId", protect, deletePlanPick);
 router.post("/:leagueId/minor-league/picks", protect, createMinorLeaguePick);
 router.delete("/:leagueId/minor-league/picks/:pickId", protect, deleteMinorLeaguePick);
+router.post("/:leagueId/taxi/picks", protect, createTaxiPick);
+router.delete("/:leagueId/taxi/picks/:pickId", protect, deleteTaxiPick);
 router.get("/:leagueId", protect, getLeagueById);
 
 module.exports = router;
