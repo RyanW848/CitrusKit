@@ -684,9 +684,10 @@ async function createDraftPick(req, res) {
             ],
         };
 
-        const [existingPlayer, existingTaxiPick] = await Promise.all([
+        const [existingPlayer, existingTaxiPick, existingMinorLeaguePick] = await Promise.all([
             DraftPick.findOne(playerQuery),
             TaxiPick.findOne(playerQuery),
+            MinorLeaguePick.findOne(playerQuery),
         ]);
 
         if (existingPlayer) {
@@ -698,6 +699,12 @@ async function createDraftPick(req, res) {
         if (existingTaxiPick) {
             return res.status(409).json({
                 error: "Player is already on a taxi squad in this league"
+            });
+        }
+
+        if (existingMinorLeaguePick) {
+            return res.status(409).json({
+                error: "Player is already on a minor league roster in this league"
             });
         }
 
@@ -879,6 +886,27 @@ async function createMinorLeaguePick(req, res) {
             return res.status(400).json({ error: "ownerId must belong to the league" });
         }
 
+        const playerQuery = {
+            league: result.league._id,
+            $or: [
+                ...(playerId ? [{ player: playerId }] : []),
+                { playerName: playerName.trim() },
+            ],
+        };
+
+        const [existingDraftPick, existingTaxiPick] = await Promise.all([
+            DraftPick.findOne(playerQuery),
+            TaxiPick.findOne(playerQuery),
+        ]);
+
+        if (existingDraftPick) {
+            return res.status(409).json({ error: "Player is already on a roster in this league" });
+        }
+
+        if (existingTaxiPick) {
+            return res.status(409).json({ error: "Player is already on a taxi squad in this league" });
+        }
+
         const pick = await MinorLeaguePick.create({
             league: result.league._id,
             owner: ownerId,
@@ -947,9 +975,17 @@ async function createTaxiPick(req, res) {
             ],
         };
 
-        const existingDraftPick = await DraftPick.findOne(playerQuery);
+        const [existingDraftPick, existingMinorLeaguePick] = await Promise.all([
+            DraftPick.findOne(playerQuery),
+            MinorLeaguePick.findOne(playerQuery),
+        ]);
+
         if (existingDraftPick) {
             return res.status(409).json({ error: "Player is already on a roster in this league" });
+        }
+
+        if (existingMinorLeaguePick) {
+            return res.status(409).json({ error: "Player is already on a minor league roster in this league" });
         }
 
         const pick = await TaxiPick.create({
