@@ -75,6 +75,18 @@ export default function DraftView() {
     return (owner?.rosterSlots || []).map((slot) => normalizeRosterSlot(slot, ownerId));
   };
 
+  const allRostersFull = useMemo(() => {
+    if (!draftState?.owners?.length) return false;
+    return draftState.owners.every((owner) =>
+      (owner.rosterSlots || []).every((slot) => slot.pick !== null)
+    );
+  }, [draftState]);
+
+  const getTaxi = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return owner?.taxiPlayers ?? [];
+  };
+
   const openDialog = (slot) => {
     if (slot.isEmpty) {
       return;
@@ -109,7 +121,13 @@ export default function DraftView() {
           <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
             This view matches the Teams layout, but stays read-only. Click a filled slot to inspect the player.
           </Alert>
-          <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            onSlotClick={openDialog}
+            getTaxi={getTaxi}
+            taxiEnabled={allRostersFull}
+          />
         </>
       )}
 

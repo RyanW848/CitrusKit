@@ -21,7 +21,7 @@ import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import SearchBar from "../components/SearchBar";
-import { createDraftPick, deleteDraftPick, fetchDraftState } from "../api/leaguesApi";
+import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
@@ -68,6 +68,16 @@ export default function DraftDraft() {
   const [customName, setCustomName] = useState("");
   const [projectedValue, setProjectedValue] = useState(null);
   const [valuationLoading, setValuationLoading] = useState(false);
+
+  const [taxiDialogOpen, setTaxiDialogOpen] = useState(false);
+  const [taxiDialogOwnerId, setTaxiDialogOwnerId] = useState(null);
+  const [taxiMode, setTaxiMode] = useState("search");
+  const [taxiSearchQuery, setTaxiSearchQuery] = useState("");
+  const [taxiSuggestions, setTaxiSuggestions] = useState([]);
+  const [taxiSelectedPlayer, setTaxiSelectedPlayer] = useState(null);
+  const [taxiCustomName, setTaxiCustomName] = useState("");
+  const [taxiSaving, setTaxiSaving] = useState(false);
+  const [taxiError, setTaxiError] = useState("");
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -275,6 +285,95 @@ export default function DraftDraft() {
     (mode === "search" && selectedPlayer)
   );
 
+  const allRostersFull = useMemo(() => {
+    if (!draftState?.owners?.length) return false;
+    return draftState.owners.every((owner) =>
+      (owner.rosterSlots || []).every((slot) => slot.pick !== null)
+    );
+  }, [draftState]);
+
+  const getTaxi = (ownerId) => {
+    const owner = draftState?.owners?.find((item) => String(item.id) === String(ownerId));
+    return owner?.taxiPlayers ?? [];
+  };
+
+  const openTaxiDialog = (ownerId) => {
+    setTaxiDialogOwnerId(ownerId);
+    setTaxiMode("search");
+    setTaxiSearchQuery("");
+    setTaxiSuggestions([]);
+    setTaxiSelectedPlayer(null);
+    setTaxiCustomName("");
+    setTaxiError("");
+    setTaxiDialogOpen(true);
+  };
+
+  const closeTaxiDialog = () => {
+    setTaxiDialogOpen(false);
+    setTaxiDialogOwnerId(null);
+  };
+
+  const handleTaxiQueryChange = (query) => {
+    setTaxiSearchQuery(query);
+    setTaxiSelectedPlayer(null);
+    setTaxiSuggestions(
+      query.length > 1
+        ? allPlayers.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 6)
+        : []
+    );
+  };
+
+  const handleSaveTaxiPick = async () => {
+    const playerName = taxiMode === "custom" ? taxiCustomName.trim() : taxiSelectedPlayer?.name;
+    if (!playerName) {
+      setTaxiError(taxiMode === "custom" ? "Enter a player name" : "Select a player first");
+      return;
+    }
+    const payload = {
+      ownerId: taxiDialogOwnerId,
+      playerName,
+      playerId: taxiMode === "custom" ? undefined : taxiSelectedPlayer?.id,
+    };
+    setTaxiSaving(true);
+    setTaxiError("");
+    try {
+      const newPick = await createTaxiPick(id, payload);
+      const action = {
+        undo: async () => deleteTaxiPick(id, newPick.id),
+        redo: async () => {
+          const rePick = await createTaxiPick(id, payload);
+          action.undo = async () => deleteTaxiPick(id, rePick.id);
+        },
+      };
+      push(action);
+      closeTaxiDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setTaxiError(err.response?.data?.error || "Unable to add player");
+    } finally {
+      setTaxiSaving(false);
+    }
+  };
+
+  const handleRemoveTaxiPick = async (player) => {
+    try {
+      await deleteTaxiPick(id, player.id);
+      const removePayload = { ownerId: player.owner, playerName: player.playerName };
+      const originalId = player.id;
+      const action = {
+        undo: async () => {
+          const newPick = await createTaxiPick(id, removePayload);
+          action.redo = async () => deleteTaxiPick(id, newPick.id);
+        },
+        redo: async () => deleteTaxiPick(id, originalId),
+      };
+      push(action);
+      await loadDraftState(true);
+    } catch {
+      await loadDraftState(true);
+    }
+  };
+
   return (
     <PageLayout
       title="Draft"
@@ -303,9 +402,115 @@ export default function DraftDraft() {
           <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
             Select an owner, then click an open roster slot to enter a drafted player.
           </Alert>
-          <OwnerRosterPanel owners={owners} getRoster={getRoster} onSlotClick={openDialog} />
+          <OwnerRosterPanel
+            owners={owners}
+            getRoster={getRoster}
+            onSlotClick={openDialog}
+            getTaxi={getTaxi}
+            onAddTaxiPlayer={openTaxiDialog}
+            onRemoveTaxiPlayer={handleRemoveTaxiPick}
+            taxiEnabled={allRostersFull}
+          />
         </>
       )}
+
+      <Dialog
+        open={taxiDialogOpen}
+        onClose={closeTaxiDialog}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>Add Taxi Squad Player</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
+          {taxiError && (
+            <Alert severity="error" sx={{ borderRadius: "8px" }}>{taxiError}</Alert>
+          )}
+          <ToggleButtonGroup
+            value={taxiMode}
+            exclusive
+            onChange={(_, value) => { if (value) setTaxiMode(value); }}
+            size="small"
+            fullWidth
+            sx={{
+              "& .MuiToggleButton-root": {
+                textTransform: "none",
+                borderColor: "#d0bcb6",
+                "&.Mui-selected": { bgcolor: "#f5f0ed", color: "#6d5a57", borderColor: "#8c7672" },
+              },
+            }}
+          >
+            <ToggleButton value="search">Search Players</ToggleButton>
+            <ToggleButton value="custom">Custom Player</ToggleButton>
+          </ToggleButtonGroup>
+          {taxiMode === "search" ? (
+            <Box sx={{ position: "relative" }}>
+              <SearchBar
+                value={taxiSearchQuery}
+                onChange={(event) => handleTaxiQueryChange(event.target.value)}
+                onClear={() => handleTaxiQueryChange("")}
+                placeholder="Search for a player..."
+                sx={{ mb: 0 }}
+              />
+              {taxiSuggestions.length > 0 && (
+                <Paper
+                  elevation={4}
+                  sx={{ position: "absolute", width: "100%", zIndex: 10, mt: 0.5, borderRadius: "8px", overflow: "hidden" }}
+                >
+                  {taxiSuggestions.map((player, index) => (
+                    <Box
+                      key={player.id}
+                      onClick={() => { setTaxiSelectedPlayer(player); setTaxiSearchQuery(player.name); setTaxiSuggestions([]); }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        px: 2,
+                        py: 1,
+                        cursor: "pointer",
+                        borderBottom: index < taxiSuggestions.length - 1 ? "1px solid #f0e8e4" : "none",
+                        "&:hover": { bgcolor: "#fdf6f2" },
+                      }}
+                    >
+                      {player.headshotUrl && (
+                        <img src={player.headshotUrl} alt={player.name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      )}
+                      <Box>
+                        <Typography sx={{ fontWeight: 500, fontSize: "0.9rem" }}>{player.name}</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: "#9a8a84" }}>
+                          {Array.isArray(player.positions) ? player.positions.join(" · ") : player.positions}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+          ) : (
+            <TextField
+              fullWidth
+              variant="standard"
+              label="Player name"
+              value={taxiCustomName}
+              onChange={(event) => setTaxiCustomName(event.target.value)}
+              autoFocus
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeTaxiDialog} disabled={taxiSaving} sx={{ color: "#6d5a57" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveTaxiPick}
+            disabled={taxiSaving || (taxiMode === "search" ? !taxiSelectedPlayer : !taxiCustomName.trim())}
+            sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+          >
+            {taxiSaving ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <DraftTabBar activeTab="draft" draftId={id} />
 

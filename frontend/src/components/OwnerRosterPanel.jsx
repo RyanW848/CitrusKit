@@ -143,9 +143,14 @@ export default function OwnerRosterPanel({
   getMinorLeague,
   onAddMinorLeaguePlayer,
   onRemoveMinorLeaguePlayer,
+  getTaxi,
+  onAddTaxiPlayer,
+  onRemoveTaxiPlayer,
+  taxiEnabled,
 }) {
   const [selectedId, setSelectedId] = useState(owners[0]?.id ?? null);
   const [rightTab, setRightTab] = useState("roster");
+  const [taxiNotice, setTaxiNotice] = useState(false);
 
   // draggedRef is a ref so event handlers always see the current value without stale closures.
   // draggedIndex state drives the visual highlight.
@@ -228,32 +233,57 @@ export default function OwnerRosterPanel({
         })}
       </Box>
 
-      {/* Right – roster or minor league */}
+      {/* Right – roster, minor league, or taxi */}
       <Box sx={{ bgcolor: "#fef0e8", position: "relative", display: "flex", flexDirection: "column" }}>
-        {getMinorLeague && (
+        {(getMinorLeague || getTaxi) && (
           <Box sx={{ display: "flex", borderBottom: "1px solid #e5d5c8", bgcolor: "#fff8f4" }}>
-            {["roster", "minorLeague"].map((tab) => (
+            {[
+              { key: "roster", label: "Roster", enabled: true },
+              ...(getMinorLeague ? [{ key: "minorLeague", label: "Minor League", enabled: true }] : []),
+              ...(getTaxi ? [{ key: "taxi", label: "Taxi", enabled: !!taxiEnabled }] : []),
+            ].map(({ key, label, enabled }) => (
               <Box
-                key={tab}
-                onClick={() => setRightTab(tab)}
+                key={key}
+                onClick={() => {
+                  if (!enabled) {
+                    setTaxiNotice(true);
+                    return;
+                  }
+                  setTaxiNotice(false);
+                  setRightTab(key);
+                }}
                 sx={{
                   flex: 1,
                   py: 0.75,
                   textAlign: "center",
-                  cursor: "pointer",
-                  borderBottom: rightTab === tab ? "2px solid #8c7672" : "2px solid transparent",
-                  "&:hover": { bgcolor: "rgba(140, 118, 114, 0.06)" },
+                  cursor: enabled ? "pointer" : "not-allowed",
+                  borderBottom: rightTab === key ? "2px solid #8c7672" : "2px solid transparent",
+                  "&:hover": enabled ? { bgcolor: "rgba(140, 118, 114, 0.06)" } : undefined,
                 }}
               >
-                <Typography sx={{ fontSize: "0.8rem", fontWeight: rightTab === tab ? 600 : 400, color: rightTab === tab ? "#6d5a57" : "#9a8a84" }}>
-                  {tab === "roster" ? "Roster" : "Minor League"}
+                <Typography sx={{
+                  fontSize: "0.8rem",
+                  fontWeight: rightTab === key ? 600 : 400,
+                  color: !enabled ? "#c4b8b4" : rightTab === key ? "#6d5a57" : "#9a8a84",
+                }}>
+                  {label}
                 </Typography>
               </Box>
             ))}
           </Box>
         )}
 
-        {(!getMinorLeague || rightTab === "roster") && (
+        {taxiNotice && (
+          <Box sx={{ px: 1.5, pt: 1 }}>
+            <Box sx={{ p: 1, borderRadius: "8px", bgcolor: "#fef3cd", border: "1px solid #f5dfa0" }}>
+              <Typography sx={{ fontSize: "0.82rem", color: "#7a5c18" }}>
+                Taxi draft is only available once all rosters have been filled.
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        {(!(getMinorLeague || getTaxi) || rightTab === "roster") && (
           <Box sx={{ p: 1.5, position: "relative", flexGrow: 1 }}>
             {roster.map((slot, i) => {
               const isEditable = !!(onSlotClick && (
@@ -350,6 +380,58 @@ export default function OwnerRosterPanel({
               {onAddMinorLeaguePlayer && (
                 <Box
                   onClick={() => onAddMinorLeaguePlayer(selectedId)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    mt: 1,
+                    py: 0.5,
+                    px: 0.5,
+                    cursor: "pointer",
+                    borderRadius: "6px",
+                    color: "#8c7672",
+                    "&:hover": { bgcolor: "rgba(140, 118, 114, 0.08)" },
+                  }}
+                >
+                  <AddIcon sx={{ fontSize: 18 }} />
+                  <Typography sx={{ fontSize: "0.88rem" }}>Add player</Typography>
+                </Box>
+              )}
+            </Box>
+          );
+        })()}
+
+        {getTaxi && rightTab === "taxi" && (() => {
+          const players = getTaxi(selectedId) ?? [];
+          return (
+            <Box sx={{ p: 1.5, flexGrow: 1 }}>
+              {players.length === 0 && (
+                <Typography sx={{ fontSize: "0.88rem", color: "#aaa", fontStyle: "italic", py: 1 }}>
+                  No taxi squad players added yet.
+                </Typography>
+              )}
+              {players.map((player, i) => (
+                <Box
+                  key={player.id}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    py: 0.75,
+                    borderBottom: i < players.length - 1 ? "1px solid #e8d8cc" : "none",
+                    gap: 1,
+                  }}
+                >
+                  <Typography sx={{ flexGrow: 1, fontSize: "0.9rem" }}>{player.playerName}</Typography>
+                  {onRemoveTaxiPlayer && (
+                    <IconButton size="small" sx={{ color: "#b0a0a0" }} onClick={() => onRemoveTaxiPlayer(player)}>
+                      <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+              {onAddTaxiPlayer && (
+                <Box
+                  onClick={() => onAddTaxiPlayer(selectedId)}
                   sx={{
                     display: "flex",
                     alignItems: "center",

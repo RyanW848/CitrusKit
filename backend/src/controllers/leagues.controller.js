@@ -2,7 +2,17 @@ const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
 const PlanPick = require("../models/PlanPick");
 const MinorLeaguePick = require("../models/MinorLeaguePick");
+const TaxiPick = require("../models/TaxiPick");
 const testFixture = require("../fixtures/testDraft2026.json");
+
+function serializeTaxiPick(pick) {
+    return {
+        id: pick._id,
+        owner: pick.owner,
+        player: pick.player,
+        playerName: pick.playerName,
+    };
+}
 
 function serializeMinorLeaguePick(pick) {
     return {
@@ -250,11 +260,12 @@ function buildPlannedRosterSlots(league, ownerPlans) {
         });
 }
 
-function buildDraftState(league, picks, planPicks = [], minorLeaguePicks = []) {
+function buildDraftState(league, picks, planPicks = [], minorLeaguePicks = [], taxiPicks = []) {
     const ownerStates = (league.owners || []).map((owner, index) => {
         const ownerPicks = picks.filter((pick) => pick.owner.toString() === owner._id.toString());
         const ownerPlans = planPicks.filter((p) => p.owner.toString() === owner._id.toString());
         const ownerMinorLeague = minorLeaguePicks.filter((p) => p.owner.toString() === owner._id.toString());
+        const ownerTaxi = taxiPicks.filter((p) => p.owner.toString() === owner._id.toString());
         const spent = ownerPicks.reduce((sum, pick) => sum + pick.amount, 0);
 
         return {
@@ -268,6 +279,7 @@ function buildDraftState(league, picks, planPicks = [], minorLeaguePicks = []) {
             rosterSlots: buildRosterSlots(league, ownerPicks),
             plannedRosterSlots: buildPlannedRosterSlots(league, ownerPlans),
             minorLeaguePlayers: ownerMinorLeague.map(serializeMinorLeaguePick),
+            taxiPlayers: ownerTaxi.map(serializeTaxiPick),
         };
     });
 
@@ -535,13 +547,14 @@ async function getDraftState(req, res) {
             return res.status(result.status).json({ error: result.error });
         }
 
-        const [picks, planPicks, minorLeaguePicks] = await Promise.all([
+        const [picks, planPicks, minorLeaguePicks, taxiPicks] = await Promise.all([
             DraftPick.find({ league: result.league._id }).sort({ pickNumber: 1 }),
             PlanPick.find({ league: result.league._id }),
             MinorLeaguePick.find({ league: result.league._id }),
+            TaxiPick.find({ league: result.league._id }),
         ]);
 
-        return res.status(200).json(buildDraftState(result.league, picks, planPicks, minorLeaguePicks));
+        return res.status(200).json(buildDraftState(result.league, picks, planPicks, minorLeaguePicks, taxiPicks));
     } catch (error) {
         console.error("GET DRAFT STATE ERROR:", error);
         return res.status(500).json({
@@ -647,17 +660,28 @@ async function createDraftPick(req, res) {
             });
         }
 
-        const existingPlayer = await DraftPick.findOne({
+        const playerQuery = {
             league: league._id,
             $or: [
                 ...(playerId ? [{ player: playerId }] : []),
                 { playerName: playerName.trim() },
             ],
-        });
+        };
+
+        const [existingPlayer, existingTaxiPick] = await Promise.all([
+            DraftPick.findOne(playerQuery),
+            TaxiPick.findOne(playerQuery),
+        ]);
 
         if (existingPlayer) {
             return res.status(409).json({
                 error: "Player has already been drafted in this league"
+            });
+        }
+
+        if (existingTaxiPick) {
+            return res.status(409).json({
+                error: "Player is already on a taxi squad in this league"
             });
         }
 
@@ -876,6 +900,77 @@ async function deleteMinorLeaguePick(req, res) {
     }
 }
 
+async function createTaxiPick(req, res) {
+    try {
+        const { ownerId, playerName, playerId } = req.body;
+
+        if (!ownerId || !playerName) {
+            return res.status(400).json({ error: "ownerId and playerName are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        if (!ownerBelongsToLeague(result.league, ownerId)) {
+            return res.status(400).json({ error: "ownerId must belong to the league" });
+        }
+
+        const playerQuery = {
+            league: result.league._id,
+            $or: [
+                ...(playerId ? [{ player: playerId }] : []),
+                { playerName: playerName.trim() },
+            ],
+        };
+
+        const existingDraftPick = await DraftPick.findOne(playerQuery);
+        if (existingDraftPick) {
+            return res.status(409).json({ error: "Player is already on a roster in this league" });
+        }
+
+        const pick = await TaxiPick.create({
+            league: result.league._id,
+            owner: ownerId,
+            player: playerId || undefined,
+            playerName: playerName.trim(),
+        });
+
+        return res.status(201).json(serializeTaxiPick(pick));
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(409).json({ error: "Player is already on this owner's taxi squad" });
+        }
+        console.error("CREATE TAXI PICK ERROR:", err);
+        return res.status(500).json({ error: "Error creating taxi pick" });
+    }
+}
+
+async function deleteTaxiPick(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const pick = await TaxiPick.findOne({
+            _id: req.params.pickId,
+            league: result.league._id,
+        });
+
+        if (!pick) {
+            return res.status(404).json({ error: "Taxi pick not found" });
+        }
+
+        await pick.deleteOne();
+        return res.status(200).json({ deleted: true, pick: serializeTaxiPick(pick) });
+    } catch (err) {
+        console.error("DELETE TAXI PICK ERROR:", err);
+        return res.status(500).json({ error: "Error deleting taxi pick" });
+    }
+}
+
 const VALID_CHECKPOINTS = new Set(testFixture.checkpoints);
 
 async function seedTestLeague(req, res) {
@@ -910,6 +1005,7 @@ async function seedTestLeague(req, res) {
             DraftPick.deleteMany({ league: league._id }),
             PlanPick.deleteMany({ league: league._id }),
             MinorLeaguePick.deleteMany({ league: league._id }),
+            TaxiPick.deleteMany({ league: league._id }),
         ]);
 
         const ownerByName = new Map(
@@ -969,5 +1065,7 @@ module.exports = {
     updatePlanPick,
     createMinorLeaguePick,
     deleteMinorLeaguePick,
+    createTaxiPick,
+    deleteTaxiPick,
     seedTestLeague,
 };
