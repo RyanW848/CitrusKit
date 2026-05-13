@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Dialog, DialogTitle, DialogContent,
     Box, Typography, IconButton, CircularProgress,
-    InputAdornment, TextField,
+    InputAdornment, TextField, ToggleButtonGroup, ToggleButton, Button,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import AddIcon from '@mui/icons-material/Add';
 import { getPlayerValues } from '../api/playerClient';
 import { getHeadshotUrl } from '../utils/playerStats';
 import PlayerStatsModal from './PlayerStatsModal';
@@ -15,10 +16,8 @@ import usePlayerStore from './stores/usePlayerStore';
 
 const accent = '#f97316';
 const dim    = '#fde0c8';
+const MAX_VISIBLE = 20;
 
-// ─── Position eligibility ─────────────────────────────────────────────────────
-// Returns true if a player (from /players, positions is CSV string) is eligible
-// for a given roster slot abbreviation.
 function isEligible(playerPositions, slotAbbr) {
     if (!slotAbbr) return true;
 
@@ -40,7 +39,6 @@ function isEligible(playerPositions, slotAbbr) {
     return positions.some(p => required.includes(p));
 }
 
-// ─── Player Card ──────────────────────────────────────────────────────────────
 function PlayerCard({ player, valuationMap, slotAbbr, onAdd, onViewStats }) {
     const eligible   = isEligible(player.positions, slotAbbr);
     const valuation  = valuationMap?.[player.id];
@@ -139,18 +137,6 @@ function PlayerCard({ player, valuationMap, slotAbbr, onAdd, onViewStats }) {
     );
 }
 
-// ─── Main Modal ───────────────────────────────────────────────────────────────
-/**
- * PlayerPickerModal
- *
- * Props:
- *   open           boolean
- *   onClose        () => void
- *   slotAbbr       string | null   — active roster slot abbreviation for eligibility
- *   slotName       string | null   — display name of the slot
- *   draftContext   { budget, relevantStats, unavailablePlayers } | null
- *   onSelectPlayer (player) => void — called when + is clicked on an eligible player
- */
 export default function PlayerPickerModal({
     open,
     onClose,
@@ -161,11 +147,12 @@ export default function PlayerPickerModal({
 }) {
     const { allPlayers, fetchAllPlayers } = usePlayerStore();
 
-    const [query, setQuery]             = useState('');
-    const [valuationMap, setValuationMap] = useState({}); // { mlbId: value }
+    const [query, setQuery]               = useState('');
+    const [mode, setMode]                 = useState('search'); // 'search' | 'custom'
+    const [customName, setCustomName]     = useState('');
+    const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
 
-    // PlayerStatsModal state
     const [statsOpen, setStatsOpen]         = useState(false);
     const [statsResult, setStatsResult]     = useState(null);
     const [statsEntry, setStatsEntry]       = useState(null);
@@ -175,10 +162,11 @@ export default function PlayerPickerModal({
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
-    // Fetch valuations when modal opens
     useEffect(() => {
         if (!open) return;
         setQuery('');
+        setMode('search');
+        setCustomName('');
         setValuationMap({});
 
         if (!draftContext) return;
@@ -200,14 +188,14 @@ export default function PlayerPickerModal({
             .finally(() => setValuationLoading(false));
     }, [open, draftContext]);
 
-    // Sort: by valuation desc, then alphabetically for unvalued players
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
         .sort((a, b) => {
             const va = valuationMap[a.id] ?? -1;
             const vb = valuationMap[b.id] ?? -1;
             return vb - va;
-        });
+        })
+        .slice(0, MAX_VISIBLE);
 
     const handleViewStats = async (player) => {
         setStatsEntry(player);
@@ -272,38 +260,120 @@ export default function PlayerPickerModal({
                         </IconButton>
                     </Box>
 
-                    {/* Search bar */}
-                    <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
-                        <TextField
-                            inputRef={inputRef}
-                            fullWidth
+                    {/* Mode toggle */}
+                    <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
+                        <ToggleButtonGroup
+                            value={mode}
+                            exclusive
+                            onChange={(_, v) => { if (v) setMode(v); }}
                             size="small"
-                            placeholder="Search players..."
-                            value={query}
-                            onChange={e => setQuery(e.target.value)}
-                            autoFocus
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchOutlinedIcon sx={{ color: '#c4a896', fontSize: 20 }} />
-                                    </InputAdornment>
-                                ),
-                            }}
+                            fullWidth
                             sx={{
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: '10px',
-                                    background: '#fff',
-                                    '& fieldset': { borderColor: dim },
-                                    '&:hover fieldset': { borderColor: '#d4c4b8' },
-                                    '&.Mui-focused fieldset': { borderColor: accent },
+                                '& .MuiToggleButton-root': {
+                                    textTransform: 'none',
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    fontSize: '0.72rem',
+                                    borderColor: dim,
+                                    color: '#a3681e',
+                                    '&.Mui-selected': {
+                                        bgcolor: '#fff1e6',
+                                        color: accent,
+                                        borderColor: accent,
+                                    },
                                 },
                             }}
-                        />
+                        >
+                            <ToggleButton value="search">Search Players</ToggleButton>
+                            <ToggleButton value="custom">Custom Player</ToggleButton>
+                        </ToggleButtonGroup>
                     </Box>
+
+                    {/* Search bar — only in search mode */}
+                    {mode === 'search' && (
+                        <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
+                            <TextField
+                                inputRef={inputRef}
+                                fullWidth
+                                size="small"
+                                placeholder="Search players..."
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                autoFocus
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchOutlinedIcon sx={{ color: '#c4a896', fontSize: 20 }} />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '10px',
+                                        background: '#fff',
+                                        '& fieldset': { borderColor: dim },
+                                        '&:hover fieldset': { borderColor: '#d4c4b8' },
+                                        '&.Mui-focused fieldset': { borderColor: accent },
+                                    },
+                                }}
+                            />
+                        </Box>
+                    )}
+
+                    {/* Custom player form — only in custom mode */}
+                    {mode === 'custom' && (
+                        <Box sx={{ px: 2, py: 2, borderBottom: `1px solid ${dim}`, background: '#fff9f5', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Player name"
+                                value={customName}
+                                onChange={e => setCustomName(e.target.value)}
+                                autoFocus
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && customName.trim()) {
+                                        onSelectPlayer({ id: null, name: customName.trim(), positions: null, headshotUrl: null });
+                                        onClose();
+                                    }
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '10px',
+                                        background: '#fff',
+                                        '& fieldset': { borderColor: dim },
+                                        '&.Mui-focused fieldset': { borderColor: accent },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: accent },
+                                }}
+                            />
+                            <Button
+                                variant="contained"
+                                disabled={!customName.trim()}
+                                startIcon={<AddIcon />}
+                                onClick={() => {
+                                    onSelectPlayer({ id: null, name: customName.trim(), positions: null, headshotUrl: null });
+                                    onClose();
+                                }}
+                                sx={{
+                                    flexShrink: 0,
+                                    bgcolor: accent,
+                                    color: '#fff9f5',
+                                    borderRadius: '10px',
+                                    textTransform: 'none',
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    fontSize: '0.75rem',
+                                    boxShadow: 'none',
+                                    '&:hover': { bgcolor: '#e86a0a', boxShadow: 'none' },
+                                    '&:disabled': { bgcolor: dim, color: '#a3681e' },
+                                }}
+                            >
+                                Add
+                            </Button>
+                        </Box>
+                    )}
                 </DialogTitle>
 
-                {/* Player list */}
-                <DialogContent sx={{ p: 0, overflowY: 'auto' }}>
+                {/* Player list — only in search mode */}
+                <DialogContent sx={{ p: 0, overflowY: 'auto', display: mode === 'custom' ? 'none' : 'block' }}>
                     {valuationLoading && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.5, borderBottom: `1px solid ${dim}` }}>
                             <CircularProgress size={14} sx={{ color: accent }} />
@@ -339,6 +409,15 @@ export default function PlayerPickerModal({
                             onViewStats={handleViewStats}
                         />
                     ))}
+                    {query.length === 0 && allPlayers.length > MAX_VISIBLE && (
+                        <Typography sx={{
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontSize: '0.68rem', color: '#c4a896',
+                            textAlign: 'center', py: 1.5,
+                        }}>
+                            Showing top {MAX_VISIBLE} by value — type to search all {allPlayers.length} players
+                        </Typography>
+                    )}
                 </DialogContent>
             </Dialog>
 
