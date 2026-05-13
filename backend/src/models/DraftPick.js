@@ -11,9 +11,9 @@ const draftPickSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
     },
+    // External player ID from the DYKB API (omitted for custom players)
     player: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Player",
+        type: String,
     },
     playerName: {
         type: String,

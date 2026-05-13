@@ -919,6 +919,7 @@ async function seedTestLeague(req, res) {
         const mapPick = (p) => ({
             league: league._id,
             owner: ownerByName.get(p.wonBy),
+            player: p.player || undefined,
             playerName: p.playerName,
             position: p.position,
             slot: p.slot,
@@ -932,6 +933,7 @@ async function seedTestLeague(req, res) {
         const minorsToInsert   = testFixture.minorLeaguePicks.map((p) => ({
             league: league._id,
             owner: ownerByName.get(p.wonBy),
+            player: p.player || undefined,
             playerName: p.playerName,
         }));
 
