@@ -285,6 +285,40 @@ export default function DraftDraft() {
     (mode === "search" && selectedPlayer)
   );
 
+  const handleDeletePick = async () => {
+    if (!activeSlot?.pickId) return;
+
+    const pickId = activeSlot.pickId;
+    const slotSnapshot = {
+      ownerId: activeSlot.ownerId,
+      playerName: activeSlot.playerName,
+      position: activeSlot.position,
+      slot: activeSlot.slot,
+      amount: activeSlot.price,
+      stat: activeSlot.stat || "",
+    };
+
+    setDialogSaving(true);
+    setDialogError("");
+    try {
+      await deleteDraftPick(id, pickId);
+      const action = {
+        undo: async () => {
+          const newPick = await createDraftPick(id, slotSnapshot);
+          action.redo = async () => deleteDraftPick(id, newPick.id);
+        },
+        redo: async () => deleteDraftPick(id, pickId),
+      };
+      push(action);
+      closeDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setDialogError(err.response?.data?.error || err.response?.data?.message || "Unable to remove player");
+    } finally {
+      setDialogSaving(false);
+    }
+  };
+
   const allRostersFull = useMemo(() => {
     if (!draftState?.owners?.length) return false;
     return draftState.owners.every((owner) =>
@@ -666,6 +700,11 @@ export default function DraftDraft() {
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
+            {activeSlot?.pickId && (
+              <Button onClick={handleDeletePick} disabled={dialogSaving} sx={{ color: "#b24b3c", mr: "auto" }}>
+                {dialogSaving ? "Removing..." : "Remove"}
+              </Button>
+            )}
             <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
               Close
             </Button>

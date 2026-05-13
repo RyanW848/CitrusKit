@@ -288,7 +288,7 @@ export default function OwnerRosterPanel({
             {roster.map((slot, i) => {
               const isEditable = !!(onSlotClick && (
                 editableOwnerId == null || selectedId === String(editableOwnerId)
-              ) && !slot.isActual);
+              ));
               const isDraggable = !!(onDropSlot && slot.isPlan && !slot.isActual && slot.playerName);
 
               return (
