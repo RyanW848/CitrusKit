@@ -32,6 +32,7 @@ import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined"
 
 const emptyPickForm = {
   amount: "",
@@ -88,6 +89,8 @@ export default function DraftTeams() {
   const [mlError, setMlError] = useState("");
   const [noteText, setNoteText] = useState("");
   const [mlNoteText, setMlNoteText] = useState("");
+
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const { load: loadNotes, findNote, saveNote } = useNotes();
   useEffect(() => { loadNotes(); }, [loadNotes]);
