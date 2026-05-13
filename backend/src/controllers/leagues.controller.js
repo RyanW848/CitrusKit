@@ -2,6 +2,7 @@ const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
 const PlanPick = require("../models/PlanPick");
 const MinorLeaguePick = require("../models/MinorLeaguePick");
+const testFixture = require("../fixtures/testDraft2026.json");
 
 function serializeMinorLeaguePick(pick) {
     return {
@@ -875,6 +876,71 @@ async function deleteMinorLeaguePick(req, res) {
     }
 }
 
+const VALID_CHECKPOINTS = new Set(testFixture.checkpoints);
+
+async function seedTestLeague(req, res) {
+    const checkpoint = Number(req.body.checkpoint);
+    if (!VALID_CHECKPOINTS.has(checkpoint)) {
+        return res.status(400).json({
+            error: `checkpoint must be one of: ${testFixture.checkpoints.join(", ")}`,
+        });
+    }
+
+    try {
+        // Remove any existing test league for this user
+        const existing = await League.find({
+            createdBy: req.user._id,
+            name: testFixture.league.name,
+        });
+        if (existing.length > 0) {
+            const ids = existing.map((l) => l._id);
+            await Promise.all([
+                League.deleteMany({ _id: { $in: ids } }),
+                DraftPick.deleteMany({ league: { $in: ids } }),
+                PlanPick.deleteMany({ league: { $in: ids } }),
+                MinorLeaguePick.deleteMany({ league: { $in: ids } }),
+            ]);
+        }
+
+        const league = await League.create({
+            name: testFixture.league.name,
+            createdBy: req.user._id,
+            teamCount: testFixture.league.teamCount,
+            budget: testFixture.league.budget,
+            scoringTypes: testFixture.league.scoringTypes,
+            owners: testFixture.league.owners.map((name) => ({ name })),
+            rosterPositions: testFixture.league.rosterPositions,
+        });
+
+        const ownerByName = new Map(
+            (league.owners || []).map((o) => [o.name, o._id])
+        );
+
+        const picksToInsert = testFixture.picks.slice(0, checkpoint).map((p) => ({
+            league: league._id,
+            owner: ownerByName.get(p.wonBy),
+            playerName: p.playerName,
+            position: p.position,
+            slot: p.slot,
+            amount: p.salary,
+            pickNumber: p.pickNumber,
+        }));
+
+        if (picksToInsert.length > 0) {
+            await DraftPick.insertMany(picksToInsert);
+        }
+
+        return res.status(201).json({
+            leagueId: league._id,
+            checkpoint,
+            picksLoaded: picksToInsert.length,
+        });
+    } catch (error) {
+        console.error("SEED TEST LEAGUE ERROR:", error);
+        return res.status(500).json({ error: "Error seeding test league" });
+    }
+}
+
 module.exports = {
     listLeagues,
     createLeague,
@@ -888,4 +954,5 @@ module.exports = {
     updatePlanPick,
     createMinorLeaguePick,
     deleteMinorLeaguePick,
+    seedTestLeague,
 };

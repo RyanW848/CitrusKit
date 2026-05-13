@@ -62,3 +62,8 @@ export async function deleteMinorLeaguePick(leagueId, pickId) {
   const { data } = await client.delete(`/leagues/${leagueId}/minor-league/picks/${pickId}`);
   return data;
 }
+
+export async function seedTestLeague(checkpoint) {
+  const { data } = await client.post("/leagues/test-seed", { checkpoint });
+  return data;
+}

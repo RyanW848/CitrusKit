@@ -15,10 +15,12 @@ const {
     updatePlanPick,
     createMinorLeaguePick,
     deleteMinorLeaguePick,
+    seedTestLeague,
 } = require("../controllers/leagues.controller");
 
 router.get("/", protect, listLeagues);
 router.post("/", protect, createLeague);
+router.post("/test-seed", protect, seedTestLeague);
 router.patch("/:leagueId", protect, updateLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
