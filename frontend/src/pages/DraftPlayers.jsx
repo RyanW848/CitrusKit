@@ -107,7 +107,7 @@ export default function DraftPlayers() {
   );
 
   return (
-    <PageLayout title="Players" subtitle="See all players" showBell>
+    <PageLayout title="Players" subtitle="See all players" /*showBell*/>
       {/* Search bar */}
       <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
         <TextField

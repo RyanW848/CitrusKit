@@ -102,7 +102,7 @@ export default function DraftView() {
   };
 
   return (
-    <PageLayout title="View" subtitle="View your finished league" showBell>
+    <PageLayout title="View" subtitle="View your finished league" /*showBell*/>
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />

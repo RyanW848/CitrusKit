@@ -44,7 +44,7 @@ export default function Leagues() {
     <PageLayout
       title="Leagues"
       subtitle="View all of your saved leagues"
-      showBell
+      //showBell
     >
       <Box sx={{ position: "relative" }}>
         {error && (

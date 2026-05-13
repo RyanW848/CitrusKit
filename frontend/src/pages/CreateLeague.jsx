@@ -93,7 +93,7 @@ export default function CreateLeague() {
     <PageLayout
       title="Create League"
       subtitle="Set up the basics for your draft kit before you move into league rules."
-      showBell
+      //showBell
       maxWidth="lg"
     >
       <Box

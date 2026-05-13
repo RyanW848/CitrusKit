@@ -493,7 +493,7 @@ export default function DraftRules() {
     <PageLayout
       title={isCreating ? "Create League" : "Rules"}
       subtitle={isCreating ? "Set up your league before configuring rules." : "Configure the rules for your league"}
-      showBell
+      //showBell
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>

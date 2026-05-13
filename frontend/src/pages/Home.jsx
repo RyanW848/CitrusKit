@@ -48,7 +48,7 @@ export default function Home() {
     <PageLayout
       title="Home"
       subtitle={`Welcome Back, ${user?.name ?? "Guest"}!`}
-      showBell
+      //showBell
       onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
       settingsMenu={
         <Menu
