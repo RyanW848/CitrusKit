@@ -10,6 +10,7 @@ import PageLayout from "../components/PageLayout";
 import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import client from "../api/citrusClient";
+import { deleteLeague } from "../api/leaguesApi";
 import useNotes from "../hooks/useNotes";
 
 export default function Home() {
@@ -115,6 +116,10 @@ export default function Home() {
             key={league.id}
             league={league}
             onClick={() => navigate(`/draft/${league.id}/rules`)}
+            onDelete={async (id) => {
+              await deleteLeague(id);
+              setLeagues((prev) => prev.filter((l) => l.id !== id));
+            }}
           />
         ))}
       </Box>

@@ -6,6 +6,7 @@ const {
     listLeagues,
     createLeague,
     updateLeague,
+    deleteLeague,
     getLeagueById,
     getDraftState,
     createDraftPick,
@@ -24,6 +25,7 @@ router.get("/", protect, listLeagues);
 router.post("/", protect, createLeague);
 router.post("/test-seed", protect, seedTestLeague);
 router.patch("/:leagueId", protect, updateLeague);
+router.delete("/:leagueId", protect, deleteLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
 router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);

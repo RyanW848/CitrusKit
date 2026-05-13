@@ -23,6 +23,11 @@ export async function updateLeague(leagueId, payload) {
   return data;
 }
 
+export async function deleteLeague(leagueId) {
+  const { data } = await client.delete(`/leagues/${leagueId}`);
+  return data;
+}
+
 export async function fetchDraftState(leagueId) {
   const { data } = await client.get(`/leagues/${leagueId}/draft`);
   return data;

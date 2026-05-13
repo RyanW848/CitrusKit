@@ -1031,6 +1031,31 @@ async function deleteTaxiPick(req, res) {
     }
 }
 
+async function deleteLeague(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) {
+            return res.status(result.status).json({ error: result.error });
+        }
+
+        const leagueId = result.league._id;
+
+        await Promise.all([
+            DraftPick.deleteMany({ league: leagueId }),
+            PlanPick.deleteMany({ league: leagueId }),
+            MinorLeaguePick.deleteMany({ league: leagueId }),
+            TaxiPick.deleteMany({ league: leagueId }),
+        ]);
+
+        await result.league.deleteOne();
+
+        return res.status(200).json({ deleted: true });
+    } catch (error) {
+        console.error("DELETE LEAGUE ERROR:", error);
+        return res.status(500).json({ error: "Error deleting league" });
+    }
+}
+
 const VALID_CHECKPOINTS = new Set(testFixture.checkpoints);
 
 async function seedTestLeague(req, res) {
@@ -1116,6 +1141,7 @@ module.exports = {
     listLeagues,
     createLeague,
     updateLeague,
+    deleteLeague,
     getLeagueById,
     getDraftState,
     createDraftPick,
