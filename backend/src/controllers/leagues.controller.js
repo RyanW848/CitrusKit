@@ -887,30 +887,30 @@ async function seedTestLeague(req, res) {
     }
 
     try {
-        // Remove any existing test league for this user
-        const existing = await League.find({
+        // Reuse an existing test league so the ID stays stable across checkpoint switches
+        let league = await League.findOne({
             createdBy: req.user._id,
             name: testFixture.league.name,
         });
-        if (existing.length > 0) {
-            const ids = existing.map((l) => l._id);
-            await Promise.all([
-                League.deleteMany({ _id: { $in: ids } }),
-                DraftPick.deleteMany({ league: { $in: ids } }),
-                PlanPick.deleteMany({ league: { $in: ids } }),
-                MinorLeaguePick.deleteMany({ league: { $in: ids } }),
-            ]);
+
+        if (!league) {
+            league = await League.create({
+                name: testFixture.league.name,
+                createdBy: req.user._id,
+                teamCount: testFixture.league.teamCount,
+                budget: testFixture.league.budget,
+                scoringTypes: testFixture.league.scoringTypes,
+                owners: testFixture.league.owners.map((name) => ({ name })),
+                rosterPositions: testFixture.league.rosterPositions,
+            });
         }
 
-        const league = await League.create({
-            name: testFixture.league.name,
-            createdBy: req.user._id,
-            teamCount: testFixture.league.teamCount,
-            budget: testFixture.league.budget,
-            scoringTypes: testFixture.league.scoringTypes,
-            owners: testFixture.league.owners.map((name) => ({ name })),
-            rosterPositions: testFixture.league.rosterPositions,
-        });
+        // Clear existing picks/plans/minors, then re-insert picks up to the checkpoint
+        await Promise.all([
+            DraftPick.deleteMany({ league: league._id }),
+            PlanPick.deleteMany({ league: league._id }),
+            MinorLeaguePick.deleteMany({ league: league._id }),
+        ]);
 
         const ownerByName = new Map(
             (league.owners || []).map((o) => [o.name, o._id])
@@ -930,7 +930,7 @@ async function seedTestLeague(req, res) {
             await DraftPick.insertMany(picksToInsert);
         }
 
-        return res.status(201).json({
+        return res.status(200).json({
             leagueId: league._id,
             checkpoint,
             picksLoaded: picksToInsert.length,

@@ -128,7 +128,7 @@ export default function Test() {
                         <Button
                             variant="contained"
                             sx={btnSx}
-                            onClick={() => navigate(`/leagues/${result.leagueId}/draft`)}
+                            onClick={() => navigate(`/draft/${result.leagueId}/draft`)}
                         >
                             Open Draft
                         </Button>
