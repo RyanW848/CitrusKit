@@ -644,7 +644,6 @@ export default function DraftDraft() {
               </>
             ) : (
               <>
-                {/* Checking function */}
                 <Button
                   variant="outlined"
                   onClick={() => setPickerOpen(true)}

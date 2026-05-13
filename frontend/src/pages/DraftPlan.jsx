@@ -432,7 +432,6 @@ export default function DraftPlan() {
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
-              {/* Tets */}
               <Button
                 variant="outlined"
                 onClick={() => setPickerOpen(true)}
