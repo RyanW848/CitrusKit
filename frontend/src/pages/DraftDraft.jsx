@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import RedoIcon from "@mui/icons-material/Redo";
 import UndoIcon from "@mui/icons-material/Undo";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
@@ -25,6 +26,7 @@ import { createDraftPick, deleteDraftPick, fetchDraftState } from "../api/league
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
+import PlayerPickerModal from "../components/PlayerPickerModal"
 
 const emptyPickForm = {
   amount: "",
@@ -68,6 +70,7 @@ export default function DraftDraft() {
   const [customName, setCustomName] = useState("");
   const [projectedValue, setProjectedValue] = useState(null);
   const [valuationLoading, setValuationLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -185,18 +188,18 @@ export default function DraftDraft() {
     setSuggestions(
       query.length > 1
         ? allPlayers.filter((player) => {
-            if (!player.name.toLowerCase().includes(query.toLowerCase())) return false;
-            if (!activeSlot?.position) return true;
-            const searchPositions =
-              (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
+          if (!player.name.toLowerCase().includes(query.toLowerCase())) return false;
+          if (!activeSlot?.position) return true;
+          const searchPositions =
+            (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
               activeSlot.position === "CI" ? ["1B", "3B"] :
-              activeSlot.position === "MI" ? ["2B", "SS"] :
-              [activeSlot.position];
-            const playerPositions = Array.isArray(player.positions)
-              ? player.positions
-              : (player.positions ? player.positions.split(",").map((item) => item.trim()) : []);
-            return playerPositions.some((position) => searchPositions.includes(position));
-          }).slice(0, 6)
+                activeSlot.position === "MI" ? ["2B", "SS"] :
+                  [activeSlot.position];
+          const playerPositions = Array.isArray(player.positions)
+            ? player.positions
+            : (player.positions ? player.positions.split(",").map((item) => item.trim()) : []);
+          return playerPositions.some((position) => searchPositions.includes(position));
+        }).slice(0, 6)
         : []
     );
   };
@@ -336,7 +339,39 @@ export default function DraftDraft() {
               </Box>
             ) : (
               <>
-                <ToggleButtonGroup
+                {/* Checking function */}
+                <Button
+                  variant="outlined"
+                  onClick={() => setPickerOpen(true)}
+                  startIcon={<SearchOutlinedIcon />}
+                  sx={{
+                    textTransform: 'none',
+                    borderColor: '#d0bcb6',
+                    color: '#6d5a57',
+                    borderRadius: '8px',
+                    '&:hover': { borderColor: '#8c7672', bgcolor: 'rgba(140,118,114,0.06)' },
+                  }}
+                >
+                  {selectedPlayer ? `Change: ${selectedPlayer.name}` : 'Search Players'}
+                </Button>
+
+                {selectedPlayer && (
+                  <Box sx={{ p: 1.5, bgcolor: '#fef0e8', borderRadius: '8px' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      {selectedPlayer.headshotUrl && (
+                        <img src={selectedPlayer.headshotUrl} alt={selectedPlayer.name}
+                          style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                      )}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{selectedPlayer.name}</Typography>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#8c7672' }}>
+                          {Array.isArray(selectedPlayer.positions) ? selectedPlayer.positions.join(' · ') : selectedPlayer.positions}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+                {/* <ToggleButtonGroup
                   value={mode}
                   exclusive
                   onChange={(_, value) => { if (value) setMode(value); }}
@@ -437,7 +472,7 @@ export default function DraftDraft() {
                     onChange={(event) => setCustomName(event.target.value)}
                     autoFocus
                   />
-                )}
+                )} */}
 
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
                   <TextField
@@ -482,6 +517,22 @@ export default function DraftDraft() {
             )}
           </DialogActions>
         </Box>
+        <PlayerPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          slotAbbr={activeSlot?.position}
+          slotName={activeSlot?.posName}
+          draftContext={draftState?.league ? {
+            budget: draftState.league.budget,
+            relevantStats: draftState.league.scoringTypes,
+            unavailablePlayers: [], // optionally pass already-drafted player IDs
+          } : null}
+          onSelectPlayer={player => {
+            setSelectedPlayer(player);
+            setSearchQuery(player.name);
+            setPickerOpen(false);
+          }}
+        />
       </Dialog>
     </PageLayout>
   );

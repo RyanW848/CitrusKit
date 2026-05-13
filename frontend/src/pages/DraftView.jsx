@@ -16,6 +16,9 @@ import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import { fetchDraftState } from "../api/leaguesApi";
 
+import PlayerStatsModal from '../components/PlayerStatsModal';
+import usePlayerStore from '../components/stores/usePlayerStore';
+
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
 }
@@ -43,6 +46,9 @@ export default function DraftView() {
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState(null);
+
+  const { allPlayers } = usePlayerStore();
+const [statsResult, setStatsResult] = useState(null);
 
   const loadDraftState = useCallback(async () => {
     setLoading(true);

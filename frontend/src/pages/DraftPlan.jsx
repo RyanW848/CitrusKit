@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import RedoIcon from "@mui/icons-material/Redo";
 import UndoIcon from "@mui/icons-material/Undo";
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
@@ -30,6 +31,7 @@ import {
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
+import PlayerPickerModal from '../components/PlayerPickerModal';
 
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
@@ -64,10 +66,10 @@ function isEligibleForSlot(playerPositions, slotAbbr) {
   if (!playerPositions) return true; // custom player: allow anywhere
   const expanded =
     (slotAbbr === "SP" || slotAbbr === "RP") ? ["P"] :
-    slotAbbr === "CI" ? ["1B", "3B"] :
-    slotAbbr === "MI" ? ["2B", "SS"] :
-    slotAbbr === "U" ? null :
-    [slotAbbr];
+      slotAbbr === "CI" ? ["1B", "3B"] :
+        slotAbbr === "MI" ? ["2B", "SS"] :
+          slotAbbr === "U" ? null :
+            [slotAbbr];
   if (expanded === null) return true; // U slot accepts anything
   return playerPositions.some((pos) => expanded.includes(pos));
 }
@@ -113,6 +115,8 @@ export default function DraftPlan() {
   const [valuationLoading, setValuationLoading] = useState(false);
   const [dialogSaving, setDialogSaving] = useState(false);
   const [dialogError, setDialogError] = useState("");
+
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -195,18 +199,18 @@ export default function DraftPlan() {
     setSuggestions(
       q.length > 1
         ? allPlayers.filter((p) => {
-            if (!p.name.toLowerCase().includes(q.toLowerCase())) return false;
-            if (!activeSlot?.position) return true;
-            const searchPositions =
-              (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
+          if (!p.name.toLowerCase().includes(q.toLowerCase())) return false;
+          if (!activeSlot?.position) return true;
+          const searchPositions =
+            (activeSlot.position === "SP" || activeSlot.position === "RP") ? ["P"] :
               activeSlot.position === "CI" ? ["1B", "3B"] :
-              activeSlot.position === "MI" ? ["2B", "SS"] :
-              [activeSlot.position];
-            const playerPositions = Array.isArray(p.positions)
-              ? p.positions
-              : (p.positions ? p.positions.split(",").map((s) => s.trim()) : []);
-            return playerPositions.some((pos) => searchPositions.includes(pos));
-          }).slice(0, 6)
+                activeSlot.position === "MI" ? ["2B", "SS"] :
+                  [activeSlot.position];
+          const playerPositions = Array.isArray(p.positions)
+            ? p.positions
+            : (p.positions ? p.positions.split(",").map((s) => s.trim()) : []);
+          return playerPositions.some((pos) => searchPositions.includes(pos));
+        }).slice(0, 6)
         : []
     );
   };
@@ -387,7 +391,39 @@ export default function DraftPlan() {
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
-              <ToggleButtonGroup
+              {/* Tets */}
+              <Button
+                variant="outlined"
+                onClick={() => setPickerOpen(true)}
+                startIcon={<SearchOutlinedIcon />}
+                sx={{
+                  textTransform: 'none',
+                  borderColor: '#d0bcb6',
+                  color: '#6d5a57',
+                  borderRadius: '8px',
+                  '&:hover': { borderColor: '#8c7672', bgcolor: 'rgba(140,118,114,0.06)' },
+                }}
+              >
+                {selectedPlayer ? `Change: ${selectedPlayer.name}` : 'Search Players'}
+              </Button>
+
+              {selectedPlayer && (
+                <Box sx={{ p: 1.5, bgcolor: '#fef0e8', borderRadius: '8px' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {selectedPlayer.headshotUrl && (
+                      <img src={selectedPlayer.headshotUrl} alt={selectedPlayer.name}
+                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                    )}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{selectedPlayer.name}</Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#8c7672' }}>
+                        {Array.isArray(selectedPlayer.positions) ? selectedPlayer.positions.join(' · ') : selectedPlayer.positions}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              {/* <ToggleButtonGroup
                 value={mode}
                 exclusive
                 onChange={(_, v) => { if (v) setMode(v); }}
@@ -403,9 +439,9 @@ export default function DraftPlan() {
               >
                 <ToggleButton value="search">Search Players</ToggleButton>
                 <ToggleButton value="custom">Custom Player</ToggleButton>
-              </ToggleButtonGroup>
+              </ToggleButtonGroup> */}
 
-              {mode === "search" ? (
+              {/* {mode === "search" ? (
                 <Box sx={{ position: "relative" }}>
                   <SearchBar
                     value={searchQuery}
@@ -489,7 +525,7 @@ export default function DraftPlan() {
                   autoFocus
                   sx={fieldSx}
                 />
-              )}
+              )} */}
 
               <TextField
                 variant="standard"
@@ -541,6 +577,23 @@ export default function DraftPlan() {
             </Button>
           )}
         </DialogActions>
+
+        <PlayerPickerModal
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          slotAbbr={activeSlot?.position}
+          slotName={activeSlot?.posName}
+          draftContext={draftState?.league ? {
+            budget: draftState.league.budget,
+            relevantStats: draftState.league.scoringTypes,
+            unavailablePlayers: [], // optionally pass already-drafted player IDs
+          } : null}
+          onSelectPlayer={player => {
+            setSelectedPlayer(player);
+            setSearchQuery(player.name);
+            setPickerOpen(false);
+          }}
+        />
       </Dialog>
 
       <DraftTabBar activeTab="plan" draftId={id} />
