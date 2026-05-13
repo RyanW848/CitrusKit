@@ -25,6 +25,7 @@ import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetch
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
+import useNotes from "../hooks/useNotes";
 
 const emptyPickForm = {
   amount: "",
@@ -44,6 +45,7 @@ function normalizeRosterSlot(slot, ownerId) {
     position: slot.abbr,
     slot: slot.slot,
     pickId: slot.pick?.id ?? null,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -78,6 +80,11 @@ export default function DraftDraft() {
   const [taxiCustomName, setTaxiCustomName] = useState("");
   const [taxiSaving, setTaxiSaving] = useState(false);
   const [taxiError, setTaxiError] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [taxiNoteText, setTaxiNoteText] = useState("");
+
+  const { load: loadNotes, findNote, saveNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -165,6 +172,8 @@ export default function DraftDraft() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    const existing = findNote(slot.playerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setDialogOpen(true);
   };
 
@@ -179,6 +188,7 @@ export default function DraftDraft() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    setNoteText("");
   };
 
   const handleFormChange = (field) => (event) => {
@@ -215,6 +225,8 @@ export default function DraftDraft() {
     setSelectedPlayer(player);
     setSearchQuery(player.name);
     setSuggestions([]);
+    const existing = findNote(player.id, player.name);
+    if (existing) setNoteText(existing.note ?? "");
 
     if (!draftState?.league) return;
     setValuationLoading(true);
@@ -271,6 +283,15 @@ export default function DraftDraft() {
         },
       };
       push(action);
+      const playerName = mode === "custom" ? customName.trim() : selectedPlayer?.name;
+      if (noteText.trim() && playerName) {
+        saveNote({
+          playerName,
+          playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+          note: noteText.trim(),
+          isCustom: mode === "custom",
+        });
+      }
       closeDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -278,6 +299,19 @@ export default function DraftDraft() {
     } finally {
       setDialogSaving(false);
     }
+  };
+
+  const handleSaveNote = async () => {
+    if (!activeSlot) return;
+    const playerName = activeSlot.playerName;
+    if (!playerName) return;
+    await saveNote({
+      playerName,
+      playerId: activeSlot.playerId || undefined,
+      note: noteText.trim(),
+      isCustom: !activeSlot.playerId,
+    });
+    closeDialog();
   };
 
   const canSavePick = pickForm.amount !== "" && (
@@ -339,12 +373,14 @@ export default function DraftDraft() {
     setTaxiSelectedPlayer(null);
     setTaxiCustomName("");
     setTaxiError("");
+    setTaxiNoteText("");
     setTaxiDialogOpen(true);
   };
 
   const closeTaxiDialog = () => {
     setTaxiDialogOpen(false);
     setTaxiDialogOwnerId(null);
+    setTaxiNoteText("");
   };
 
   const handleTaxiQueryChange = (query) => {
@@ -380,6 +416,14 @@ export default function DraftDraft() {
         },
       };
       push(action);
+      if (taxiNoteText.trim() && playerName) {
+        saveNote({
+          playerName,
+          playerId: taxiMode === "custom" ? undefined : taxiSelectedPlayer?.id,
+          note: taxiNoteText.trim(),
+          isCustom: taxiMode === "custom",
+        });
+      }
       closeTaxiDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -530,6 +574,16 @@ export default function DraftDraft() {
               autoFocus
             />
           )}
+          <TextField
+            fullWidth
+            variant="standard"
+            label="Note (optional)"
+            value={taxiNoteText}
+            onChange={(event) => setTaxiNoteText(event.target.value)}
+            multiline
+            minRows={2}
+            placeholder="Add a note about this player..."
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeTaxiDialog} disabled={taxiSaving} sx={{ color: "#6d5a57" }}>
@@ -567,12 +621,24 @@ export default function DraftDraft() {
             )}
 
             {activeSlot?.pickId ? (
-              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-                <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
-                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                  ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
-                </Typography>
-              </Box>
+              <>
+                <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                  <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                    ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
+                  </Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note (optional)"
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  multiline
+                  minRows={2}
+                  placeholder="Add a note about this player..."
+                />
+              </>
             ) : (
               <>
                 <ToggleButtonGroup
@@ -696,6 +762,16 @@ export default function DraftDraft() {
                     fullWidth
                   />
                 </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note (optional)"
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  multiline
+                  minRows={2}
+                  placeholder="Add a note about this player..."
+                />
               </>
             )}
           </DialogContent>
@@ -708,6 +784,16 @@ export default function DraftDraft() {
             <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
               Close
             </Button>
+            {activeSlot?.pickId && (
+              <Button
+                variant="contained"
+                onClick={handleSaveNote}
+                disabled={dialogSaving}
+                sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+              >
+                Save Note
+              </Button>
+            )}
             {!activeSlot?.pickId && (
               <Button
                 type="submit"

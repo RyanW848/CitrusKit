@@ -31,6 +31,7 @@ import {
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
+import useNotes from "../hooks/useNotes";
 
 const emptyPickForm = {
   amount: "",
@@ -50,6 +51,7 @@ function normalizeRosterSlot(slot, ownerId) {
     position: slot.abbr,
     slot: slot.slot,
     pickId: slot.pick?.id ?? null,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -84,6 +86,11 @@ export default function DraftTeams() {
   const [mlCustomName, setMlCustomName] = useState("");
   const [mlSaving, setMlSaving] = useState(false);
   const [mlError, setMlError] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [mlNoteText, setMlNoteText] = useState("");
+
+  const { load: loadNotes, findNote, saveNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -170,12 +177,14 @@ export default function DraftTeams() {
     setMlSelectedPlayer(null);
     setMlCustomName("");
     setMlError("");
+    setMlNoteText("");
     setMlDialogOpen(true);
   };
 
   const closeMlDialog = () => {
     setMlDialogOpen(false);
     setMlDialogOwnerId(null);
+    setMlNoteText("");
   };
 
   const handleMlQueryChange = (query) => {
@@ -211,6 +220,14 @@ export default function DraftTeams() {
         },
       };
       push(action);
+      if (mlNoteText.trim()) {
+        saveNote({
+          playerName,
+          playerId: mlMode === "custom" ? undefined : mlSelectedPlayer?.id,
+          note: mlNoteText.trim(),
+          isCustom: mlMode === "custom",
+        });
+      }
       closeMlDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -252,6 +269,8 @@ export default function DraftTeams() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    const existing = findNote(slot.playerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setDialogOpen(true);
   };
 
@@ -266,6 +285,7 @@ export default function DraftTeams() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    setNoteText("");
   };
 
   const handleFormChange = (field) => (event) => {
@@ -356,6 +376,15 @@ export default function DraftTeams() {
         },
       };
       push(action);
+      const playerName = mode === "custom" ? customName.trim() : selectedPlayer?.name;
+      if (noteText.trim() && playerName) {
+        saveNote({
+          playerName,
+          playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+          note: noteText.trim(),
+          isCustom: mode === "custom",
+        });
+      }
       closeDialog();
       await loadDraftState(true);
     } catch (err) {
@@ -363,6 +392,19 @@ export default function DraftTeams() {
     } finally {
       setDialogSaving(false);
     }
+  };
+
+  const handleSaveNote = async () => {
+    if (!activeSlot) return;
+    const playerName = activeSlot.playerName;
+    if (!playerName) return;
+    await saveNote({
+      playerName,
+      playerId: activeSlot.playerId || undefined,
+      note: noteText.trim(),
+      isCustom: !activeSlot.playerId,
+    });
+    closeDialog();
   };
 
   const handleDeletePick = async () => {
@@ -522,6 +564,17 @@ export default function DraftTeams() {
               autoFocus
             />
           )}
+          <TextField
+            fullWidth
+            variant="standard"
+            label="Notes"
+            multiline
+            minRows={2}
+            value={mlNoteText}
+            onChange={(e) => setMlNoteText(e.target.value)}
+            placeholder="Add a scouting note..."
+            sx={{ mt: 1 }}
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeMlDialog} disabled={mlSaving} sx={{ color: "#6d5a57" }}>
@@ -559,11 +612,23 @@ export default function DraftTeams() {
             )}
 
             {activeSlot?.pickId ? (
-              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-                <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
-                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                  ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
-                </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                  <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                    ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
+                  </Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Notes"
+                  multiline
+                  minRows={2}
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Add a scouting note..."
+                />
               </Box>
             ) : (
               <>
@@ -687,6 +752,16 @@ export default function DraftTeams() {
                     fullWidth
                   />
                 </Box>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Notes"
+                  multiline
+                  minRows={2}
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Add a scouting note..."
+                />
               </>
             )}
           </DialogContent>
@@ -699,7 +774,16 @@ export default function DraftTeams() {
             <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
               Cancel
             </Button>
-            {!activeSlot?.pickId && (
+            {activeSlot?.pickId ? (
+              <Button
+                variant="contained"
+                onClick={handleSaveNote}
+                disabled={dialogSaving}
+                sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+              >
+                Save Note
+              </Button>
+            ) : (
               <Button
                 type="submit"
                 variant="contained"

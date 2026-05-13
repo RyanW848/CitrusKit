@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/auth.routes");
 const leagueRoutes = require("./routes/leagues.routes");
+const notesRoutes = require("./routes/notes.routes");
 
 const app = express();
 
@@ -50,5 +51,6 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/leagues", leagueRoutes);
+app.use("/api/notes", notesRoutes);
 
 module.exports = app;

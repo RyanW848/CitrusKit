@@ -27,6 +27,7 @@ import {
   deletePlanPick as apiDeletePlanPick,
   updatePlanPick as apiUpdatePlanPick,
 } from "../api/leaguesApi";
+import useNotes from "../hooks/useNotes";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
@@ -77,6 +78,7 @@ function normalizeActualSlot(slot) {
     id: slot.pick?.id ?? null,
     posAbbr: slot.abbr,
     posName: slot.name,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -113,6 +115,10 @@ export default function DraftPlan() {
   const [valuationLoading, setValuationLoading] = useState(false);
   const [dialogSaving, setDialogSaving] = useState(false);
   const [dialogError, setDialogError] = useState("");
+  const [noteText, setNoteText] = useState("");
+
+  const { load: loadNotes, findNote, saveNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -180,12 +186,15 @@ export default function DraftPlan() {
     setPlannedAmount(slot.isEmpty ? "" : String(slot.price || ""));
     setProjectedValue(null);
     setDialogError("");
+    const existing = findNote(slot.planPlayerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setActiveSlot(null);
+    setNoteText("");
   };
 
   const handleQueryChange = (q) => {
@@ -215,6 +224,8 @@ export default function DraftPlan() {
     setSelectedPlayer(player);
     setSearchQuery(player.name);
     setSuggestions([]);
+    const existing = findNote(player.id, player.name);
+    if (existing) setNoteText(existing.note ?? "");
 
     if (!draftState?.league) return;
     setValuationLoading(true);
@@ -263,6 +274,14 @@ export default function DraftPlan() {
         },
       };
       push(action);
+      if (noteText.trim()) {
+        saveNote({
+          playerName,
+          playerId: mode === "custom" ? undefined : selectedPlayer?.id,
+          note: noteText.trim(),
+          isCustom: mode === "custom",
+        });
+      }
       closeDialog();
       loadData(true);
     } catch (err) {
@@ -270,6 +289,15 @@ export default function DraftPlan() {
     } finally {
       setDialogSaving(false);
     }
+  };
+
+  const handleSaveNote = async () => {
+    if (!activeSlot) return;
+    const playerId = activeSlot.planPlayerId ?? null;
+    const playerName = activeSlot.playerName;
+    if (!playerName) return;
+    await saveNote({ playerName, playerId: playerId || undefined, note: noteText.trim(), isCustom: !playerId });
+    closeDialog();
   };
 
   const handleRemove = async () => {
@@ -377,13 +405,26 @@ export default function DraftPlan() {
 
         <DialogContent sx={{ overflow: "visible" }}>
           {activeSlot && !activeSlot.isEmpty ? (
-            <Box>
-              <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{activeSlot.playerName}</Typography>
-              {activeSlot.price > 0 && (
-                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                  Planned bid: ${activeSlot.price}
-                </Typography>
-              )}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{activeSlot.playerName}</Typography>
+                {activeSlot.price > 0 && (
+                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                    Planned bid: ${activeSlot.price}
+                  </Typography>
+                )}
+              </Box>
+              <TextField
+                fullWidth
+                variant="standard"
+                label="Notes"
+                multiline
+                minRows={2}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Add a scouting note..."
+                sx={fieldSx}
+              />
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
@@ -500,6 +541,17 @@ export default function DraftPlan() {
                 slotProps={{ htmlInput: { min: 0 } }}
                 sx={{ width: 140, ...fieldSx }}
               />
+              <TextField
+                fullWidth
+                variant="standard"
+                label="Notes"
+                multiline
+                minRows={2}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Add a scouting note..."
+                sx={fieldSx}
+              />
             </Box>
           )}
 
@@ -517,19 +569,29 @@ export default function DraftPlan() {
             Cancel
           </Button>
           {activeSlot && !activeSlot.isEmpty ? (
-            <Button
-              variant="outlined"
-              onClick={handleRemove}
-              disabled={dialogSaving}
-              sx={{
-                textTransform: "none",
-                borderColor: "#d32f2f",
-                color: "#d32f2f",
-                "&:hover": { borderColor: "#b71c1c", bgcolor: "#fff5f5" },
-              }}
-            >
-              {dialogSaving ? "Removing…" : "Remove from Plan"}
-            </Button>
+            <>
+              <Button
+                variant="outlined"
+                onClick={handleRemove}
+                disabled={dialogSaving}
+                sx={{
+                  textTransform: "none",
+                  borderColor: "#d32f2f",
+                  color: "#d32f2f",
+                  "&:hover": { borderColor: "#b71c1c", bgcolor: "#fff5f5" },
+                }}
+              >
+                {dialogSaving ? "Removing…" : "Remove from Plan"}
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSaveNote}
+                disabled={dialogSaving}
+                sx={{ textTransform: "none", bgcolor: "#8c7672", "&:hover": { bgcolor: "#6d5a57" } }}
+              >
+                Save Note
+              </Button>
+            </>
           ) : (
             <Button
               variant="contained"

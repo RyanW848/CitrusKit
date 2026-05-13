@@ -9,12 +9,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  TextField,
   Typography,
 } from "@mui/material";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import { fetchDraftState } from "../api/leaguesApi";
+import useNotes from "../hooks/useNotes";
 
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
@@ -29,6 +31,7 @@ function normalizeRosterSlot(slot, ownerId) {
     position: slot.abbr,
     slot: slot.slot,
     pickId: slot.pick?.id ?? null,
+    playerId: slot.pick?.player ?? null,
     playerName: slot.pick?.playerName ?? null,
     price: slot.pick?.amount ?? 0,
     stat: slot.pick?.stat ?? null,
@@ -43,6 +46,10 @@ export default function DraftView() {
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState(null);
+  const [noteText, setNoteText] = useState("");
+
+  const { load: loadNotes, findNote } = useNotes();
+  useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const loadDraftState = useCallback(async () => {
     setLoading(true);
@@ -92,6 +99,8 @@ export default function DraftView() {
       return;
     }
 
+    const existing = findNote(slot.playerId, slot.playerName);
+    setNoteText(existing?.note ?? "");
     setActiveSlot(slot);
     setDialogOpen(true);
   };
@@ -99,6 +108,7 @@ export default function DraftView() {
   const closeDialog = () => {
     setDialogOpen(false);
     setActiveSlot(null);
+    setNoteText("");
   };
 
   return (
@@ -145,20 +155,34 @@ export default function DraftView() {
         </DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 1.5, pt: 1 }}>
           {activeSlot && (
-            <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-              <Typography sx={{ fontWeight: 600, fontSize: "1rem" }}>
-                {activeSlot.playerName}
-              </Typography>
-              <Typography sx={{ color: "#8c7672", fontSize: "0.9rem", mt: 0.5 }}>
-                {activeSlot.position}{activeSlot.slot ? `-${activeSlot.slot}` : ""}
-              </Typography>
-              <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 1 }}>
-                Price: ${activeSlot.price}
-              </Typography>
-              <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 0.5 }}>
-                Stat: {activeSlot.stat || "..."}
-              </Typography>
-            </Box>
+            <>
+              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                <Typography sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                  {activeSlot.playerName}
+                </Typography>
+                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem", mt: 0.5 }}>
+                  {activeSlot.position}{activeSlot.slot ? `-${activeSlot.slot}` : ""}
+                </Typography>
+                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 1 }}>
+                  Price: ${activeSlot.price}
+                </Typography>
+                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 0.5 }}>
+                  Stat: {activeSlot.stat || "..."}
+                </Typography>
+              </Box>
+              {noteText && (
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  label="Note"
+                  value={noteText}
+                  multiline
+                  minRows={2}
+                  InputProps={{ readOnly: true }}
+                  sx={{ "& .MuiInputBase-input": { color: "#6d5a57" } }}
+                />
+              )}
+            </>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

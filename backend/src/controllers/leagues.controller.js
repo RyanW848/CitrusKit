@@ -3,7 +3,23 @@ const DraftPick = require("../models/DraftPick");
 const PlanPick = require("../models/PlanPick");
 const MinorLeaguePick = require("../models/MinorLeaguePick");
 const TaxiPick = require("../models/TaxiPick");
+const PlayerNote = require("../models/PlayerNote");
 const testFixture = require("../fixtures/testDraft2026.json");
+
+async function ensureCustomPlayerNote(userId, playerName) {
+    await PlayerNote.updateOne(
+        { user: userId, playerName: playerName.trim(), player: { $exists: false } },
+        {
+            $setOnInsert: {
+                user: userId,
+                playerName: playerName.trim(),
+                note: "Custom player",
+                isCustom: true,
+            },
+        },
+        { upsert: true },
+    );
+}
 
 function serializeTaxiPick(pick) {
     return {
@@ -701,6 +717,8 @@ async function createDraftPick(req, res) {
         // Remove the owner's plan pick for this player if one exists
         await PlanPick.deleteOne({ league: league._id, owner: ownerId, playerName: playerName.trim() });
 
+        if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
+
         return res.status(201).json(serializeDraftPick(pick));
     } catch (error) {
         console.error("CREATE DRAFT PICK ERROR:", error);
@@ -773,6 +791,8 @@ async function createPlanPick(req, res) {
             position: normalizedPosition || undefined,
             plannedAmount: plannedAmount != null ? Math.max(0, Number(plannedAmount)) : 0,
         });
+
+        if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
 
         return res.status(201).json(serializePlanPick(plan));
     } catch (err) {
@@ -866,6 +886,8 @@ async function createMinorLeaguePick(req, res) {
             playerName: playerName.trim(),
         });
 
+        if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
+
         return res.status(201).json(serializeMinorLeaguePick(pick));
     } catch (err) {
         if (err.code === 11000) {
@@ -936,6 +958,8 @@ async function createTaxiPick(req, res) {
             player: playerId || undefined,
             playerName: playerName.trim(),
         });
+
+        if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
 
         return res.status(201).json(serializeTaxiPick(pick));
     } catch (err) {

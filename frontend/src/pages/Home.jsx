@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { Box, Typography, Menu, MenuItem, ListItemIcon, Card } from "@mui/material";
+import { Box, Card, CardContent, Menu, MenuItem, ListItemIcon, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -10,6 +10,7 @@ import PageLayout from "../components/PageLayout";
 import LeagueRow from "../components/LeagueRow";
 import CitrusFab from "../components/CitrusFab";
 import client from "../api/citrusClient";
+import useNotes from "../hooks/useNotes";
 
 export default function Home() {
   const { user, logout } = useContext(AuthContext);
@@ -17,6 +18,11 @@ export default function Home() {
   const [settingsAnchor, setSettingsAnchor] = useState(null);
   const [leagues, setLeagues] = useState([]);
   const [leagueError, setLeagueError] = useState("");
+  const { notes, load: loadNotes } = useNotes();
+
+  useEffect(() => {
+    if (user) loadNotes();
+  }, [user, loadNotes]);
 
   useEffect(() => {
     if (!user) {
@@ -115,34 +121,80 @@ export default function Home() {
 
       {/* Saved Players */}
       <Box>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+        <Box
+          sx={{ display: "flex", alignItems: "center", mb: 1.5, cursor: "pointer" }}
+          onClick={() => navigate("/saved-players")}
+        >
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             Saved Players
           </Typography>
           <ChevronRightIcon sx={{ color: "#555" }} />
         </Box>
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Card
+
+        {user && notes.length === 0 && (
+          <Typography variant="body2" sx={{ color: "#666" }}>
+            No saved players yet. Add notes to players during drafting.
+          </Typography>
+        )}
+
+        {notes.length > 0 && (
+          <Box
             sx={{
-              width: 240,
-              height: 140,
-              bgcolor: "#fef0e8",
-              borderRadius: "20px",
-              boxShadow: 0,
-              border: "1px solid #e5d5c8",
+              display: "flex",
+              gap: 2,
+              overflowX: "auto",
+              pb: 1,
+              "&::-webkit-scrollbar": { height: 6 },
+              "&::-webkit-scrollbar-thumb": { bgcolor: "#e5d5c8", borderRadius: 3 },
             }}
-          />
-          <Card
-            sx={{
-              width: 60,
-              height: 140,
-              bgcolor: "#fef0e8",
-              borderRadius: "20px",
-              boxShadow: 0,
-              border: "1px solid #e5d5c8",
-            }}
-          />
-        </Box>
+          >
+            {notes.map((n) => (
+              <Card
+                key={n.id}
+                onClick={() => navigate("/saved-players")}
+                sx={{
+                  minWidth: 200,
+                  maxWidth: 240,
+                  flexShrink: 0,
+                  bgcolor: "#fef0e8",
+                  borderRadius: "16px",
+                  boxShadow: 0,
+                  border: "1px solid #e5d5c8",
+                  cursor: "pointer",
+                  "&:hover": { bgcolor: "#fde8d6" },
+                }}
+              >
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.9rem",
+                      color: "#3f332f",
+                      mb: 0.75,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {n.playerName}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: "0.82rem",
+                      color: "#6d5a57",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {n.note || "No note"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
       </Box>
 
       <CitrusFab
