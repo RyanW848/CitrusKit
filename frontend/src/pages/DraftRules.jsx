@@ -54,8 +54,9 @@ const DEFAULT_POSITIONS = [
   { abbr: "MI", name: "Middle Infielder", count: 1 },
   { abbr: "OF", name: "Outfielder", count: 5 },
   { abbr: "U", name: "Utility", count: 1 },
-  { abbr: "SP", name: "Starting Pitcher", count: 6 },
-  { abbr: "RP", name: "Relief Pitcher", count: 3 },
+  { abbr: "P", name: "Pitcher", count: 9 }
+  //{ abbr: "SP", name: "Starting Pitcher", count: 6 },
+  //{ abbr: "RP", name: "Relief Pitcher", count: 3 },
 ];
 
 function createDefaultForm(user) {
