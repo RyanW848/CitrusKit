@@ -916,7 +916,7 @@ async function seedTestLeague(req, res) {
             (league.owners || []).map((o) => [o.name, o._id])
         );
 
-        const picksToInsert = testFixture.picks.slice(0, checkpoint).map((p) => ({
+        const mapPick = (p) => ({
             league: league._id,
             owner: ownerByName.get(p.wonBy),
             playerName: p.playerName,
@@ -924,16 +924,29 @@ async function seedTestLeague(req, res) {
             slot: p.slot,
             amount: p.salary,
             pickNumber: p.pickNumber,
+            stat: p.stat,
+        });
+
+        const preDraftToInsert = testFixture.preDraftPicks.map(mapPick);
+        const auctionToInsert  = testFixture.auctionPicks.slice(0, checkpoint).map(mapPick);
+        const minorsToInsert   = testFixture.minorLeaguePicks.map((p) => ({
+            league: league._id,
+            owner: ownerByName.get(p.wonBy),
+            playerName: p.playerName,
         }));
 
-        if (picksToInsert.length > 0) {
-            await DraftPick.insertMany(picksToInsert);
+        const allDraftPicks = [...preDraftToInsert, ...auctionToInsert];
+        if (allDraftPicks.length > 0) {
+            await DraftPick.insertMany(allDraftPicks, { ordered: false });
+        }
+        if (minorsToInsert.length > 0) {
+            await MinorLeaguePick.insertMany(minorsToInsert, { ordered: false });
         }
 
         return res.status(200).json({
             leagueId: league._id,
             checkpoint,
-            picksLoaded: picksToInsert.length,
+            picksLoaded: auctionToInsert.length,
         });
     } catch (error) {
         console.error("SEED TEST LEAGUE ERROR:", error);
