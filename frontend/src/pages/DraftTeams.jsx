@@ -33,6 +33,7 @@ import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined"
+import PlayerPickerModal from "../components/PlayerPickerModal";
 
 const emptyPickForm = {
   amount: "",
@@ -836,6 +837,22 @@ export default function DraftTeams() {
           </DialogActions>
         </Box>
       </Dialog>
+      <PlayerPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        slotAbbr={activeSlot?.position}
+        slotName={activeSlot?.posName}
+        draftContext={draftState?.league ? {
+          budget: draftState.league.budget,
+          relevantStats: draftState.league.scoringTypes,
+          unavailablePlayers: [],
+        } : null}
+        onSelectPlayer={player => {
+          setSelectedPlayer(player);
+          setSearchQuery(player.name);
+          setPickerOpen(false);
+        }}
+      />
     </PageLayout>
   );
 }
