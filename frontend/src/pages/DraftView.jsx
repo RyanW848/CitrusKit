@@ -3,23 +3,16 @@ import { useParams } from "react-router-dom";
 import {
   Alert,
   Box,
-  Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
   Typography,
 } from "@mui/material";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import { fetchDraftState } from "../api/leaguesApi";
-import useNotes from "../hooks/useNotes";
-
-import PlayerStatsModal from '../components/PlayerStatsModal';
-import usePlayerStore from '../components/stores/usePlayerStore';
+import { getPlayerStats } from "../api/playerClient";
+import PlayerStatsModal from "../components/PlayerStatsModal";
+import usePlayerStore from "../components/stores/usePlayerStore";
 
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
@@ -47,20 +40,19 @@ export default function DraftView() {
   const [draftState, setDraftState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [activeSlot, setActiveSlot] = useState(null);
-  const [noteText, setNoteText] = useState("");
 
-  const { load: loadNotes, findNote } = useNotes();
-  useEffect(() => { loadNotes(); }, [loadNotes]);
+  // Stats modal state
+  const [statsOpen, setStatsOpen]     = useState(false);
+  const [statsResult, setStatsResult] = useState(null);
+  const [statsEntry, setStatsEntry]   = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
-  const { allPlayers } = usePlayerStore();
-const [statsResult, setStatsResult] = useState(null);
+  const { allPlayers, fetchAllPlayers } = usePlayerStore();
+  useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
   const loadDraftState = useCallback(async () => {
     setLoading(true);
     setError("");
-
     try {
       const data = await fetchDraftState(id);
       setDraftState(data);
@@ -71,9 +63,7 @@ const [statsResult, setStatsResult] = useState(null);
     }
   }, [id]);
 
-  useEffect(() => {
-    loadDraftState();
-  }, [loadDraftState]);
+  useEffect(() => { loadDraftState(); }, [loadDraftState]);
 
   const owners = useMemo(() => {
     return (draftState?.owners || []).map((owner) => ({
@@ -100,25 +90,30 @@ const [statsResult, setStatsResult] = useState(null);
     return owner?.taxiPlayers ?? [];
   };
 
-  const openDialog = (slot) => {
-    if (slot.isEmpty) {
-      return;
+  const openDialog = async (slot) => {
+    if (slot.isEmpty) return;
+
+    const playerEntry = allPlayers.find(p => String(p.id) === String(slot.playerId)) ?? null;
+    setStatsEntry(playerEntry);
+    setStatsResult(null);
+
+    if (slot.playerId) {
+      setStatsLoading(true);
+      try {
+        const data = await getPlayerStats(slot.playerId);
+        setStatsResult(data);
+      } catch {
+        // stats unavailable — modal will still open showing what we have
+      } finally {
+        setStatsLoading(false);
+      }
     }
 
-    const existing = findNote(slot.playerId, slot.playerName);
-    setNoteText(existing?.note ?? "");
-    setActiveSlot(slot);
-    setDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setDialogOpen(false);
-    setActiveSlot(null);
-    setNoteText("");
+    setStatsOpen(true);
   };
 
   return (
-    <PageLayout title="View" subtitle="View your finished league" /*showBell*/>
+    <PageLayout title="View" subtitle="View your finished league">
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 4 }}>
           <CircularProgress size={22} />
@@ -134,8 +129,16 @@ const [statsResult, setStatsResult] = useState(null);
 
       {!loading && !error && (
         <>
+          {statsLoading && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <CircularProgress size={16} sx={{ color: "#8c7672" }} />
+              <Typography sx={{ color: "#6d5a57", fontSize: "0.85rem" }}>
+                Loading player stats...
+              </Typography>
+            </Box>
+          )}
           <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
-            This view matches the Teams layout, but stays read-only. Click a filled slot to inspect the player.
+            Click a filled slot to view the player's stats.
           </Alert>
           <OwnerRosterPanel
             owners={owners}
@@ -149,54 +152,13 @@ const [statsResult, setStatsResult] = useState(null);
 
       <DraftTabBar activeTab="view" draftId={id} />
 
-      <Dialog
-        open={dialogOpen}
-        onClose={closeDialog}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7" } }}
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          {activeSlot ? `${activeSlot.posAbbr} · ${activeSlot.posName}` : "Roster Slot"}
-        </DialogTitle>
-        <DialogContent sx={{ display: "grid", gap: 1.5, pt: 1 }}>
-          {activeSlot && (
-            <>
-              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-                <Typography sx={{ fontWeight: 600, fontSize: "1rem" }}>
-                  {activeSlot.playerName}
-                </Typography>
-                <Typography sx={{ color: "#8c7672", fontSize: "0.9rem", mt: 0.5 }}>
-                  {activeSlot.position}{activeSlot.slot ? `-${activeSlot.slot}` : ""}
-                </Typography>
-                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 1 }}>
-                  Price: ${activeSlot.price}
-                </Typography>
-                <Typography sx={{ color: "#6d5a57", fontSize: "0.95rem", mt: 0.5 }}>
-                  Stat: {activeSlot.stat || "..."}
-                </Typography>
-              </Box>
-              {noteText && (
-                <TextField
-                  fullWidth
-                  variant="standard"
-                  label="Note"
-                  value={noteText}
-                  multiline
-                  minRows={2}
-                  InputProps={{ readOnly: true }}
-                  sx={{ "& .MuiInputBase-input": { color: "#6d5a57" } }}
-                />
-              )}
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeDialog} sx={{ color: "#6d5a57" }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <PlayerStatsModal
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        playerResult={statsResult}
+        playerEntry={statsEntry}
+        allPlayersStats={null}
+      />
     </PageLayout>
   );
 }

@@ -450,6 +450,27 @@ export default function DraftTeams() {
     (mode === "search" && selectedPlayer)
   );
 
+  const draftContext = useMemo(() => {
+    if (!draftState?.league) return null;
+
+    const unavailablePlayers = (draftState.owners ?? [])
+        .flatMap(owner => owner.rosterSlots ?? [])
+        .map(slot => slot.pick?.player)
+        .filter(Boolean);
+
+    const myOwner = draftState.owners?.[0] ?? null; // slot 1 = current user
+    const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
+        .filter(slot => !slot.pick)
+        .length;
+
+    return {
+        budget: draftState.league.budget,
+        relevantStats: draftState.league.scoringTypes,
+        unavailablePlayers,
+        playersLeftToDraft,
+    };
+}, [draftState]);
+
   return (
     <PageLayout
       title="Teams"
@@ -842,11 +863,7 @@ export default function DraftTeams() {
         onClose={() => setPickerOpen(false)}
         slotAbbr={activeSlot?.position}
         slotName={activeSlot?.posName}
-        draftContext={draftState?.league ? {
-          budget: draftState.league.budget,
-          relevantStats: draftState.league.scoringTypes,
-          unavailablePlayers: [],
-        } : null}
+        draftContext={draftContext}
         onSelectPlayer={player => {
           setSelectedPlayer(player);
           setSearchQuery(player.name);

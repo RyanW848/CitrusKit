@@ -455,6 +455,27 @@ export default function DraftDraft() {
     }
   };
 
+  const draftContext = useMemo(() => {
+    if (!draftState?.league) return null;
+
+    const unavailablePlayers = (draftState.owners ?? [])
+        .flatMap(owner => owner.rosterSlots ?? [])
+        .map(slot => slot.pick?.player)
+        .filter(Boolean);
+
+    const myOwner = draftState.owners?.[0] ?? null; // slot 1 = current user
+    const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
+        .filter(slot => !slot.pick)
+        .length;
+
+    return {
+        budget: draftState.league.budget,
+        relevantStats: draftState.league.scoringTypes,
+        unavailablePlayers,
+        playersLeftToDraft,
+    };
+}, [draftState]);
+
   return (
     <PageLayout
       title="Draft"
@@ -851,11 +872,7 @@ export default function DraftDraft() {
           onClose={() => setPickerOpen(false)}
           slotAbbr={activeSlot?.position}
           slotName={activeSlot?.posName}
-          draftContext={draftState?.league ? {
-            budget: draftState.league.budget,
-            relevantStats: draftState.league.scoringTypes,
-            unavailablePlayers: [], // optionally pass already-drafted player IDs
-          } : null}
+          draftContext={draftContext}
           onSelectPlayer={player => {
             setSelectedPlayer(player);
             setSearchQuery(player.name);

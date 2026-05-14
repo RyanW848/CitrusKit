@@ -153,6 +153,7 @@ export default function PlayerPickerModal({
     const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
 
+    // PlayerStatsModal state
     const [statsOpen, setStatsOpen]         = useState(false);
     const [statsResult, setStatsResult]     = useState(null);
     const [statsEntry, setStatsEntry]       = useState(null);
@@ -162,6 +163,7 @@ export default function PlayerPickerModal({
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
+    // Fetch valuations when modal opens
     useEffect(() => {
         if (!open) return;
         setQuery('');
@@ -176,6 +178,7 @@ export default function PlayerPickerModal({
             budget: draftContext.budget,
             relevantStats: draftContext.relevantStats,
             unavailablePlayers: draftContext.unavailablePlayers ?? [],
+            playersLeftToDraft: draftContext.playersLeftToDraft ?? undefined,
         })
             .then(data => {
                 const map = {};
@@ -188,6 +191,7 @@ export default function PlayerPickerModal({
             .finally(() => setValuationLoading(false));
     }, [open, draftContext]);
 
+    // Sort: by valuation desc, then alphabetically. Cap at MAX_VISIBLE for performance.
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
         .sort((a, b) => {
@@ -245,15 +249,35 @@ export default function PlayerPickerModal({
                             }}>
                                 {slotName ? `Select Player — ${slotAbbr} · ${slotName}` : 'Select Player'}
                             </Typography>
-                            {slotAbbr && (
-                                <Typography sx={{
-                                    fontFamily: "'IBM Plex Mono', monospace",
-                                    fontSize: '0.65rem', color: accent,
-                                    textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.25,
-                                }}>
-                                    Only eligible {slotAbbr} players can be added
-                                </Typography>
-                            )}
+                            <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {slotAbbr && (
+                                    <Typography sx={{
+                                        fontFamily: "'IBM Plex Mono', monospace",
+                                        fontSize: '0.65rem', color: accent,
+                                        textTransform: 'uppercase', letterSpacing: '0.1em',
+                                    }}>
+                                        {slotAbbr} eligible only
+                                    </Typography>
+                                )}
+                                {draftContext?.budget != null && (
+                                    <Typography sx={{
+                                        fontFamily: "'IBM Plex Mono', monospace",
+                                        fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)',
+                                        textTransform: 'uppercase', letterSpacing: '0.1em',
+                                    }}>
+                                        ${draftContext.budget} budget
+                                    </Typography>
+                                )}
+                                {draftContext?.playersLeftToDraft != null && (
+                                    <Typography sx={{
+                                        fontFamily: "'IBM Plex Mono', monospace",
+                                        fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)',
+                                        textTransform: 'uppercase', letterSpacing: '0.1em',
+                                    }}>
+                                        {draftContext.playersLeftToDraft} slots remaining
+                                    </Typography>
+                                )}
+                            </Box>
                         </Box>
                         <IconButton onClick={onClose} size="small" sx={{ color: '#fff9f5', opacity: 0.6, '&:hover': { opacity: 1 } }}>
                             <CloseIcon fontSize="small" />
@@ -283,7 +307,7 @@ export default function PlayerPickerModal({
                                 },
                             }}
                         >
-                            <ToggleButton value="search">Search Players</ToggleButton>
+                            <ToggleButton value="search">Add Player</ToggleButton>
                             <ToggleButton value="custom">Custom Player</ToggleButton>
                         </ToggleButtonGroup>
                     </Box>
