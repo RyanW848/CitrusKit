@@ -24,7 +24,7 @@ export const getPlayerId = async (playerName, dateOfBirth = null) => {
 };
 
 export const getPlayerStats = async (ids, year = null) => {
-    const params = { ids: Array.isArray(ids) ? ids.join(',') : String(ids) };
+    const params = { players: Array.isArray(ids) ? ids.join(',') : String(ids) };
     if (year) params.year = year;
     const response = await playerClient.get('/stats', { params });
     return response.data;
