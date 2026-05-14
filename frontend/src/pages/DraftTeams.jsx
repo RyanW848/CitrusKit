@@ -454,22 +454,22 @@ export default function DraftTeams() {
     if (!draftState?.league) return null;
 
     const unavailablePlayers = (draftState.owners ?? [])
-        .flatMap(owner => owner.rosterSlots ?? [])
-        .map(slot => slot.pick?.player)
-        .filter(Boolean);
+      .flatMap(owner => owner.rosterSlots ?? [])
+      .map(slot => slot.pick?.player)
+      .filter(Boolean);
 
     const myOwner = draftState.owners?.[0] ?? null; // slot 1 = current user
     const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
-        .filter(slot => !slot.pick)
-        .length;
+      .filter(slot => !slot.pick)
+      .length;
 
     return {
-        budget: draftState.league.budget,
-        relevantStats: draftState.league.scoringTypes,
-        unavailablePlayers,
-        playersLeftToDraft,
+      budget: draftState.league.budget,
+      relevantStats: draftState.league.scoringTypes,
+      unavailablePlayers,
+      playersLeftToDraft,
     };
-}, [draftState]);
+  }, [draftState]);
 
   return (
     <PageLayout
@@ -669,7 +669,7 @@ export default function DraftTeams() {
                     '&:hover': { borderColor: '#8c7672', bgcolor: 'rgba(140,118,114,0.06)' },
                   }}
                 >
-                  {selectedPlayer ? `Change: ${selectedPlayer.name}` : 'Search Players'}
+                  {selectedPlayer ? `${selectedPlayer.name}` : 'Add Player'}
                 </Button>
 
                 {selectedPlayer && (

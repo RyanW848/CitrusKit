@@ -307,7 +307,7 @@ export default function PlayerPickerModal({
                                 },
                             }}
                         >
-                            <ToggleButton value="search">Add Player</ToggleButton>
+                            <ToggleButton value="search">Search Player</ToggleButton>
                             <ToggleButton value="custom">Custom Player</ToggleButton>
                         </ToggleButtonGroup>
                     </Box>

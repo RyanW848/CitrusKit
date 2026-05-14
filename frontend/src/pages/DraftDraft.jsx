@@ -677,7 +677,7 @@ export default function DraftDraft() {
                     '&:hover': { borderColor: '#8c7672', bgcolor: 'rgba(140,118,114,0.06)' },
                   }}
                 >
-                  {selectedPlayer ? `Change: ${selectedPlayer.name}` : 'Search Players'}
+                  {selectedPlayer ? `${selectedPlayer.name}` : 'Add Player'}
                 </Button>
 
                 {selectedPlayer && (
