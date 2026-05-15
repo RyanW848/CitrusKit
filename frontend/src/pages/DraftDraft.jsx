@@ -166,7 +166,7 @@ export default function DraftDraft() {
     setActiveSlot(slot);
     setPickForm({
       amount: slot.playerName ? String(slot.price ?? 0) : "",
-      stat: slot.stat && slot.stat !== "..." ? slot.stat : "",
+      stat: slot.stat && slot.stat !== "..." ? slot.stat : "S2",
     });
     setMode("search");
     setSearchQuery("");
