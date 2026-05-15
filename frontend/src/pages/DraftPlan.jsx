@@ -152,12 +152,25 @@ export default function DraftPlan() {
   // Owner at slot 1 is always the current user (matches DraftRules seeding convention)
   const myOwner = draftState?.owners?.[0] ?? null;
 
-  const owners = (draftState?.owners ?? []).map((o) => ({
-    id: o.id,
-    letter: ownerLetter(o.slot),
-    name: o.name,
-    detail: `$${o.remainingBudget}`,
-  }));
+  const owners = (draftState?.owners ?? []).map((o) => {
+    let remaining = o.remainingBudget;
+    if (String(o.id) === String(myOwner?.id)) {
+      const plannedDeduction = (o.plannedRosterSlots ?? []).reduce((sum, planSlot, i) => {
+        const actualSlot = (o.rosterSlots ?? [])[i];
+        if (!actualSlot?.pick && planSlot?.plan?.plannedAmount) {
+          return sum + planSlot.plan.plannedAmount;
+        }
+        return sum;
+      }, 0);
+      remaining = o.remainingBudget - plannedDeduction;
+    }
+    return {
+      id: o.id,
+      letter: ownerLetter(o.slot),
+      name: o.name,
+      detail: `$${remaining}`,
+    };
+  });
 
   const getRoster = (ownerId) => {
     const owner = draftState?.owners?.find((o) => String(o.id) === String(ownerId));
