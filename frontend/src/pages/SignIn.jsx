@@ -117,7 +117,7 @@ export default function SignIn() {
           >
             Create Account
           </Button>
-
+          {/*
           <Button
             fullWidth
             variant="contained"
@@ -127,6 +127,7 @@ export default function SignIn() {
           >
             Continue As Guest
           </Button>
+          */}
         </Box>
       </Box>
     </PageLayout>
