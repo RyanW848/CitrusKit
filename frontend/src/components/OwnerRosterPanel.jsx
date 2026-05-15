@@ -3,7 +3,6 @@ import { Box, IconButton, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 /**
  * SlotRow is defined outside OwnerRosterPanel to avoid remounting on every parent re-render,
@@ -222,9 +221,6 @@ export default function OwnerRosterPanel({
                   {owner.detail}
                 </Typography>
               ) : null}
-              <IconButton size="small" sx={{ color: "#b0a0a0", p: 0.25 }}>
-                <MoreHorizIcon sx={{ fontSize: 18 }} />
-              </IconButton>
               <IconButton size="small" sx={{ color: "#b0a0a0", p: 0.25 }}>
                 <ChevronRightIcon sx={{ fontSize: 18 }} />
               </IconButton>
