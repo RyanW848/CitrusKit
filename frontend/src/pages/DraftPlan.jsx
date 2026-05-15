@@ -156,6 +156,7 @@ export default function DraftPlan() {
     id: o.id,
     letter: ownerLetter(o.slot),
     name: o.name,
+    detail: `$${o.remainingBudget}`,
   }));
 
   const getRoster = (ownerId) => {
