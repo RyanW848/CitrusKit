@@ -256,20 +256,30 @@ function buildRosterSlots(league, ownerPicks) {
         });
 }
 
-function buildPlannedRosterSlots(league, ownerPlans) {
+function buildPlannedRosterSlots(league, ownerPlans, ownerPicks = []) {
     const remainingPlans = [...ownerPlans];
 
     return serializeRosterPositions(getLeagueRosterPositions(league))
         .flatMap((position) => {
             return Array.from({ length: position.count }, (_, index) => {
-                const planIndex = remainingPlans.findIndex((p) => p.position === position.abbr);
-                const plan = planIndex >= 0 ? remainingPlans.splice(planIndex, 1)[0] : null;
+                const slot = index + 1;
+                const isFilledByActual = ownerPicks.some(
+                    (pick) => pick.position === position.abbr && pick.slot === slot
+                );
+
+                let plan = null;
+                if (!isFilledByActual) {
+                    const planIndex = remainingPlans.findIndex((p) => p.position === position.abbr);
+                    if (planIndex >= 0) {
+                        plan = remainingPlans.splice(planIndex, 1)[0];
+                    }
+                }
 
                 return {
                     id: `plan-${position.abbr}-${index + 1}`,
                     abbr: position.abbr,
                     name: position.name,
-                    slot: index + 1,
+                    slot,
                     plan: plan ? serializePlanPick(plan) : null,
                 };
             });
@@ -293,7 +303,7 @@ function buildDraftState(league, picks, planPicks = [], minorLeaguePicks = [], t
             remainingBudget: league.budget - spent,
             roster: ownerPicks.map(serializeDraftPick),
             rosterSlots: buildRosterSlots(league, ownerPicks),
-            plannedRosterSlots: buildPlannedRosterSlots(league, ownerPlans),
+            plannedRosterSlots: buildPlannedRosterSlots(league, ownerPlans, ownerPicks),
             minorLeaguePlayers: ownerMinorLeague.map(serializeMinorLeaguePick),
             taxiPlayers: ownerTaxi.map(serializeTaxiPick),
         };
