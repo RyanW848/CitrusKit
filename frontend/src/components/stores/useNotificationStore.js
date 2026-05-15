@@ -9,7 +9,7 @@ const useNotificationStore = create(
 
             addNotifications: (incoming) => {
                 const old_notifcation = new Set(get().notification.map(n => n.id));
-                const new_notifcation = incoming.filter(n => !existing.has(n.id));
+                const new_notifcation = incoming.filter(n => !old_notifcation.has(n.id));
 
                 if (!new_notifcation.length) return;
 

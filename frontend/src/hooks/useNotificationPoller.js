@@ -24,7 +24,7 @@ async function pollTransactions(addNotifications) {
         lastTransactionDate = data.date;
  
         const notifications = data.transactions.map(tx => ({
-            id: txId(tx),
+            id: transactionId(tx),
             type: 'transaction',
             title: tx.playerName ?? 'Transaction',
             body: tx.description ?? `Moved from ${tx.fromTeam} to ${tx.toTeam}`,
