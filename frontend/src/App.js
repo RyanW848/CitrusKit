@@ -14,8 +14,11 @@ import DraftView from "./pages/DraftView.jsx";
 import DraftPlayers from "./pages/DraftPlayers.jsx";
 import Test from "./pages/Test.jsx";
 import Search from "./pages/Search.jsx";
+import useNotificationPoller from './hooks/useNotificationPoller';
+import NotificationToastStack from './components/NotificationToast';
 
 export default function App() {
+  useNotificationPoller();
   return (
     <AuthProvider>
       <Router>
@@ -36,6 +39,7 @@ export default function App() {
           <Route path="/test" element={<Test />} />
           <Route path="/search" element={<Search />} />
         </Routes>
+        <NotificationToastStack /> 
       </Router>
     </AuthProvider>
   );

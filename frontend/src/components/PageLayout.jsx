@@ -3,6 +3,7 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import { useNavigate } from "react-router-dom";
+import NotificationBell from './NotificationBell';
 
 /**
  * Common page shell used by all pages.
@@ -23,7 +24,7 @@ export default function PageLayout({
   title,
   subtitle,
   actions,
-  showBell = false,
+  showBell = true,
   showHome = true,
   onBellClick,
   onSettingsClick,
@@ -68,7 +69,8 @@ export default function PageLayout({
             {showBell && (
               <IconButton size="small" onClick={onBellClick}>
                 <NotificationsNoneOutlinedIcon sx={{ color: "#555" }} />
-              </IconButton>
+              </IconButton> &&
+              <NotificationBell />
             )}
             <IconButton size="small" onClick={onSettingsClick}>
               <AccountCircleOutlinedIcon sx={{ color: "#555", fontSize: 26 }} />
