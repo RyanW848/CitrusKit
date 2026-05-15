@@ -60,17 +60,8 @@ export default function Test() {
                     Test Page
                 </Typography>
                 <Typography sx={{ fontSize: "0.88rem", color: "#666", mb: 4 }}>
-                    Page for me to test buttons and other UI elements
+                    Internal league testing page. For demonstration and QA.
                 </Typography>
-
-                {/* Test Button */}
-                <Button
-                    variant="contained" sx={{ ...btnSx, mb: 5 }}
-                    onClick={async () => {
-                        // See if player view pop up works
-                    }}>
-                    Test Button
-                </Button>
 
                 {/* Draft Seed Section */}
                 <Typography sx={{ fontSize: "1.2rem", fontWeight: 700, color: "#1a1a1a", mb: 0.5 }}>
