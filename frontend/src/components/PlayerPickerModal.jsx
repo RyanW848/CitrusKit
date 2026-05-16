@@ -166,7 +166,7 @@ export default function PlayerPickerModal({
     onSelectPlayer,
 }) {
     const { allPlayers, fetchAllPlayers, 
-        allPlayersStats, fetchAllPlayerStats 
+        allPlayersStats, fetchAllPlayersStats 
     } = usePlayerStore();
 
     const [query, setQuery]               = useState('');
