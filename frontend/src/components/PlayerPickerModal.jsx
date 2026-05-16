@@ -189,7 +189,7 @@ export default function PlayerPickerModal({
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
 
-    useEffect(() => { fetchAllPlayersStats(); }, [fetchAllPlayerStats]);
+    useEffect(() => { fetchAllPlayersStats(); }, [fetchAllPlayersStats]);
 
     // Fetch valuations when modal opens
     useEffect(() => {
