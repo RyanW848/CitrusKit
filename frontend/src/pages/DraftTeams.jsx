@@ -27,6 +27,9 @@ import {
   createMinorLeaguePick,
   deleteMinorLeaguePick,
   fetchDraftState,
+  updatePlanPick,
+  updateDraftPick,
+  swapDraftPicks,
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
@@ -150,6 +153,7 @@ export default function DraftTeams() {
       if (planSlot?.plan) {
         return {
           id: slot.id,
+          planPickId: planSlot.plan.id,
           ownerId,
           posAbbr: slot.abbr,
           posName: slot.name,
@@ -259,6 +263,36 @@ export default function DraftTeams() {
       await loadDraftState(true);
     }
   };
+
+  const canDrop = useCallback((fromSlot, toSlot) => {
+    if (fromSlot.isPlan && !fromSlot.isActual) {
+      return !toSlot.isActual;
+    }
+    if (fromSlot.isActual) {
+      return !fromSlot.isEmpty && (toSlot.isActual || toSlot.isEmpty);
+    }
+    return false;
+  }, []);
+
+  const handleDropSlot = useCallback(async (fromSlot, toSlot) => {
+    if (fromSlot.posAbbr === toSlot.posAbbr && fromSlot.slot === toSlot.slot) return;
+    try {
+      if (fromSlot.isPlan && !fromSlot.isActual) {
+        if (!fromSlot.planPickId) return;
+        if (fromSlot.planPickId) await updatePlanPick(id, fromSlot.planPickId, { position: toSlot.posAbbr });
+        if (toSlot.planPickId) await updatePlanPick(id, toSlot.planPickId, { position: fromSlot.posAbbr });
+      } else if (fromSlot.isActual) {
+        if (toSlot.isActual && toSlot.pickId) {
+          await swapDraftPicks(id, { pickAId: fromSlot.pickId, pickBId: toSlot.pickId });
+        } else {
+          await updateDraftPick(id, fromSlot.pickId, { position: toSlot.posAbbr, slot: toSlot.slot });
+        }
+      }
+      loadDraftState(true);
+    } catch {
+      loadDraftState(true);
+    }
+  }, [id, loadDraftState]);
 
   const openDialog = (slot) => {
     setActiveSlot(slot);
@@ -500,6 +534,9 @@ export default function DraftTeams() {
             owners={owners}
             getRoster={getRoster}
             onSlotClick={openDialog}
+            canDrop={canDrop}
+            onDropSlot={handleDropSlot}
+            allowActualDrag
             getMinorLeague={getMinorLeague}
             onAddMinorLeaguePlayer={openMlDialog}
             onRemoveMinorLeaguePlayer={handleRemoveMinorLeague}
