@@ -145,6 +145,8 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
     const radarData = computeRadarData(stats, activePosition);
     const positionStats = getStatsForPosition(activePosition);
 
+    console.log("allPlayersStats in modal:", allPlayersStats?.length, allPlayersStats?.[0]);
+
     return (
         <Dialog
             open={open}
