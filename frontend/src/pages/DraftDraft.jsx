@@ -114,7 +114,7 @@ export default function DraftDraft() {
     try {
       const data = await fetchDraftState(id);
       setDraftState(data);
-      console.log("league:", draftState?.league);
+      console.log("league:", data);
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Unable to load draft");
     } finally {
