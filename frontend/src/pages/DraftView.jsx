@@ -11,6 +11,7 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
+import DepthChartView from "../components/DepthChartView";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import TeamComparisonTable from "../components/TeamComparisonTable";
 import { fetchDraftState, fetchDraftHistory } from "../api/leaguesApi";
@@ -294,6 +295,7 @@ export default function DraftView() {
               })}
             </Box>
           )}
+          {activeView === "depth" && <DepthChartView />}
         </>
       )}
 

@@ -13,6 +13,7 @@ const VIEW_SUB_TABS = [
   { label: "Rosters", value: "rosters" },
   { label: "Comparison", value: "comparison" },
   { label: "History", value: "log" },
+  { label: "Depth", value: "depth" }
 ];
 
 /**
