@@ -171,6 +171,10 @@ async function findOwnedLeague(leagueId, userId) {
     return { league };
 }
 
+function touchLeague(leagueId) {
+    League.updateOne({ _id: leagueId }, { $set: { updatedAt: new Date() } }).catch(() => {});
+}
+
 async function getLeaguePickUsage(leagueId) {
     const picks = await DraftPick.find({ league: leagueId });
     const usedOwnerIds = new Set(picks.map((pick) => pick.owner.toString()));
@@ -774,6 +778,7 @@ async function createDraftPick(req, res) {
             amount: pick.amount,
             stat: pick.stat,
         }).catch(() => {});
+        touchLeague(league._id);
 
         return res.status(201).json(serializeDraftPick(pick));
     } catch (error) {
@@ -815,6 +820,7 @@ async function deleteDraftPick(req, res) {
             amount: pick.amount,
             stat: pick.stat,
         }).catch(() => {});
+        touchLeague(result.league._id);
 
         return res.status(200).json({
             deleted: true,
@@ -860,6 +866,7 @@ async function updateDraftPick(req, res) {
         pick.position = normalizedPosition;
         pick.slot = targetSlot;
         await pick.save();
+        touchLeague(league._id);
 
         return res.status(200).json(serializeDraftPick(pick));
     } catch (error) {
@@ -895,6 +902,7 @@ async function swapDraftPicks(req, res) {
         await DraftPick.updateOne({ _id: pickA._id }, { $set: { position: tempPosition } });
         await DraftPick.updateOne({ _id: pickB._id }, { $set: { position: origA.position, slot: origA.slot } });
         await DraftPick.updateOne({ _id: pickA._id }, { $set: { position: origB.position, slot: origB.slot } });
+        touchLeague(league._id);
 
         return res.status(200).json({ success: true });
     } catch (error) {
@@ -993,6 +1001,7 @@ async function transferDraftPick(req, res) {
                     stat: occupant.stat,
                 }),
             ]).catch(() => {});
+            touchLeague(league._id);
 
             return res.status(200).json({ swapped: true });
         }
@@ -1020,6 +1029,7 @@ async function transferDraftPick(req, res) {
             amount: pick.amount,
             stat: pick.stat,
         }).catch(() => {});
+        touchLeague(league._id);
 
         return res.status(200).json(serializeDraftPick(pick));
     } catch (error) {
@@ -1061,6 +1071,7 @@ async function createPlanPick(req, res) {
         });
 
         if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
+        touchLeague(req.params.leagueId);
 
         return res.status(201).json(serializePlanPick(plan));
     } catch (err) {
@@ -1089,6 +1100,7 @@ async function deletePlanPick(req, res) {
         }
 
         await plan.deleteOne();
+        touchLeague(req.params.leagueId);
         return res.status(200).json({ deleted: true, pick: serializePlanPick(plan) });
     } catch (err) {
         console.error("DELETE PLAN PICK ERROR:", err);
@@ -1122,6 +1134,7 @@ async function updatePlanPick(req, res) {
 
         plan.position = normalizedPosition;
         await plan.save();
+        touchLeague(req.params.leagueId);
 
         return res.status(200).json(serializePlanPick(plan));
     } catch (err) {
@@ -1176,6 +1189,7 @@ async function createMinorLeaguePick(req, res) {
         });
 
         if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
+        touchLeague(req.params.leagueId);
 
         return res.status(201).json(serializeMinorLeaguePick(pick));
     } catch (err) {
@@ -1204,6 +1218,7 @@ async function deleteMinorLeaguePick(req, res) {
         }
 
         await pick.deleteOne();
+        touchLeague(req.params.leagueId);
         return res.status(200).json({ deleted: true, pick: serializeMinorLeaguePick(pick) });
     } catch (err) {
         console.error("DELETE MINOR LEAGUE PICK ERROR:", err);
@@ -1257,6 +1272,7 @@ async function createTaxiPick(req, res) {
         });
 
         if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
+        touchLeague(req.params.leagueId);
 
         return res.status(201).json(serializeTaxiPick(pick));
     } catch (err) {
@@ -1285,6 +1301,7 @@ async function deleteTaxiPick(req, res) {
         }
 
         await pick.deleteOne();
+        touchLeague(req.params.leagueId);
         return res.status(200).json({ deleted: true, pick: serializeTaxiPick(pick) });
     } catch (err) {
         console.error("DELETE TAXI PICK ERROR:", err);

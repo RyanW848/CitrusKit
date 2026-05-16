@@ -12,6 +12,16 @@ import {
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+function formatLastEdited(ts) {
+  if (!ts) return null;
+  const d = new Date(ts);
+  const diffDays = Math.floor((Date.now() - d) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
 /**
  * Reusable league list row used on Home and Leagues pages.
  *
@@ -88,9 +98,11 @@ export default function LeagueRow({ league, onClick, onDelete }) {
                 </Typography>
               )}
             </Box>
-            <Typography variant="caption" sx={{ color: "#888" }}>
-              Last Edited: {league.lastEdited}
-            </Typography>
+            {formatLastEdited(league.updatedAt) && (
+              <Typography variant="caption" sx={{ color: "#888" }}>
+                Last edited: {formatLastEdited(league.updatedAt)}
+              </Typography>
+            )}
           </Box>
         </Box>
 
