@@ -576,19 +576,24 @@ export default function DraftTeams() {
   const draftContext = useMemo(() => {
     if (!draftState?.league) return null;
 
+    const relevantStats = (draftState.league.scoringTypes ?? []).map(s => {
+      const match = s.match(/\(([^)]+)\)/);
+      return match ? match[1] : s;
+    });
+
     const unavailablePlayers = (draftState.owners ?? [])
       .flatMap(owner => owner.rosterSlots ?? [])
       .map(slot => slot.pick?.player)
       .filter(Boolean);
 
-    const myOwner = draftState.owners?.[0] ?? null; // slot 1 = current user
-    const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
+    const playersLeftToDraft = (draftState.owners ?? [])
+      .flatMap(owner => owner.rosterSlots ?? [])
       .filter(slot => !slot.pick)
       .length;
 
     return {
       budget: draftState.league.budget,
-      relevantStats: draftState.league.scoringTypes,
+      relevantStats,
       unavailablePlayers,
       playersLeftToDraft,
     };

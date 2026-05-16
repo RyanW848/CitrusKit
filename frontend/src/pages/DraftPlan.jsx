@@ -383,26 +383,31 @@ export default function DraftPlan() {
     }
   }, [id, push, loadData]);
 
-const draftContext = useMemo(() => {
+  const draftContext = useMemo(() => {
     if (!draftState?.league) return null;
 
-    const unavailablePlayers = (draftState.owners ?? [])
-        .flatMap(owner => owner.rosterSlots ?? [])
-        .map(slot => slot.pick?.player)
-        .filter(Boolean);
+    const relevantStats = (draftState.league.scoringTypes ?? []).map(s => {
+      const match = s.match(/\(([^)]+)\)/);
+      return match ? match[1] : s;
+    });
 
-    const myOwner = draftState.owners?.[0] ?? null; 
-    const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
-        .filter(slot => !slot.pick)
-        .length;
+    const unavailablePlayers = (draftState.owners ?? [])
+      .flatMap(owner => owner.rosterSlots ?? [])
+      .map(slot => slot.pick?.player)
+      .filter(Boolean);
+
+    const playersLeftToDraft = (draftState.owners ?? [])
+      .flatMap(owner => owner.rosterSlots ?? [])
+      .filter(slot => !slot.pick)
+      .length;
 
     return {
-        budget: draftState.league.budget,
-        relevantStats: draftState.league.scoringTypes,
-        unavailablePlayers,
-        playersLeftToDraft,
+      budget: draftState.league.budget,
+      relevantStats,
+      unavailablePlayers,
+      playersLeftToDraft,
     };
-}, [draftState]);
+  }, [draftState]);
 
   return (
     <PageLayout

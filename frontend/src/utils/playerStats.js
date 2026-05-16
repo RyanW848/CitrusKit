@@ -48,6 +48,16 @@ const resolveRadarProfile = (position = '') => {
     return RADAR_PROFILES.hitter;
 };
 
+export const resolveProfileName = (position = '') => {
+    const p = position.trim().toUpperCase();
+    if (p.includes('STARTING') || p === 'SP' || p.includes('STARTER')) return 'sp';
+    if (p.includes('RELIEF') || p.includes('CLOSER') || p === 'RP' || p === 'CL') return 'rp';
+    if (p.includes('PITCHER')) return 'sp';
+    if (p.includes('CATCH') || p === 'C') return 'catcher';
+    if (p.includes('DESIGNATED') || p === 'DH') return 'dh';
+    return 'hitter';
+};
+
 export const computeRadarData = (stats = {}, position = '') => {
     const profile = resolveRadarProfile(position);
     return profile.map(({ label, compute }) => ({ tool: label, value: compute(stats) }));
@@ -116,7 +126,7 @@ export const POSITION_STATS = {
         'era', 'saves', 'holds', 'wins', 'losses', 'inningsPitched',
         'strikeOutsPitching', 'whip', 'earnedRuns', 'gamesPlayed',
     ],
-    CL: [
+    CL: [ 
         'saves', 'era', 'holds', 'inningsPitched', 'strikeOutsPitching',
         'whip', 'earnedRuns', 'gamesPlayed',
     ],
@@ -128,7 +138,7 @@ export const POSITION_STATS = {
     '3B': [ ...HITTING_CORE, ...FIELDING_CORE ],
     SS: [  ...HITTING_CORE, ...FIELDING_CORE ],
     LF: [  ...HITTING_CORE, ...FIELDING_CORE ],
-    CF: [  ...HITTING_CORE, 'stolenBases', ...FIELDING_CORE ],
+    CF: [  ...HITTING_CORE, 'stolenBases', ...FIELDING_CORE ], 
     RF: [  ...HITTING_CORE, ...FIELDING_CORE ],
     OF: [  ...HITTING_CORE, ...FIELDING_CORE ],
     DH: [  ...HITTING_CORE ], 
