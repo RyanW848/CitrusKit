@@ -12,6 +12,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
+import TeamComparisonTable from "../components/TeamComparisonTable";
 import { fetchDraftState, fetchDraftHistory } from "../api/leaguesApi";
 import { getPlayerStats } from "../api/playerClient";
 import PlayerStatsModal from "../components/PlayerStatsModal";
@@ -198,6 +199,10 @@ export default function DraftView() {
                 taxiEnabled={allRostersFull}
               />
             </>
+          )}
+
+          {activeView === "comparison" && (
+            <TeamComparisonTable draftState={draftState} />
           )}
 
           {activeView === "log" && (

@@ -11,6 +11,7 @@ const TABS = [
 
 const VIEW_SUB_TABS = [
   { label: "Rosters", value: "rosters" },
+  { label: "Comparison", value: "comparison" },
   { label: "History", value: "log" },
 ];
 
@@ -20,7 +21,7 @@ const VIEW_SUB_TABS = [
  * Props:
  *   activeTab      – one of "rules" | "teams" | "plan" | "draft" | "view"
  *   draftId        – the draft UUID used to build navigation paths
- *   subTab         – active sub-tab when activeTab === "view" ("rosters" | "log")
+ *   subTab         – active sub-tab when activeTab === "view" ("rosters" | "comparison" | "log")
  *   onSubTabChange – callback(value) when a sub-tab is selected
  */
 export default function DraftTabBar({ activeTab, draftId, subTab, onSubTabChange }) {
