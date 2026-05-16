@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -29,11 +30,13 @@ import {
   updatePlanPick as apiUpdatePlanPick,
 } from "../api/leaguesApi";
 import useNotes from "../hooks/useNotes";
-import { getPlayerValues } from "../api/playerClient";
+import { getPlayerValues, getPlayerStats } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
 import PlayerPickerModal from '../components/PlayerPickerModal';
+import PlayerStatsModal from '../components/PlayerStatsModal';
 import { isEligibleForSlot, resolvePlayerPositions } from "../utils/rosterEligibility";
+import { getKeyStats, fmtStat } from "../utils/draftStatsHelpers";
 
 function ownerLetter(slot) {
   return String.fromCharCode(64 + slot);
@@ -103,6 +106,10 @@ export default function DraftPlan() {
   useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [statsResult, setStatsResult] = useState(null);
+  const [statsEntry, setStatsEntry] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const { allPlayers, fetchAllPlayers } = usePlayerStore();
   useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
@@ -184,8 +191,21 @@ export default function DraftPlan() {
     setPlannedAmount(slot.isEmpty ? "" : String(slot.price || ""));
     setProjectedValue(null);
     setDialogError("");
+    setStatsResult(null);
+    setStatsEntry(null);
     const existing = findNote(slot.planPlayerId, slot.playerName);
     setNoteText(existing?.note ?? "");
+
+    if (!slot.isEmpty && slot.planPlayerId) {
+      const entry = allPlayers.find((p) => String(p.id) === String(slot.planPlayerId));
+      setStatsEntry(entry ?? null);
+      setStatsLoading(true);
+      getPlayerStats(slot.planPlayerId)
+        .then((result) => setStatsResult(result))
+        .catch(() => setStatsResult(null))
+        .finally(() => setStatsLoading(false));
+    }
+
     setDialogOpen(true);
   };
 
@@ -193,6 +213,8 @@ export default function DraftPlan() {
     setDialogOpen(false);
     setActiveSlot(null);
     setNoteText("");
+    setStatsResult(null);
+    setStatsEntry(null);
   };
 
   const handleQueryChange = (q) => {
@@ -427,13 +449,51 @@ const draftContext = useMemo(() => {
         <DialogContent sx={{ overflow: "visible" }}>
           {activeSlot && !activeSlot.isEmpty ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box>
-                <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{activeSlot.playerName}</Typography>
-                {activeSlot.price > 0 && (
-                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                    Planned bid: ${activeSlot.price}
-                  </Typography>
-                )}
+              <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                  {statsEntry?.headshotUrl && (
+                    <img src={statsEntry.headshotUrl} alt={activeSlot.playerName}
+                      style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginTop: 2 }} />
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                    {activeSlot.price > 0 && (
+                      <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                        Planned bid: ${activeSlot.price}
+                      </Typography>
+                    )}
+                    {activeSlot.playerPositions?.length > 0 && (
+                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.75 }}>
+                        {activeSlot.playerPositions.map((pos) => (
+                          <Chip key={pos} label={pos} size="small"
+                            sx={{ height: 20, fontSize: "0.7rem", bgcolor: "#f4c9b3", color: "#3f332f", "& .MuiChip-label": { px: 1 } }} />
+                        ))}
+                      </Box>
+                    )}
+                    {statsLoading && <CircularProgress size={14} sx={{ mt: 0.75, color: "#8c7672" }} />}
+                    {!statsLoading && statsResult && (
+                      <Box sx={{ display: "flex", gap: 2, mt: 0.75, flexWrap: "wrap" }}>
+                        {getKeyStats(activeSlot.playerPositions).map(({ key, label }) => {
+                          const val = fmtStat(key, statsResult?.results?.[0]?.stats?.[key]);
+                          if (val == null) return null;
+                          return (
+                            <Box key={key} sx={{ textAlign: "center" }}>
+                              <Typography sx={{ fontSize: "0.68rem", color: "#8c7672", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</Typography>
+                              <Typography sx={{ fontSize: "0.9rem", fontWeight: 600, color: "#3f332f" }}>{val}</Typography>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                  {activeSlot.planPlayerId && statsResult && (
+                    <Button size="small" onClick={() => setStatsModalOpen(true)}
+                      sx={{ textTransform: "none", color: "#6d5a57", borderColor: "#d0bcb6", flexShrink: 0, alignSelf: "flex-start" }}
+                      variant="outlined">
+                      More Info
+                    </Button>
+                  )}
+                </Box>
               </Box>
               <TextField
                 fullWidth
@@ -671,6 +731,12 @@ const draftContext = useMemo(() => {
       </Dialog>
 
       <DraftTabBar activeTab="plan" draftId={id} />
+      <PlayerStatsModal
+        open={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        playerResult={statsResult}
+        playerEntry={statsEntry}
+      />
     </PageLayout>
   );
 }

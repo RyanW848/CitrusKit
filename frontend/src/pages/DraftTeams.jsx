@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -31,8 +32,10 @@ import {
   updateDraftPick,
   swapDraftPicks,
 } from "../api/leaguesApi";
-import { getPlayerValues } from "../api/playerClient";
+import { getPlayerValues, getPlayerStats } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
+import PlayerStatsModal from "../components/PlayerStatsModal";
+import { getKeyStats, fmtStat } from "../utils/draftStatsHelpers";
 import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined"
@@ -96,6 +99,10 @@ export default function DraftTeams() {
   const [mlNoteText, setMlNoteText] = useState("");
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [statsResult, setStatsResult] = useState(null);
+  const [statsEntry, setStatsEntry] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const { load: loadNotes, findNote, saveNote } = useNotes();
   useEffect(() => { loadNotes(); }, [loadNotes]);
@@ -320,8 +327,21 @@ export default function DraftTeams() {
     setCustomName("");
     setProjectedValue(null);
     setDialogError("");
+    setStatsResult(null);
+    setStatsEntry(null);
     const existing = findNote(slot.playerId, slot.playerName);
     setNoteText(existing?.note ?? "");
+
+    if (slot.isActual && slot.playerId) {
+      const entry = allPlayers.find((p) => String(p.id) === String(slot.playerId));
+      setStatsEntry(entry ?? null);
+      setStatsLoading(true);
+      getPlayerStats(slot.playerId)
+        .then((result) => setStatsResult(result))
+        .catch(() => setStatsResult(null))
+        .finally(() => setStatsLoading(false));
+    }
+
     setDialogOpen(true);
   };
 
@@ -337,6 +357,8 @@ export default function DraftTeams() {
     setProjectedValue(null);
     setDialogError("");
     setNoteText("");
+    setStatsResult(null);
+    setStatsEntry(null);
   };
 
   const handleFormChange = (field) => (event) => {
@@ -689,10 +711,48 @@ export default function DraftTeams() {
             {activeSlot?.pickId ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
-                  <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
-                  <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
-                    ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
-                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                    {statsEntry?.headshotUrl && (
+                      <img src={statsEntry.headshotUrl} alt={activeSlot.playerName}
+                        style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginTop: 2 }} />
+                    )}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }}>{activeSlot.playerName}</Typography>
+                      <Typography sx={{ color: "#8c7672", fontSize: "0.9rem" }}>
+                        ${activeSlot.price}{activeSlot.stat ? ` · ${activeSlot.stat}` : ""}
+                      </Typography>
+                      {activeSlot.playerPositions?.length > 0 && (
+                        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.75 }}>
+                          {activeSlot.playerPositions.map((pos) => (
+                            <Chip key={pos} label={pos} size="small"
+                              sx={{ height: 20, fontSize: "0.7rem", bgcolor: "#f4c9b3", color: "#3f332f", "& .MuiChip-label": { px: 1 } }} />
+                          ))}
+                        </Box>
+                      )}
+                      {statsLoading && <CircularProgress size={14} sx={{ mt: 0.75, color: "#8c7672" }} />}
+                      {!statsLoading && statsResult && (
+                        <Box sx={{ display: "flex", gap: 2, mt: 0.75, flexWrap: "wrap" }}>
+                          {getKeyStats(activeSlot.playerPositions).map(({ key, label }) => {
+                            const val = fmtStat(key, statsResult?.results?.[0]?.stats?.[key]);
+                            if (val == null) return null;
+                            return (
+                              <Box key={key} sx={{ textAlign: "center" }}>
+                                <Typography sx={{ fontSize: "0.68rem", color: "#8c7672", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</Typography>
+                                <Typography sx={{ fontSize: "0.9rem", fontWeight: 600, color: "#3f332f" }}>{val}</Typography>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </Box>
+                    {activeSlot.playerId && statsResult && (
+                      <Button size="small" onClick={() => setStatsModalOpen(true)}
+                        sx={{ textTransform: "none", color: "#6d5a57", borderColor: "#d0bcb6", flexShrink: 0, alignSelf: "flex-start" }}
+                        variant="outlined">
+                        More Info
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
                 <TextField
                   fullWidth
@@ -919,6 +979,12 @@ export default function DraftTeams() {
           setSearchQuery(player.name);
           setPickerOpen(false);
         }}
+      />
+      <PlayerStatsModal
+        open={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        playerResult={statsResult}
+        playerEntry={statsEntry}
       />
     </PageLayout>
   );
