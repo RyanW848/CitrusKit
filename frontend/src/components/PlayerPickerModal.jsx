@@ -172,7 +172,7 @@ export default function PlayerPickerModal({
     const [query, setQuery] = useState('');
     const [mode, setMode] = useState('search'); // 'search' | 'custom'
     const [customName, setCustomName] = useState('');
-    const [filterEligible, setFilterEligible] = useState(false);
+    const [filterEligible, setFilterEligible] = useState(true);
     const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
     const [statsMap, setStatsMap] = useState({});
@@ -197,7 +197,7 @@ export default function PlayerPickerModal({
         setQuery('');
         setMode('search');
         setCustomName('');
-        setFilterEligible(false);
+        setFilterEligible(!!slotAbbr);
         setSortBy('value');
         setStatsMap({});
         fetchedIdsRef.current = new Set();
@@ -247,10 +247,8 @@ export default function PlayerPickerModal({
     // Sort: by value or by stat. Cap at MAX_VISIBLE for performance.
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
-        .filter(
-            p => slotAbbr ?
-                isEligible(p.positions, slotAbbr) : (!filterEligible ||
-                    isEligible(p.positions, slotAbbr)))
+        //.filter(p => slotAbbr ? isEligible(p.positions, slotAbbr) : (!filterEligible || isEligible(p.positions, slotAbbr)))
+        .filter(p => !filterEligible || isEligible(p.positions, slotAbbr))
         .sort((a, b) => {
             if (sortBy === 'value') {
                 return (valuationMap[b.id] ?? -1) - (valuationMap[a.id] ?? -1);
