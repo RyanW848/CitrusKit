@@ -194,3 +194,54 @@ export const expandPosition = (position = '') => {
 };
 export const getHeadshotUrl = (mlbId) =>
     mlbId ? `https://securea.mlb.com/mlb/images/players/head_shot/${mlbId}.jpg` : null;
+
+
+export function getDepthChartRankings(depthChart, playerId) {
+    if (!depthChart?.positions || !playerId) return [];
+
+    const id = Number(playerId);
+    const results = [];
+
+    for (const [posLabel, players] of Object.entries(depthChart.positions)) {
+        // Dedupe players within this position group (API can repeat entries)
+        const seen = new Set();
+        const unique = players.filter(p => {
+            if (seen.has(p.id)) return false;
+            seen.add(p.id);
+            return true;
+        });
+
+        const rankIndex = unique.findIndex(p => Number(p.id) === id);
+        if (rankIndex === -1) continue;
+
+        results.push({
+            position: posLabel,           // e.g. "Starting Pitcher", "Outfielder"
+            rank:     rankIndex + 1,      // 1-based
+            total:    unique.length,
+            players:  unique,             // full ranked list for the position
+        });
+    }
+
+    return results;
+}
+
+export function abbreviateDepthPosition(label = '') {
+    const map = {
+        'Starting Pitcher':  'SP',
+        'Relief Pitcher':    'RP',
+        'Pitcher':           'RP',
+        'Closer':            'CL',
+        'Catcher':           'C',
+        'First Base':        '1B',
+        'Second Base':       '2B',
+        'Third Base':        '3B',
+        'Shortstop':         'SS',
+        'Outfielder':        'OF',
+        'Left Field':        'LF',
+        'Center Field':      'CF',
+        'Right Field':       'RF',
+        'Designated Hitter': 'DH',
+        'Utility':           'UT',
+    };
+    return map[label] ?? label;
+}
