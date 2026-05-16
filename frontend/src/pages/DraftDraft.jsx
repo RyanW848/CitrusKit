@@ -821,12 +821,7 @@ export default function DraftDraft() {
                     )}
                   </Box>
                 </Box>
-                {!moveExpanded ? (
-                  <Button size="small" onClick={() => setMoveExpanded(true)}
-                    sx={{ alignSelf: "flex-start", color: "#6d5a57", textTransform: "none", p: 0, fontSize: "0.82rem", minWidth: 0 }}>
-                    Move to another team…
-                  </Button>
-                ) : (
+                {moveExpanded && (
                   <Box sx={{ border: "1px solid #e5d5c8", borderRadius: "8px", p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
                     <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#6d5a57" }}>Move to another team</Typography>
                     <Select size="small" value={moveOwner} displayEmpty
@@ -1038,9 +1033,16 @@ export default function DraftDraft() {
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             {activeSlot?.pickId && (
-              <Button onClick={handleDeletePick} disabled={dialogSaving} sx={{ color: "#b24b3c", mr: "auto" }}>
-                {dialogSaving ? "Removing..." : "Remove"}
-              </Button>
+              <Box sx={{ display: "flex", gap: 1, mr: "auto" }}>
+                <Button onClick={handleDeletePick} disabled={dialogSaving} sx={{ color: "#b24b3c" }}>
+                  {dialogSaving ? "Removing..." : "Remove"}
+                </Button>
+                {!moveExpanded && (
+                  <Button onClick={() => setMoveExpanded(true)} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
+                    Move
+                  </Button>
+                )}
+              </Box>
             )}
             <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
               Close
