@@ -902,6 +902,79 @@ async function swapDraftPicks(req, res) {
     }
 }
 
+async function transferDraftPick(req, res) {
+    try {
+        const { targetOwnerId, position, slot } = req.body;
+        if (!targetOwnerId || !position || slot === undefined) {
+            return res.status(400).json({ error: "targetOwnerId, position, and slot are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const league = result.league;
+
+        if (!ownerBelongsToLeague(league, targetOwnerId)) {
+            return res.status(400).json({ error: "targetOwnerId must belong to the league" });
+        }
+
+        const normalizedPosition = position.trim().toUpperCase();
+        const targetPosition = findRosterPosition(league, normalizedPosition);
+        if (!targetPosition) return res.status(400).json({ error: "position must match a league roster position" });
+
+        const targetSlot = Number(slot);
+        if (!Number.isInteger(targetSlot) || targetSlot < 1 || targetSlot > targetPosition.count) {
+            return res.status(400).json({ error: "slot is out of range for that position" });
+        }
+
+        const pick = await DraftPick.findOne({ _id: req.params.pickId, league: league._id });
+        if (!pick) return res.status(404).json({ error: "Draft pick not found" });
+
+        if (String(pick.owner) === String(targetOwnerId)) {
+            return res.status(400).json({ error: "Player is already on that team" });
+        }
+
+        const conflict = await DraftPick.findOne({
+            league: league._id,
+            owner: targetOwnerId,
+            position: normalizedPosition,
+            slot: targetSlot,
+        });
+        if (conflict) return res.status(409).json({ error: `${normalizedPosition}-${targetSlot} is already filled on that team` });
+
+        const targetOwnerPicks = await DraftPick.find({ league: league._id, owner: targetOwnerId });
+        const targetSpend = targetOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+        if (targetSpend + pick.amount > league.budget) {
+            return res.status(400).json({ error: "Move would exceed that team's budget" });
+        }
+
+        const fromOwnerRecord = league.owners.find((o) => String(o._id) === String(pick.owner));
+        const toOwnerRecord   = league.owners.find((o) => String(o._id) === String(targetOwnerId));
+
+        pick.owner    = targetOwnerId;
+        pick.position = normalizedPosition;
+        pick.slot     = targetSlot;
+        await pick.save();
+
+        DraftEvent.create({
+            league: league._id,
+            type: "pick_transferred",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: toOwnerRecord?.name ?? "Unknown",
+            fromOwnerName: fromOwnerRecord?.name ?? "Unknown",
+            position: normalizedPosition,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
+
+        return res.status(200).json(serializeDraftPick(pick));
+    } catch (error) {
+        console.error("TRANSFER DRAFT PICK ERROR:", error);
+        return res.status(500).json({ error: "Error transferring draft pick" });
+    }
+}
+
 async function createPlanPick(req, res) {
     try {
         const { ownerId, playerName, position, plannedAmount, playerId } = req.body;
@@ -1304,6 +1377,7 @@ module.exports = {
     deleteDraftPick,
     updateDraftPick,
     swapDraftPicks,
+    transferDraftPick,
     createPlanPick,
     deletePlanPick,
     updatePlanPick,

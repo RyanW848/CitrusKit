@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
@@ -224,7 +225,12 @@ export default function DraftView() {
                   );
                 }
                 const { event } = item;
-                const isAdd = event.type === "pick_added";
+                const isAdd      = event.type === "pick_added";
+                const isTransfer = event.type === "pick_transferred";
+                const isRemove   = event.type === "pick_removed";
+                const iconColor  = isAdd ? "#f97316" : isTransfer ? "#7c3aed" : "#dc2626";
+                const bgColor    = isAdd ? "#fef9f5" : isTransfer ? "#faf5ff" : "#fff5f5";
+                const borderColor = isAdd ? "#f4c9b3" : isTransfer ? "#e9d5ff" : "#fecaca";
                 return (
                   <Box
                     key={event.id}
@@ -236,9 +242,9 @@ export default function DraftView() {
                       py: 1,
                       mb: 0.5,
                       borderRadius: "8px",
-                      bgcolor: isAdd ? "#fef9f5" : "#fff5f5",
-                      border: `1px solid ${isAdd ? "#f4c9b3" : "#fecaca"}`,
-                      opacity: isAdd ? 1 : 0.75,
+                      bgcolor: bgColor,
+                      border: `1px solid ${borderColor}`,
+                      opacity: isRemove ? 0.75 : 1,
                     }}
                   >
                     {/* Pick number */}
@@ -249,26 +255,27 @@ export default function DraftView() {
                     )}
 
                     {/* Icon */}
-                    <Box sx={{ color: isAdd ? "#f97316" : "#dc2626", flexShrink: 0, display: "flex" }}>
-                      {isAdd
-                        ? <AddCircleOutlineIcon sx={{ fontSize: 16 }} />
-                        : <RemoveCircleOutlineIcon sx={{ fontSize: 16 }} />
-                      }
+                    <Box sx={{ color: iconColor, flexShrink: 0, display: "flex" }}>
+                      {isAdd && <AddCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                      {isTransfer && <SwapHorizIcon sx={{ fontSize: 16 }} />}
+                      {isRemove && <RemoveCircleOutlineIcon sx={{ fontSize: 16 }} />}
                     </Box>
 
                     {/* Player + owner */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: "0.88rem", color: "#1a1008", textDecoration: isAdd ? "none" : "line-through" }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.88rem", color: "#1a1008", textDecoration: isRemove ? "line-through" : "none" }}>
                         {event.playerName}
                       </Typography>
                       <Typography sx={{ fontSize: "0.75rem", color: "#6d5a57" }}>
-                        {event.ownerName}{event.position ? ` · ${event.position}` : ""}
+                        {isTransfer
+                          ? `${event.fromOwnerName} → ${event.ownerName}`
+                          : `${event.ownerName}${event.position ? ` · ${event.position}` : ""}`}
                       </Typography>
                     </Box>
 
                     {/* Price */}
                     {event.amount != null && (
-                      <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", fontWeight: 600, color: isAdd ? "#3f332f" : "#9a8a84", flexShrink: 0 }}>
+                      <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", fontWeight: 600, color: isRemove ? "#9a8a84" : "#3f332f", flexShrink: 0 }}>
                         ${event.amount}
                       </Typography>
                     )}

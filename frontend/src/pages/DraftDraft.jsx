@@ -10,7 +10,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  MenuItem,
   Paper,
+  Select,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -23,7 +25,7 @@ import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import SearchBar from "../components/SearchBar";
-import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState, updatePlanPick, updateDraftPick, swapDraftPicks } from "../api/leaguesApi";
+import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState, updatePlanPick, updateDraftPick, swapDraftPicks, transferDraftPick } from "../api/leaguesApi";
 import { getPlayerValues, getPlayerStats } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
@@ -92,6 +94,11 @@ export default function DraftDraft() {
   const { load: loadNotes, findNote, saveNote } = useNotes();
   useEffect(() => { loadNotes(); }, [loadNotes]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [moveExpanded, setMoveExpanded] = useState(false);
+  const [moveOwner, setMoveOwner] = useState("");
+  const [moveSlot, setMoveSlot] = useState("");
+  const [moveSaving, setMoveSaving] = useState(false);
+  const [moveError, setMoveError] = useState("");
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [statsResult, setStatsResult] = useState(null);
   const [statsEntry, setStatsEntry] = useState(null);
@@ -227,6 +234,10 @@ export default function DraftDraft() {
     setDialogError("");
     setStatsResult(null);
     setStatsEntry(null);
+    setMoveExpanded(false);
+    setMoveOwner("");
+    setMoveSlot("");
+    setMoveError("");
     const existing = findNote(slot.playerId, slot.playerName);
     setNoteText(existing?.note ?? "");
 
@@ -266,6 +277,10 @@ export default function DraftDraft() {
     setNoteText("");
     setStatsResult(null);
     setStatsEntry(null);
+    setMoveExpanded(false);
+    setMoveOwner("");
+    setMoveSlot("");
+    setMoveError("");
   };
 
   const handleFormChange = (field) => (event) => {
@@ -395,6 +410,32 @@ export default function DraftDraft() {
     (mode === "custom" && customName.trim()) ||
     (mode === "search" && selectedPlayer)
   );
+
+  const availableSlotsForOwner = (ownerId) => {
+    const owner = draftState?.owners?.find((o) => String(o.id) === String(ownerId));
+    return (owner?.rosterSlots ?? [])
+      .filter((s) => !s.pick)
+      .map((s) => ({
+        value: `${s.abbr}:${s.slot}`,
+        label: s.slot > 1 ? `${s.abbr}-${s.slot} (${s.name})` : `${s.abbr} (${s.name})`,
+      }));
+  };
+
+  const handleTransfer = async () => {
+    if (!activeSlot?.pickId || !moveOwner || !moveSlot) return;
+    const [position, slotNum] = moveSlot.split(":");
+    setMoveSaving(true);
+    setMoveError("");
+    try {
+      await transferDraftPick(id, activeSlot.pickId, { targetOwnerId: moveOwner, position, slot: Number(slotNum) });
+      closeDialog();
+      await loadDraftState(true);
+    } catch (err) {
+      setMoveError(err.response?.data?.error || "Unable to move player");
+    } finally {
+      setMoveSaving(false);
+    }
+  };
 
   const handleDeletePick = async () => {
     if (!activeSlot?.pickId) return;
@@ -767,6 +808,43 @@ export default function DraftDraft() {
                     )}
                   </Box>
                 </Box>
+                {!moveExpanded ? (
+                  <Button size="small" onClick={() => setMoveExpanded(true)}
+                    sx={{ alignSelf: "flex-start", color: "#6d5a57", textTransform: "none", p: 0, fontSize: "0.82rem", minWidth: 0 }}>
+                    Move to another team…
+                  </Button>
+                ) : (
+                  <Box sx={{ border: "1px solid #e5d5c8", borderRadius: "8px", p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#6d5a57" }}>Move to another team</Typography>
+                    <Select size="small" value={moveOwner} displayEmpty
+                      onChange={(e) => { setMoveOwner(e.target.value); setMoveSlot(""); setMoveError(""); }}
+                      sx={{ fontSize: "0.85rem" }}>
+                      <MenuItem value="" disabled>Select owner…</MenuItem>
+                      {(draftState?.owners ?? [])
+                        .filter((o) => String(o.id) !== String(activeSlot?.ownerId))
+                        .map((o) => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
+                    </Select>
+                    {moveOwner && (
+                      <Select size="small" value={moveSlot} displayEmpty
+                        onChange={(e) => setMoveSlot(e.target.value)}
+                        sx={{ fontSize: "0.85rem" }}>
+                        <MenuItem value="" disabled>Select slot…</MenuItem>
+                        {availableSlotsForOwner(moveOwner).map((s) =>
+                          <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
+                      </Select>
+                    )}
+                    {moveError && <Alert severity="error" sx={{ borderRadius: "8px", py: 0.5 }}>{moveError}</Alert>}
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button size="small" onClick={() => { setMoveExpanded(false); setMoveOwner(""); setMoveSlot(""); setMoveError(""); }}
+                        sx={{ color: "#6d5a57", textTransform: "none" }}>Cancel</Button>
+                      <Button size="small" variant="contained" onClick={handleTransfer}
+                        disabled={!moveOwner || !moveSlot || moveSaving}
+                        sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", textTransform: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}>
+                        {moveSaving ? "Moving…" : "Confirm Move"}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
                 <TextField
                   fullWidth
                   variant="standard"
