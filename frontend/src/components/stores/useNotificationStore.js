@@ -8,14 +8,26 @@ const useNotificationStore = create(
             toasts: [],
 
             addNotifications: (incoming) => {
-                const old_notifcation = new Set(get().notification.map(n => n.id));
-                const new_notifcation = incoming.filter(n => !old_notifcation.has(n.id));
+                const oldNotifications = new Set(
+                    get().notifications.map(n => n.id)
+                );
 
-                if (!new_notifcation.length) return;
+                const newNotifications = incoming.filter(
+                    n => !oldNotifications.has(n.id)
+                );
+
+                if (!newNotifications.length) return;
 
                 set(state => ({
-                    notifications: [...new_notifcation, ...state.notifications].slice(0, 50),
-                    toasts: [...state.toasts, ...new_notifcation],
+                    notifications: [
+                        ...newNotifications,
+                        ...state.notifications,
+                    ].slice(0, 50),
+
+                    toasts: [
+                        ...state.toasts,
+                        ...newNotifications,
+                    ],
                 }));
             },
 
@@ -28,21 +40,26 @@ const useNotificationStore = create(
                     notifications: state.notifications.map(n => ({ ...n, seen: true })),
                 }));
             },
-            
+
             clearAll: () => set({ notifications: [], toasts: [] }),
- 
+
             unseenCount: () => get().notifications.filter(n => !n.seen).length,
 
             _manualPoll: null,
+            
             registerManualPoll: (fn) => set({ _manualPoll: fn }),
-            manualPoll: () => {
+
+            manualPoll: async () => {
                 const fn = get()._manualPoll;
-                if (fn) fn();
+
+                if (fn) {
+                    return await fn();
+                }
             },
         }),
         {
             name: 'citruskit-notifications',
-            partialize: state => ({ notifications: state.notifications}),
+            partialize: state => ({ notifications: state.notifications }),
         }
     )
 );

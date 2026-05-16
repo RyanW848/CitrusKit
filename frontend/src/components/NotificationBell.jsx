@@ -28,6 +28,7 @@ const TYPE_META = {
     },
 };
 
+
 function timeAgo(timestamp) {
     const diff = Date.now() - timestamp;
     const mins = Math.floor(diff / 60000);
@@ -36,7 +37,7 @@ function timeAgo(timestamp) {
     if (mins < 1) return 'just now';
 
     if (mins < 60) return `${mins}m ago`;
-    
+
     if (hrs < 24) return `${hrs}h ago`;
 
     return `${Math.floor(hrs / 24)}d ago`;
@@ -44,12 +45,14 @@ function timeAgo(timestamp) {
 
 export default function NotificationBell() {
     const [open, setOpen] = useState(false);
+    const [polling, setPolling] = useState(false);
     const panelRef = useRef(null);
     const buttonRef = useRef(null);
 
     const notifications = useNotificationStore(s => s.notifications);
     const markAllSeen = useNotificationStore(s => s.markAllSeen);
     const clearAll = useNotificationStore(s => s.clearAll);
+    const manualPoll = useNotificationStore(s => s.manualPoll);
     const unseenCount = notifications.filter(n => !n.seen).length;
 
     useEffect(() => {
@@ -66,9 +69,23 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);
 
-    const handleOpen = () => {
+    const handleOpen = async () => {
+        const opening = !open;
         setOpen(v => !v);
-        if (!open) markAllSeen();
+
+        if (opening) {
+            markAllSeen();
+            await refreshNotifications();
+        }
+    };
+
+    const refreshNotifications = async () => {
+        try {
+            setPolling(true);
+            await manualPoll();
+        } finally {
+            setPolling(false);
+        }
     };
 
     // UI Made with Claude Assistance 
@@ -92,7 +109,7 @@ export default function NotificationBell() {
                     <NotificationsOutlinedIcon sx={{ fontSize: 22, color: '#6d5a57' }} />
                 </Badge>
             </IconButton>
- 
+
             {open && (
                 <Box
                     ref={panelRef}
@@ -127,7 +144,7 @@ export default function NotificationBell() {
                                 : (
                                     <IconButton
                                         size="small"
-                                        onClick={async () => { setPolling(true); await Promise.allSettled([manualPoll()]); setPolling(false); }}
+                                        onClick={refreshNotifications}
                                         sx={{ p: 0.25, color: '#a3681e', '&:hover': { color: '#f97316' } }}
                                     >
                                         <RefreshIcon sx={{ fontSize: 14 }} />
@@ -150,7 +167,7 @@ export default function NotificationBell() {
                             </Button>
                         )}
                     </Box>
- 
+
                     {/* List */}
                     <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
                         {notifications.length === 0 ? (
@@ -179,7 +196,7 @@ export default function NotificationBell() {
                                             }}>
                                                 {meta.icon}
                                             </Box>
- 
+
                                             {/* Content */}
                                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                                 <Typography sx={{
