@@ -1220,12 +1220,13 @@ async function seedTestLeague(req, res) {
             });
         }
 
-        // Clear existing picks/plans/minors, then re-insert picks up to the checkpoint
+        // Clear existing picks/plans/minors/history, then re-insert picks up to the checkpoint
         await Promise.all([
             DraftPick.deleteMany({ league: league._id }),
             PlanPick.deleteMany({ league: league._id }),
             MinorLeaguePick.deleteMany({ league: league._id }),
             TaxiPick.deleteMany({ league: league._id }),
+            DraftEvent.deleteMany({ league: league._id }),
         ]);
 
         const ownerByName = new Map(
@@ -1259,6 +1260,25 @@ async function seedTestLeague(req, res) {
         }
         if (minorsToInsert.length > 0) {
             await MinorLeaguePick.insertMany(minorsToInsert, { ordered: false });
+        }
+
+        // Populate draft history for auction picks — space them 90 seconds apart
+        // starting 3 hours before now so the log looks like a finished draft
+        if (auctionToInsert.length > 0) {
+            const draftStart = new Date(Date.now() - auctionToInsert.length * 90 * 1000);
+            const eventsToInsert = testFixture.auctionPicks.slice(0, checkpoint).map((p, i) => ({
+                league: league._id,
+                type: "pick_added",
+                pickNumber: p.pickNumber,
+                playerName: p.playerName,
+                ownerName: p.wonBy,
+                position: p.position,
+                amount: p.salary,
+                stat: p.stat || undefined,
+                createdAt: new Date(draftStart.getTime() + i * 90 * 1000),
+                updatedAt: new Date(draftStart.getTime() + i * 90 * 1000),
+            }));
+            await DraftEvent.insertMany(eventsToInsert, { ordered: false });
         }
 
         return res.status(200).json({
