@@ -16,7 +16,7 @@ import PlayerStatsModal from './PlayerStatsModal';
 import usePlayerStore from './stores/usePlayerStore';
 
 const accent = '#f97316';
-const dim    = '#fde0c8';
+const dim = '#fde0c8';
 const MAX_VISIBLE = 20;
 
 function isEligible(playerPositions, slotAbbr) {
@@ -31,18 +31,18 @@ function isEligible(playerPositions, slotAbbr) {
 
     const required =
         slotAbbr === 'SP' || slotAbbr === 'RP' ? ['P'] :
-        slotAbbr === 'CI'  ? ['1B', '3B'] :
-        slotAbbr === 'MI'  ? ['2B', 'SS'] :
-        slotAbbr === 'U'   ? null :          // utility — anything
-        [slotAbbr];
+            slotAbbr === 'CI' ? ['1B', '3B'] :
+                slotAbbr === 'MI' ? ['2B', 'SS'] :
+                    slotAbbr === 'U' ? null :          // utility — anything
+                        [slotAbbr];
 
     if (required === null) return true;
     return positions.some(p => required.includes(p));
 }
 
 function PlayerCard({ player, valuationMap, statsMap, slotAbbr, onAdd, onViewStats }) {
-    const eligible   = isEligible(player.positions, slotAbbr);
-    const valuation  = valuationMap?.[player.id];
+    const eligible = isEligible(player.positions, slotAbbr);
+    const valuation = valuationMap?.[player.id];
     const headshotUrl = getHeadshotUrl(player.id);
     const playerStats = statsMap?.[String(player.id)];
     const keyStats = getKeyStats(player.positions);
@@ -165,27 +165,31 @@ export default function PlayerPickerModal({
     draftContext,
     onSelectPlayer,
 }) {
-    const { allPlayers, fetchAllPlayers } = usePlayerStore();
+    const { allPlayers, fetchAllPlayers,
+        allPlayersStats, fetchAllPlayersStats
+    } = usePlayerStore();
 
-    const [query, setQuery]               = useState('');
-    const [mode, setMode]                 = useState('search'); // 'search' | 'custom'
-    const [customName, setCustomName]     = useState('');
+    const [query, setQuery] = useState('');
+    const [mode, setMode] = useState('search'); // 'search' | 'custom'
+    const [customName, setCustomName] = useState('');
     const [filterEligible, setFilterEligible] = useState(false);
     const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
-    const [statsMap, setStatsMap]         = useState({});
-    const [sortBy, setSortBy]             = useState('value');
-    const fetchedIdsRef                   = useRef(new Set());
+    const [statsMap, setStatsMap] = useState({});
+    const [sortBy, setSortBy] = useState('value');
+    const fetchedIdsRef = useRef(new Set());
 
     // PlayerStatsModal state
-    const [statsOpen, setStatsOpen]         = useState(false);
-    const [statsResult, setStatsResult]     = useState(null);
-    const [statsEntry, setStatsEntry]       = useState(null);
-    const [statsLoading, setStatsLoading]   = useState(false);
+    const [statsOpen, setStatsOpen] = useState(false);
+    const [statsResult, setStatsResult] = useState(null);
+    const [statsEntry, setStatsEntry] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(false);
 
     const inputRef = useRef(null);
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
+
+    useEffect(() => { fetchAllPlayersStats(); }, [fetchAllPlayersStats]);
 
     // Fetch valuations when modal opens
     useEffect(() => {
@@ -243,7 +247,10 @@ export default function PlayerPickerModal({
     // Sort: by value or by stat. Cap at MAX_VISIBLE for performance.
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
-        .filter(p => !filterEligible || isEligible(p.positions, slotAbbr))
+        .filter(
+            p => slotAbbr ?
+                isEligible(p.positions, slotAbbr) : (!filterEligible ||
+                    isEligible(p.positions, slotAbbr)))
         .sort((a, b) => {
             if (sortBy === 'value') {
                 return (valuationMap[b.id] ?? -1) - (valuationMap[a.id] ?? -1);
@@ -257,6 +264,7 @@ export default function PlayerPickerModal({
 
     // Fetch stats for visible players not yet loaded
     const filteredIdStr = filtered.map(p => p.id).filter(Boolean).join(',');
+    
     useEffect(() => {
         if (!filteredIdStr) return;
         const ids = filteredIdStr.split(',').filter(id => !fetchedIdsRef.current.has(id));
@@ -271,7 +279,7 @@ export default function PlayerPickerModal({
                 });
                 if (Object.keys(entries).length) setStatsMap(prev => ({ ...prev, ...entries }));
             })
-            .catch(() => {});
+            .catch(() => { });
     }, [filteredIdStr]);
 
     const handleViewStats = async (player) => {
@@ -570,7 +578,7 @@ export default function PlayerPickerModal({
                 onClose={() => setStatsOpen(false)}
                 playerResult={statsResult}
                 playerEntry={statsEntry}
-                allPlayersStats={null}
+                allPlayersStats={allPlayersStats}
             />
         </>
     );

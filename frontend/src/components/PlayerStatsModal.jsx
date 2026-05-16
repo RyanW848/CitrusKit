@@ -5,10 +5,10 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { computeRadarData, computePercentile, computeRank, getStatsForPosition, getHeadshotUrl } from '../utils/playerStats';
+import { computeRadarData, computePercentile, computeRank, getStatsForPosition, getHeadshotUrl, resolveProfileName } from '../utils/playerStats';
 
 const accentColor = '#f97316';
-const dimColor    = '#fde0c8';
+const dimColor = '#fde0c8';
 
 const CustomAngleLabel = ({ x, y, cx, cy, payload }) => {
     const dx = x - cx, dy = y - cy;
@@ -84,24 +84,22 @@ const PositionChip = ({ label, active, onClick }) => (
 
 const normalizePosition = (pos = '') => {
     const p = pos.trim().toUpperCase();
-    
     if (p.includes('STARTING') || p.includes('STARTER')) return 'SP';
-    if (p.includes('CLOSER'))                              return 'CL';
-    if (p.includes('RELIEF') || p === 'RP')               return 'RP';
-    if (p === 'P' || p.includes('PITCHER'))                return 'SP';
-    if (p.includes('DESIGNATED') || p === 'DH')           return 'DH';
-    if (p === 'UT' || p.includes('UTIL'))                  return 'UT';
-    if (p.includes('TWO-WAY') || p.includes('TWO WAY'))   return null; 
-    if (p.includes('CENTER'))                              return 'CF';
-    if (p.includes('LEFT'))                                return 'LF';
-    if (p.includes('RIGHT'))                               return 'RF';
-    if (p.includes('OUTFIELD') || p === 'OF')              return 'OF';
-    if (p.includes('SHORT') || p === 'SS')                 return 'SS';
-    if (p.includes('THIRD') || p === '3B')                 return '3B';
-    if (p.includes('SECOND') || p === '2B')                return '2B';
-    if (p.includes('FIRST') || p === '1B')                 return '1B';
-    if (p.includes('CATCH') || p === 'C')                  return 'C';
-
+    if (p.includes('CLOSER')) return 'CL';
+    if (p.includes('RELIEF') || p === 'RP') return 'RP';
+    if (p === 'P' || p.includes('PITCHER')) return 'SP';
+    if (p.includes('DESIGNATED') || p === 'DH') return 'DH';
+    if (p === 'UT' || p.includes('UTIL')) return 'UT';
+    if (p.includes('TWO-WAY') || p.includes('TWO WAY')) return null;
+    if (p.includes('CENTER')) return 'CF';
+    if (p.includes('LEFT')) return 'LF';
+    if (p.includes('RIGHT')) return 'RF';
+    if (p.includes('OUTFIELD') || p === 'OF') return 'OF';
+    if (p.includes('SHORT') || p === 'SS') return 'SS';
+    if (p.includes('THIRD') || p === '3B') return '3B';
+    if (p.includes('SECOND') || p === '2B') return '2B';
+    if (p.includes('FIRST') || p === '1B') return '1B';
+    if (p.includes('CATCH') || p === 'C') return 'C';
     return p || null;
 };
 
@@ -111,24 +109,29 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
 
     const result = playerResult?.results?.[0];
     const player = result?.player;
-    const team   = result?.team;
-    const stats  = result?.stats ?? {};
-    const year   = result?.year;
+    const team = result?.team;
+    const stats = result?.stats ?? {};
+    const year = result?.year;
 
     const positions = (() => {
         const arr = playerEntry?.positions;
-
+        let raw = [];
         if (Array.isArray(arr) && arr.length > 0) {
-            return [...new Set(arr.map(normalizePosition))].filter(Boolean);
+            raw = arr.map(normalizePosition).filter(Boolean);
+        } else if (typeof arr === 'string' && arr.trim()) {
+            raw = arr.split(',').map(s => normalizePosition(s.trim())).filter(Boolean);
+        } else {
+            const fallback = normalizePosition(player?.position ?? '');
+            raw = fallback ? [fallback] : [];
         }
 
-        if (typeof arr === 'string' && arr.trim()) {
-            const split = arr.split(',').map(s => normalizePosition(s.trim())).filter(Boolean);
-            return [...new Set(split)];
-        }
-
-        const fallback = normalizePosition(player?.position ?? '');
-        return fallback ? [fallback] : [];
+        const seenProfiles = new Set();
+        return raw.filter(pos => {
+            const profile = resolveProfileName(pos);
+            if (seenProfiles.has(profile)) return false;
+            seenProfiles.add(profile);
+            return true;
+        });
     })();
 
     useEffect(() => {
@@ -138,15 +141,11 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
     if (!playerResult || !player) return null;
 
     const activePosition = selectedPosition ?? positions[0] ?? '';
-    const headshotUrl    = getHeadshotUrl(player.id);
-    const radarData      = computeRadarData(stats, activePosition);
-    const positionStats  = getStatsForPosition(activePosition);
+    const headshotUrl = getHeadshotUrl(player.id);
+    const radarData = computeRadarData(stats, activePosition);
+    const positionStats = getStatsForPosition(activePosition);
 
-    const age = stats.age + "Y" || '—';
-    const injuryStatus = player.injuryStatus;
-    const statusText = (injuryStatus && injuryStatus.startsWith('D')) 
-    ? `Injured ${injuryStatus.slice(1)}-Day` 
-    : 'Active';
+    console.log("allPlayersStats in modal:", allPlayersStats?.length, allPlayersStats?.[0]);
 
     return (
         <Dialog
@@ -200,7 +199,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
                             letterSpacing: '0.08em', textTransform: 'uppercase',
                             mt: 0.25, mb: positions.length > 1 ? 1 : 0,
                         }}>
-                            {team?.abbreviation ?? '—'} · {year} · {player.position} · {age} · {statusText}
+                            {team?.abbreviation ?? '—'} · {year} · {player.position}
                         </Typography>
 
                         {/* Position chips — only shown when player has multiple positions */}
@@ -297,8 +296,8 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
                                 ?.map(s => isFloat ? parseFloat(s[key]) : parseInt(s[key], 10))
                                 .filter(v => !isNaN(v));
 
-                            const pct   = allVals?.length ? computePercentile(val, allVals) : null;
-                            const rank  = allVals?.length ? computeRank(val, allVals) : null;
+                            const pct = allVals?.length ? computePercentile(val, allVals) : null;
+                            const rank = allVals?.length ? computeRank(val, allVals) : null;
                             const total = allVals?.length ?? null;
 
                             return (

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getAllPlayers, getPlayerStats } from '../../api/playerClient';
+import { getAllPlayers, getPlayerStats, getAllPlayerStats } from '../../api/playerClient';
 
 const hasValidEntry = (p) =>
     p.id != null && p.name?.trim().length > 0;
@@ -26,6 +26,28 @@ const usePlayerStore = create((set, get) => ({
             set({ allPlayers: players.filter(hasValidEntry), playersLoaded: true });
         } catch (err) {
             console.error("Could not load player list", err);
+        }
+    },
+
+    allPlayersStats: [],
+    allStatsLoaded: false,
+
+    fetchAllPlayersStats: async () => {
+        if (get().allStatsLoaded) return;
+
+        try {
+            const data = await getAllPlayerStats();
+            console.log("raw getAllPlayerStats response:", JSON.stringify(data).slice(0, 500));
+            const stats = (data?.results ?? [])
+                .map(r => r.stats)
+                .filter(Boolean);
+            console.log("allPlayersStats length:", stats.length, "sample:", stats[0]);
+            set({
+                allPlayersStats: stats,
+                allStatsLoaded: true,
+            });
+        } catch (err) {
+            console.error("Could not load all player stats", err);
         }
     },
 

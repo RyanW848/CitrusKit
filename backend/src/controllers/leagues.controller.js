@@ -1,5 +1,6 @@
 const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
+const DraftEvent = require("../models/DraftEvent");
 const PlanPick = require("../models/PlanPick");
 const MinorLeaguePick = require("../models/MinorLeaguePick");
 const TaxiPick = require("../models/TaxiPick");
@@ -565,6 +566,32 @@ async function getLeagueById(req, res) {
     }
 }
 
+async function getDraftHistory(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const events = await DraftEvent.find({ league: result.league._id }).sort({ createdAt: 1 });
+        return res.status(200).json({
+            events: events.map((e) => ({
+                id: e._id,
+                type: e.type,
+                pickNumber: e.pickNumber,
+                playerName: e.playerName,
+                ownerName: e.ownerName,
+                fromOwnerName: e.fromOwnerName,
+                position: e.position,
+                amount: e.amount,
+                stat: e.stat,
+                timestamp: e.createdAt,
+            })),
+        });
+    } catch (error) {
+        console.error("GET DRAFT HISTORY ERROR:", error);
+        return res.status(500).json({ error: "Error fetching draft history" });
+    }
+}
+
 async function getDraftState(req, res) {
     try {
         const result = await findOwnedLeague(req.params.leagueId, req.user._id);
@@ -736,6 +763,18 @@ async function createDraftPick(req, res) {
 
         if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
 
+        const ownerRecord = league.owners.find((o) => String(o._id) === String(ownerId));
+        DraftEvent.create({
+            league: league._id,
+            type: "pick_added",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: ownerRecord?.name ?? "Unknown",
+            position: pick.position,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
+
         return res.status(201).json(serializeDraftPick(pick));
     } catch (error) {
         console.error("CREATE DRAFT PICK ERROR:", error);
@@ -764,6 +803,18 @@ async function deleteDraftPick(req, res) {
         }
 
         await pick.deleteOne();
+
+        const ownerRecord = result.league.owners.find((o) => String(o._id) === String(pick.owner));
+        DraftEvent.create({
+            league: result.league._id,
+            type: "pick_removed",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: ownerRecord?.name ?? "Unknown",
+            position: pick.position,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
 
         return res.status(200).json({
             deleted: true,
@@ -849,6 +900,131 @@ async function swapDraftPicks(req, res) {
     } catch (error) {
         console.error("SWAP DRAFT PICKS ERROR:", error);
         return res.status(500).json({ error: "Error swapping draft picks" });
+    }
+}
+
+async function transferDraftPick(req, res) {
+    try {
+        const { targetOwnerId, position, slot } = req.body;
+        if (!targetOwnerId || !position || slot === undefined) {
+            return res.status(400).json({ error: "targetOwnerId, position, and slot are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const league = result.league;
+
+        if (!ownerBelongsToLeague(league, targetOwnerId)) {
+            return res.status(400).json({ error: "targetOwnerId must belong to the league" });
+        }
+
+        const normalizedPosition = position.trim().toUpperCase();
+        const targetPosition = findRosterPosition(league, normalizedPosition);
+        if (!targetPosition) return res.status(400).json({ error: "position must match a league roster position" });
+
+        const targetSlot = Number(slot);
+        if (!Number.isInteger(targetSlot) || targetSlot < 1 || targetSlot > targetPosition.count) {
+            return res.status(400).json({ error: "slot is out of range for that position" });
+        }
+
+        const pick = await DraftPick.findOne({ _id: req.params.pickId, league: league._id });
+        if (!pick) return res.status(404).json({ error: "Draft pick not found" });
+
+        if (String(pick.owner) === String(targetOwnerId)) {
+            return res.status(400).json({ error: "Player is already on that team" });
+        }
+
+        const fromOwnerRecord = league.owners.find((o) => String(o._id) === String(pick.owner));
+        const toOwnerRecord   = league.owners.find((o) => String(o._id) === String(targetOwnerId));
+
+        const occupant = await DraftPick.findOne({
+            league: league._id,
+            owner: targetOwnerId,
+            position: normalizedPosition,
+            slot: targetSlot,
+        });
+
+        if (occupant) {
+            // Cross-team swap — budget check accounts for amounts trading hands
+            const [sourceOwnerPicks, targetOwnerPicks] = await Promise.all([
+                DraftPick.find({ league: league._id, owner: pick.owner }),
+                DraftPick.find({ league: league._id, owner: targetOwnerId }),
+            ]);
+            const sourceSpend = sourceOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+            const targetSpend = targetOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+
+            if (sourceSpend - pick.amount + occupant.amount > league.budget) {
+                return res.status(400).json({ error: "Swap would exceed the source team's budget" });
+            }
+            if (targetSpend - occupant.amount + pick.amount > league.budget) {
+                return res.status(400).json({ error: "Swap would exceed the target team's budget" });
+            }
+
+            const origA = { owner: pick.owner,     position: pick.position,         slot: pick.slot };
+            const origB = { owner: occupant.owner, position: occupant.position,     slot: occupant.slot };
+            const tempPosition = `__SWAPTMP_${pick._id}`;
+
+            await DraftPick.updateOne({ _id: pick._id },     { $set: { position: tempPosition } });
+            await DraftPick.updateOne({ _id: occupant._id }, { $set: { owner: origA.owner, position: origA.position, slot: origA.slot } });
+            await DraftPick.updateOne({ _id: pick._id },     { $set: { owner: origB.owner, position: origB.position, slot: origB.slot } });
+
+            Promise.all([
+                DraftEvent.create({
+                    league: league._id,
+                    type: "pick_transferred",
+                    pickNumber: pick.pickNumber,
+                    playerName: pick.playerName,
+                    ownerName: toOwnerRecord?.name ?? "Unknown",
+                    fromOwnerName: fromOwnerRecord?.name ?? "Unknown",
+                    position: normalizedPosition,
+                    amount: pick.amount,
+                    stat: pick.stat,
+                }),
+                DraftEvent.create({
+                    league: league._id,
+                    type: "pick_transferred",
+                    pickNumber: occupant.pickNumber,
+                    playerName: occupant.playerName,
+                    ownerName: fromOwnerRecord?.name ?? "Unknown",
+                    fromOwnerName: toOwnerRecord?.name ?? "Unknown",
+                    position: origA.position,
+                    amount: occupant.amount,
+                    stat: occupant.stat,
+                }),
+            ]).catch(() => {});
+
+            return res.status(200).json({ swapped: true });
+        }
+
+        // Empty slot — simple transfer, budget check for new owner
+        const targetOwnerPicks = await DraftPick.find({ league: league._id, owner: targetOwnerId });
+        const targetSpend = targetOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+        if (targetSpend + pick.amount > league.budget) {
+            return res.status(400).json({ error: "Move would exceed that team's budget" });
+        }
+
+        pick.owner    = targetOwnerId;
+        pick.position = normalizedPosition;
+        pick.slot     = targetSlot;
+        await pick.save();
+
+        DraftEvent.create({
+            league: league._id,
+            type: "pick_transferred",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: toOwnerRecord?.name ?? "Unknown",
+            fromOwnerName: fromOwnerRecord?.name ?? "Unknown",
+            position: normalizedPosition,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
+
+        return res.status(200).json(serializeDraftPick(pick));
+    } catch (error) {
+        console.error("TRANSFER DRAFT PICK ERROR:", error);
+        return res.status(500).json({ error: "Error transferring draft pick" });
     }
 }
 
@@ -1170,12 +1346,13 @@ async function seedTestLeague(req, res) {
             });
         }
 
-        // Clear existing picks/plans/minors, then re-insert picks up to the checkpoint
+        // Clear existing picks/plans/minors/history, then re-insert picks up to the checkpoint
         await Promise.all([
             DraftPick.deleteMany({ league: league._id }),
             PlanPick.deleteMany({ league: league._id }),
             MinorLeaguePick.deleteMany({ league: league._id }),
             TaxiPick.deleteMany({ league: league._id }),
+            DraftEvent.deleteMany({ league: league._id }),
         ]);
 
         const ownerByName = new Map(
@@ -1211,6 +1388,25 @@ async function seedTestLeague(req, res) {
             await MinorLeaguePick.insertMany(minorsToInsert, { ordered: false });
         }
 
+        // Populate draft history for auction picks — space them 90 seconds apart
+        // starting 3 hours before now so the log looks like a finished draft
+        if (auctionToInsert.length > 0) {
+            const draftStart = new Date(Date.now() - auctionToInsert.length * 90 * 1000);
+            const eventsToInsert = testFixture.auctionPicks.slice(0, checkpoint).map((p, i) => ({
+                league: league._id,
+                type: "pick_added",
+                pickNumber: p.pickNumber,
+                playerName: p.playerName,
+                ownerName: p.wonBy,
+                position: p.position,
+                amount: p.salary,
+                stat: p.stat || undefined,
+                createdAt: new Date(draftStart.getTime() + i * 90 * 1000),
+                updatedAt: new Date(draftStart.getTime() + i * 90 * 1000),
+            }));
+            await DraftEvent.insertMany(eventsToInsert, { ordered: false });
+        }
+
         return res.status(200).json({
             leagueId: league._id,
             checkpoint,
@@ -1229,10 +1425,12 @@ module.exports = {
     deleteLeague,
     getLeagueById,
     getDraftState,
+    getDraftHistory,
     createDraftPick,
     deleteDraftPick,
     updateDraftPick,
     swapDraftPicks,
+    transferDraftPick,
     createPlanPick,
     deletePlanPick,
     updatePlanPick,

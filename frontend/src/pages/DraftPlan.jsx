@@ -383,26 +383,31 @@ export default function DraftPlan() {
     }
   }, [id, push, loadData]);
 
-const draftContext = useMemo(() => {
+  const draftContext = useMemo(() => {
     if (!draftState?.league) return null;
 
-    const unavailablePlayers = (draftState.owners ?? [])
-        .flatMap(owner => owner.rosterSlots ?? [])
-        .map(slot => slot.pick?.player)
-        .filter(Boolean);
+    const relevantStats = (draftState.league.scoringTypes ?? []).map(s => {
+      const match = s.match(/\(([^)]+)\)/);
+      return match ? match[1] : s;
+    });
 
-    const myOwner = draftState.owners?.[0] ?? null; 
-    const playersLeftToDraft = (myOwner?.rosterSlots ?? [])
-        .filter(slot => !slot.pick)
-        .length;
+    const unavailablePlayers = (draftState.owners ?? [])
+      .flatMap(owner => owner.rosterSlots ?? [])
+      .map(slot => slot.pick?.player)
+      .filter(Boolean);
+
+    const playersLeftToDraft = (draftState.owners ?? [])
+      .flatMap(owner => owner.rosterSlots ?? [])
+      .filter(slot => !slot.pick)
+      .length;
 
     return {
-        budget: draftState.league.budget,
-        relevantStats: draftState.league.scoringTypes,
-        unavailablePlayers,
-        playersLeftToDraft,
+      budget: draftState.league.budget,
+      relevantStats,
+      unavailablePlayers,
+      playersLeftToDraft,
     };
-}, [draftState]);
+  }, [draftState]);
 
   return (
     <PageLayout
@@ -438,17 +443,20 @@ const draftContext = useMemo(() => {
       <Dialog
         open={dialogOpen}
         onClose={closeDialog}
-        maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "14px", overflow: "visible" } }}
+        maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: "8px", bgcolor: "#fffaf7", overflow: "visible" } }}
       >
-        <DialogTitle sx={{ fontSize: "1rem", fontWeight: 600, pb: 1 }}>
-          {activeSlot ? `${activeSlot.posAbbr} — ${activeSlot.posName}` : ""}
+        <DialogTitle sx={{ pb: 1 }}>
+          {activeSlot ? `${activeSlot.posAbbr} · ${activeSlot.posName}` : "Plan Slot"}
         </DialogTitle>
 
-        <DialogContent sx={{ overflow: "visible" }}>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 1, overflow: "visible" }}>
+          {dialogError && (
+            <Alert severity="error" sx={{ borderRadius: "8px" }}>{dialogError}</Alert>
+          )}
           {activeSlot && !activeSlot.isEmpty ? (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <>
               <Box sx={{ p: 1.5, borderRadius: "8px", bgcolor: "#fef0e8" }}>
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
                   {statsEntry?.headshotUrl && (
@@ -506,9 +514,9 @@ const draftContext = useMemo(() => {
                 placeholder="Add a scouting note..."
                 sx={fieldSx}
               />
-            </Box>
+            </>
           ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
+            <>
               <Button
                 variant="outlined"
                 onClick={() => setPickerOpen(true)}
@@ -521,7 +529,7 @@ const draftContext = useMemo(() => {
                   '&:hover': { borderColor: '#8c7672', bgcolor: 'rgba(140,118,114,0.06)' },
                 }}
               >
-                {selectedPlayer ? `${selectedPlayer.name}` : 'Add Player'}
+                {selectedPlayer ? selectedPlayer.name : 'Add Player'}
               </Button>
 
               {selectedPlayer && (
@@ -540,109 +548,6 @@ const draftContext = useMemo(() => {
                   </Box>
                 </Box>
               )}
-              {/* <ToggleButtonGroup
-                value={mode}
-                exclusive
-                onChange={(_, v) => { if (v) setMode(v); }}
-                size="small"
-                fullWidth
-                sx={{
-                  "& .MuiToggleButton-root": {
-                    textTransform: "none",
-                    borderColor: "#d0bcb6",
-                    "&.Mui-selected": { bgcolor: "#f5f0ed", color: "#6d5a57", borderColor: "#8c7672" },
-                  },
-                }}
-              >
-                <ToggleButton value="search">Search Players</ToggleButton>
-                <ToggleButton value="custom">Custom Player</ToggleButton>
-              </ToggleButtonGroup> */}
-
-              {/* {mode === "search" ? (
-                <Box sx={{ position: "relative" }}>
-                  <SearchBar
-                    value={searchQuery}
-                    onChange={(e) => handleQueryChange(e.target.value)}
-                    onClear={() => handleQueryChange("")}
-                    placeholder="Search for a player..."
-                    sx={{ mb: 0 }}
-                  />
-                  {suggestions.length > 0 && (
-                    <Paper
-                      elevation={4}
-                      sx={{ position: "absolute", width: "100%", zIndex: 10, mt: 0.5, borderRadius: "8px", overflow: "hidden" }}
-                    >
-                      {suggestions.map((p, i) => (
-                        <Box
-                          key={p.id}
-                          onClick={() => handleSelectPlayer(p)}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.5,
-                            px: 2,
-                            py: 1,
-                            cursor: "pointer",
-                            borderBottom: i < suggestions.length - 1 ? "1px solid #f0e8e4" : "none",
-                            "&:hover": { bgcolor: "#fdf6f2" },
-                          }}
-                        >
-                          {p.headshotUrl && (
-                            <img
-                              src={p.headshotUrl}
-                              alt={p.name}
-                              style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                            />
-                          )}
-                          <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "0.9rem" }}>{p.name}</Typography>
-                            <Typography sx={{ fontSize: "0.78rem", color: "#9a8a84" }}>
-                              {Array.isArray(p.positions) ? p.positions.join(" · ") : p.positions}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      ))}
-                    </Paper>
-                  )}
-                  {selectedPlayer && (
-                    <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "#fef0e8", borderRadius: "8px" }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                        {selectedPlayer.headshotUrl && (
-                          <img
-                            src={selectedPlayer.headshotUrl}
-                            alt={selectedPlayer.name}
-                            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                          />
-                        )}
-                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 600, fontSize: "0.95rem" }}>{selectedPlayer.name}</Typography>
-                          <Typography sx={{ fontSize: "0.8rem", color: "#8c7672" }}>
-                            {Array.isArray(selectedPlayer.positions)
-                              ? selectedPlayer.positions.join(" · ")
-                              : selectedPlayer.positions}
-                          </Typography>
-                        </Box>
-                        {valuationLoading && <CircularProgress size={16} sx={{ color: "#8c7672", flexShrink: 0 }} />}
-                        {!valuationLoading && projectedValue !== null && (
-                          <Typography sx={{ fontWeight: 700, color: "#6d5a57", fontSize: "0.9rem", flexShrink: 0 }}>
-                            ~${Math.round(projectedValue)}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-              ) : (
-                <TextField
-                  fullWidth
-                  variant="standard"
-                  label="Player name"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  autoFocus
-                  sx={fieldSx}
-                />
-              )} */}
 
               <TextField
                 variant="standard"
@@ -664,52 +569,34 @@ const draftContext = useMemo(() => {
                 placeholder="Add a scouting note..."
                 sx={fieldSx}
               />
-            </Box>
-          )}
-
-          {dialogError && (
-            <Alert severity="error" sx={{ mt: 2, borderRadius: "8px" }}>{dialogError}</Alert>
+            </>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button
-            onClick={closeDialog}
-            disabled={dialogSaving}
-            sx={{ textTransform: "none", color: "#8c7672" }}
-          >
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {activeSlot && !activeSlot.isEmpty && (
+            <Button onClick={handleRemove} disabled={dialogSaving} sx={{ color: "#b24b3c", mr: "auto" }}>
+              {dialogSaving ? "Removing…" : "Remove"}
+            </Button>
+          )}
+          <Button onClick={closeDialog} disabled={dialogSaving} sx={{ color: "#6d5a57" }}>
             Cancel
           </Button>
           {activeSlot && !activeSlot.isEmpty ? (
-            <>
-              <Button
-                variant="outlined"
-                onClick={handleRemove}
-                disabled={dialogSaving}
-                sx={{
-                  textTransform: "none",
-                  borderColor: "#d32f2f",
-                  color: "#d32f2f",
-                  "&:hover": { borderColor: "#b71c1c", bgcolor: "#fff5f5" },
-                }}
-              >
-                {dialogSaving ? "Removing…" : "Remove from Plan"}
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleSaveNote}
-                disabled={dialogSaving}
-                sx={{ textTransform: "none", bgcolor: "#8c7672", "&:hover": { bgcolor: "#6d5a57" } }}
-              >
-                Save Note
-              </Button>
-            </>
+            <Button
+              variant="contained"
+              onClick={handleSaveNote}
+              disabled={dialogSaving}
+              sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
+            >
+              Save Note
+            </Button>
           ) : (
             <Button
               variant="contained"
               onClick={handleSave}
               disabled={dialogSaving}
-              sx={{ textTransform: "none", bgcolor: "#8c7672", "&:hover": { bgcolor: "#6d5a57" } }}
+              sx={{ bgcolor: "#f4c9b3", color: "#3f332f", boxShadow: "none", borderRadius: "8px", "&:hover": { bgcolor: "#efb997", boxShadow: "none" } }}
             >
               {dialogSaving ? "Saving…" : "Add to Plan"}
             </Button>
