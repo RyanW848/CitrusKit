@@ -32,7 +32,7 @@ const usePlayerStore = create((set, get) => ({
     allPlayersStats: [],
     allStatsLoaded: false,
 
-    fetchAllPlayerStats: async () => {
+    fetchAllPlayersStats: async () => {
         if (get().allStatsLoaded) return;
 
         try {
