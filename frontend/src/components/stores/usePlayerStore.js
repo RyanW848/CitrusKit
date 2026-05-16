@@ -36,15 +36,17 @@ const usePlayerStore = create((set, get) => ({
         if (get().allStatsLoaded) return;
 
         try {
-        const data = await getAllPlayerStats();
-
-        set({
-            allPlayersStats: data?.results || [],
-            allStatsLoaded: true,
-        });
-    } catch (err) {
-        console.error("Could not load all player stats", err);
-    }
+            const data = await getAllPlayerStats();
+            const stats = (data?.results ?? [])
+                .map(r => r.stats)
+                .filter(Boolean);
+            set({
+                allPlayersStats: stats,
+                allStatsLoaded: true,
+            });
+        } catch (err) {
+            console.error("Could not load all player stats", err);
+        }
     },
 
     query: "",
