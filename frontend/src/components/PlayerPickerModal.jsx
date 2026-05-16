@@ -541,7 +541,7 @@ export default function PlayerPickerModal({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.5, borderBottom: `1px solid ${dim}` }}>
                             <CircularProgress size={14} sx={{ color: accent }} />
                             <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: '#a3681e' }}>
-                                Loading valuations...
+                                Loading valuations and statistics...
                             </Typography>
                         </Box>
                     )}
