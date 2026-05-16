@@ -87,6 +87,7 @@ async function pollDepthCharts(addNotifications) {
 
 export default function useNotificationPoller() {
     const addNotifications = useNotificationStore(s => s.addNotifications);
+    const registerManualPoll = useNotificationStore(s => s.registerManualPoll);
     const timerRef = useRef(null);
  
     const runPolls = () => {
@@ -94,14 +95,24 @@ export default function useNotificationPoller() {
         pollDepthCharts(addNotifications);
     };
     
-    // Runs every interval
     useEffect(() => {
-        runPolls();
+        runPolls.current = () => {
+            pollTransactions(addNotifications);
+            pollDepthCharts(addNotifications);
+        };
+    }, [addNotifications]);
+
+    useEffect(() => {
+        registerManualPoll(() => runPolls.current());
  
-        timerRef.current = setInterval(runPolls, POLL_INTERVAL_MS);
+        runPolls.current();
+ 
+        timerRef.current = setInterval(() => runPolls.current(), POLL_INTERVAL_MS);
  
         return () => clearInterval(timerRef.current);
-    }, []);
+    }, [registerManualPoll]);
+ 
+    return { manualPoll: () => runPolls.current() };
 }
 
 

@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Box, Typography, IconButton, Badge, Divider, Button,
+    Box, Typography, IconButton, Badge, Divider, Button, CircularProgress,
 } from '@mui/material';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import useNotificationStore from './stores/useNotificationStore';
+
 
 const TYPE_META = {
     transaction: {
@@ -36,7 +38,7 @@ function timeAgo(timestamp) {
     if (mins < 60) return `${mins}m ago`;
     
     if (hrs < 24) return `${hrs}h ago`;
-    
+
     return `${Math.floor(hrs / 24)}d ago`;
 }
 
@@ -90,7 +92,7 @@ export default function NotificationBell() {
                     <NotificationsOutlinedIcon sx={{ fontSize: 22, color: '#6d5a57' }} />
                 </Badge>
             </IconButton>
-
+ 
             {open && (
                 <Box
                     ref={panelRef}
@@ -107,19 +109,32 @@ export default function NotificationBell() {
                         overflow: 'hidden',
                     }}
                 >
-                    {/* Header */}
                     <Box sx={{
                         px: 2, py: 1.5,
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         borderBottom: '1px solid #fde0c8',
                     }}>
-                        <Typography sx={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: '0.78rem', fontWeight: 500, color: '#1a1008',
-                            textTransform: 'uppercase', letterSpacing: '0.08em',
-                        }}>
-                            Notifications
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography sx={{
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                fontSize: '0.78rem', fontWeight: 500, color: '#1a1008',
+                                textTransform: 'uppercase', letterSpacing: '0.08em',
+                            }}>
+                                Notifications
+                            </Typography>
+                            {polling
+                                ? <CircularProgress size={12} sx={{ color: '#f97316' }} />
+                                : (
+                                    <IconButton
+                                        size="small"
+                                        onClick={async () => { setPolling(true); await Promise.allSettled([manualPoll()]); setPolling(false); }}
+                                        sx={{ p: 0.25, color: '#a3681e', '&:hover': { color: '#f97316' } }}
+                                    >
+                                        <RefreshIcon sx={{ fontSize: 14 }} />
+                                    </IconButton>
+                                )
+                            }
+                        </Box>
                         {notifications.length > 0 && (
                             <Button
                                 onClick={clearAll}
@@ -135,7 +150,7 @@ export default function NotificationBell() {
                             </Button>
                         )}
                     </Box>
-
+ 
                     {/* List */}
                     <Box sx={{ maxHeight: 360, overflowY: 'auto' }}>
                         {notifications.length === 0 ? (
@@ -164,7 +179,7 @@ export default function NotificationBell() {
                                             }}>
                                                 {meta.icon}
                                             </Box>
-
+ 
                                             {/* Content */}
                                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                                 <Typography sx={{

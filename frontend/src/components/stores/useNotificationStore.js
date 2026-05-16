@@ -32,6 +32,13 @@ const useNotificationStore = create(
             clearAll: () => set({ notifications: [], toasts: [] }),
  
             unseenCount: () => get().notifications.filter(n => !n.seen).length,
+
+            _manualPoll: null,
+            registerManualPoll: (fn) => set({ _manualPoll: fn }),
+            manualPoll: () => {
+                const fn = get()._manualPoll;
+                if (fn) fn();
+            },
         }),
         {
             name: 'citruskit-notifications',
