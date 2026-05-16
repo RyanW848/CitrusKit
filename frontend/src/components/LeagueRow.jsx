@@ -77,10 +77,17 @@ export default function LeagueRow({ league, onClick, onDelete }) {
           >
             {initial}
           </Avatar>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
-              {league.name}
-            </Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
+                {league.name}
+              </Typography>
+              {league.createdAt && (
+                <Typography variant="caption" sx={{ bgcolor: "#f4c9b3", px: 0.75, py: 0.15, borderRadius: "4px", fontWeight: 600, fontSize: "0.65rem", color: "#5a3e35", lineHeight: 1.6 }}>
+                  {new Date(league.createdAt).getFullYear()}
+                </Typography>
+              )}
+            </Box>
             <Typography variant="caption" sx={{ color: "#888" }}>
               Last Edited: {league.lastEdited}
             </Typography>
