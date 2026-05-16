@@ -11,7 +11,7 @@ const TABS = [
 
 const VIEW_SUB_TABS = [
   { label: "Rosters", value: "rosters" },
-  { label: "Log", value: "log" },
+  { label: "History", value: "log" },
 ];
 
 /**
