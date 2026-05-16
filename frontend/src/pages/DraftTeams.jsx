@@ -532,12 +532,24 @@ export default function DraftTeams() {
 
   const availableSlotsForOwner = (ownerId) => {
     const owner = draftState?.owners?.find((o) => String(o.id) === String(ownerId));
-    return (owner?.rosterSlots ?? [])
-      .filter((s) => !s.pick)
-      .map((s) => ({
-        value: `${s.abbr}:${s.slot}`,
-        label: s.slot > 1 ? `${s.abbr}-${s.slot} (${s.name})` : `${s.abbr} (${s.name})`,
-      }));
+    if (!owner) return [];
+    return (owner?.rosterSlots ?? []).reduce((acc, s) => {
+      if (!isEligibleForSlot(activeSlot?.playerPositions, s.abbr)) return acc;
+      if (!s.pick) {
+        acc.push({
+          value: `${s.abbr}:${s.slot}`,
+          label: s.slot > 1 ? `${s.abbr}-${s.slot} (${s.name})` : `${s.abbr} (${s.name})`,
+        });
+      } else {
+        const otherPositions = resolvePlayerPositions(allPlayers, s.pick.player);
+        if (!isEligibleForSlot(otherPositions, activeSlot?.posAbbr)) return acc;
+        acc.push({
+          value: `${s.abbr}:${s.slot}`,
+          label: `Swap with ${s.pick.playerName}`,
+        });
+      }
+      return acc;
+    }, []);
   };
 
   const handleTransfer = async () => {

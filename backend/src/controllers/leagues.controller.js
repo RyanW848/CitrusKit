@@ -579,6 +579,7 @@ async function getDraftHistory(req, res) {
                 pickNumber: e.pickNumber,
                 playerName: e.playerName,
                 ownerName: e.ownerName,
+                fromOwnerName: e.fromOwnerName,
                 position: e.position,
                 amount: e.amount,
                 stat: e.stat,
@@ -934,22 +935,74 @@ async function transferDraftPick(req, res) {
             return res.status(400).json({ error: "Player is already on that team" });
         }
 
-        const conflict = await DraftPick.findOne({
+        const fromOwnerRecord = league.owners.find((o) => String(o._id) === String(pick.owner));
+        const toOwnerRecord   = league.owners.find((o) => String(o._id) === String(targetOwnerId));
+
+        const occupant = await DraftPick.findOne({
             league: league._id,
             owner: targetOwnerId,
             position: normalizedPosition,
             slot: targetSlot,
         });
-        if (conflict) return res.status(409).json({ error: `${normalizedPosition}-${targetSlot} is already filled on that team` });
 
+        if (occupant) {
+            // Cross-team swap — budget check accounts for amounts trading hands
+            const [sourceOwnerPicks, targetOwnerPicks] = await Promise.all([
+                DraftPick.find({ league: league._id, owner: pick.owner }),
+                DraftPick.find({ league: league._id, owner: targetOwnerId }),
+            ]);
+            const sourceSpend = sourceOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+            const targetSpend = targetOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
+
+            if (sourceSpend - pick.amount + occupant.amount > league.budget) {
+                return res.status(400).json({ error: "Swap would exceed the source team's budget" });
+            }
+            if (targetSpend - occupant.amount + pick.amount > league.budget) {
+                return res.status(400).json({ error: "Swap would exceed the target team's budget" });
+            }
+
+            const origA = { owner: pick.owner,     position: pick.position,         slot: pick.slot };
+            const origB = { owner: occupant.owner, position: occupant.position,     slot: occupant.slot };
+            const tempPosition = `__SWAPTMP_${pick._id}`;
+
+            await DraftPick.updateOne({ _id: pick._id },     { $set: { position: tempPosition } });
+            await DraftPick.updateOne({ _id: occupant._id }, { $set: { owner: origA.owner, position: origA.position, slot: origA.slot } });
+            await DraftPick.updateOne({ _id: pick._id },     { $set: { owner: origB.owner, position: origB.position, slot: origB.slot } });
+
+            Promise.all([
+                DraftEvent.create({
+                    league: league._id,
+                    type: "pick_transferred",
+                    pickNumber: pick.pickNumber,
+                    playerName: pick.playerName,
+                    ownerName: toOwnerRecord?.name ?? "Unknown",
+                    fromOwnerName: fromOwnerRecord?.name ?? "Unknown",
+                    position: normalizedPosition,
+                    amount: pick.amount,
+                    stat: pick.stat,
+                }),
+                DraftEvent.create({
+                    league: league._id,
+                    type: "pick_transferred",
+                    pickNumber: occupant.pickNumber,
+                    playerName: occupant.playerName,
+                    ownerName: fromOwnerRecord?.name ?? "Unknown",
+                    fromOwnerName: toOwnerRecord?.name ?? "Unknown",
+                    position: origA.position,
+                    amount: occupant.amount,
+                    stat: occupant.stat,
+                }),
+            ]).catch(() => {});
+
+            return res.status(200).json({ swapped: true });
+        }
+
+        // Empty slot — simple transfer, budget check for new owner
         const targetOwnerPicks = await DraftPick.find({ league: league._id, owner: targetOwnerId });
         const targetSpend = targetOwnerPicks.reduce((sum, p) => sum + p.amount, 0);
         if (targetSpend + pick.amount > league.budget) {
             return res.status(400).json({ error: "Move would exceed that team's budget" });
         }
-
-        const fromOwnerRecord = league.owners.find((o) => String(o._id) === String(pick.owner));
-        const toOwnerRecord   = league.owners.find((o) => String(o._id) === String(targetOwnerId));
 
         pick.owner    = targetOwnerId;
         pick.position = normalizedPosition;
