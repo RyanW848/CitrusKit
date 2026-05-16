@@ -37,9 +37,11 @@ const usePlayerStore = create((set, get) => ({
 
         try {
             const data = await getAllPlayerStats();
+            console.log("raw getAllPlayerStats response:", JSON.stringify(data).slice(0, 500));
             const stats = (data?.results ?? [])
                 .map(r => r.stats)
                 .filter(Boolean);
+            console.log("allPlayersStats length:", stats.length, "sample:", stats[0]);
             set({
                 allPlayersStats: stats,
                 allStatsLoaded: true,
