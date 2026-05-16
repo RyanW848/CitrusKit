@@ -145,6 +145,12 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
     const radarData = computeRadarData(stats, activePosition);
     const positionStats = getStatsForPosition(activePosition);
 
+    const age = stats.age + "Y" || '—';
+    const injuryStatus = player.injuryStatus;
+    const statusText = (injuryStatus && injuryStatus.startsWith('D')) 
+    ? `Injured ${injuryStatus.slice(1)}-Day` 
+    : 'Active';
+
     console.log("allPlayersStats in modal:", allPlayersStats?.length, allPlayersStats?.[0]);
 
     return (
@@ -199,7 +205,7 @@ export default function PlayerStatsModal({ open, onClose, playerResult, playerEn
                             letterSpacing: '0.08em', textTransform: 'uppercase',
                             mt: 0.25, mb: positions.length > 1 ? 1 : 0,
                         }}>
-                            {team?.abbreviation ?? '—'} · {year} · {player.position}
+                            {team?.abbreviation ?? '—'} · {year} · {player.position} · {age} · {statusText}
                         </Typography>
 
                         {/* Position chips — only shown when player has multiple positions */}
