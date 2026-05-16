@@ -37,6 +37,7 @@ import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined"
 import PlayerPickerModal from "../components/PlayerPickerModal";
+import { isEligibleForSlot, resolvePlayerPositions } from "../utils/rosterEligibility";
 
 const emptyPickForm = {
   amount: "",
@@ -147,7 +148,12 @@ export default function DraftTeams() {
     const plannedSlots = owner.plannedRosterSlots || [];
     return rosterSlots.map((slot, i) => {
       if (slot.pick) {
-        return { ...normalizeRosterSlot(slot, ownerId), isActual: true, isPlan: false };
+        return {
+          ...normalizeRosterSlot(slot, ownerId),
+          playerPositions: resolvePlayerPositions(allPlayers, slot.pick.player),
+          isActual: true,
+          isPlan: false,
+        };
       }
       const planSlot = plannedSlots[i];
       if (planSlot?.plan) {
@@ -166,6 +172,7 @@ export default function DraftTeams() {
           isEmpty: true,
           isPlan: true,
           isActual: false,
+          playerPositions: resolvePlayerPositions(allPlayers, planSlot.plan.player),
         };
       }
       return { ...normalizeRosterSlot(slot, ownerId), isActual: false, isPlan: false };
@@ -266,10 +273,16 @@ export default function DraftTeams() {
 
   const canDrop = useCallback((fromSlot, toSlot) => {
     if (fromSlot.isPlan && !fromSlot.isActual) {
-      return !toSlot.isActual;
+      if (toSlot.isActual) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isPlan && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return true;
     }
     if (fromSlot.isActual) {
-      return !fromSlot.isEmpty && (toSlot.isActual || toSlot.isEmpty);
+      if (fromSlot.isEmpty) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isActual && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return toSlot.isActual || toSlot.isEmpty;
     }
     return false;
   }, []);
