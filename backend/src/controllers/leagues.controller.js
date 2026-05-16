@@ -1,5 +1,6 @@
 const League = require("../models/League");
 const DraftPick = require("../models/DraftPick");
+const DraftEvent = require("../models/DraftEvent");
 const PlanPick = require("../models/PlanPick");
 const MinorLeaguePick = require("../models/MinorLeaguePick");
 const TaxiPick = require("../models/TaxiPick");
@@ -565,6 +566,31 @@ async function getLeagueById(req, res) {
     }
 }
 
+async function getDraftHistory(req, res) {
+    try {
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const events = await DraftEvent.find({ league: result.league._id }).sort({ createdAt: 1 });
+        return res.status(200).json({
+            events: events.map((e) => ({
+                id: e._id,
+                type: e.type,
+                pickNumber: e.pickNumber,
+                playerName: e.playerName,
+                ownerName: e.ownerName,
+                position: e.position,
+                amount: e.amount,
+                stat: e.stat,
+                timestamp: e.createdAt,
+            })),
+        });
+    } catch (error) {
+        console.error("GET DRAFT HISTORY ERROR:", error);
+        return res.status(500).json({ error: "Error fetching draft history" });
+    }
+}
+
 async function getDraftState(req, res) {
     try {
         const result = await findOwnedLeague(req.params.leagueId, req.user._id);
@@ -736,6 +762,18 @@ async function createDraftPick(req, res) {
 
         if (!playerId) await ensureCustomPlayerNote(req.user._id, playerName);
 
+        const ownerRecord = league.owners.find((o) => String(o._id) === String(ownerId));
+        DraftEvent.create({
+            league: league._id,
+            type: "pick_added",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: ownerRecord?.name ?? "Unknown",
+            position: pick.position,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
+
         return res.status(201).json(serializeDraftPick(pick));
     } catch (error) {
         console.error("CREATE DRAFT PICK ERROR:", error);
@@ -764,6 +802,18 @@ async function deleteDraftPick(req, res) {
         }
 
         await pick.deleteOne();
+
+        const ownerRecord = result.league.owners.find((o) => String(o._id) === String(pick.owner));
+        DraftEvent.create({
+            league: result.league._id,
+            type: "pick_removed",
+            pickNumber: pick.pickNumber,
+            playerName: pick.playerName,
+            ownerName: ownerRecord?.name ?? "Unknown",
+            position: pick.position,
+            amount: pick.amount,
+            stat: pick.stat,
+        }).catch(() => {});
 
         return res.status(200).json({
             deleted: true,
@@ -1229,6 +1279,7 @@ module.exports = {
     deleteLeague,
     getLeagueById,
     getDraftState,
+    getDraftHistory,
     createDraftPick,
     deleteDraftPick,
     updateDraftPick,

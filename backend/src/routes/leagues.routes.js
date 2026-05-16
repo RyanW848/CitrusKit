@@ -9,6 +9,7 @@ const {
     deleteLeague,
     getLeagueById,
     getDraftState,
+    getDraftHistory,
     createDraftPick,
     deleteDraftPick,
     updateDraftPick,
@@ -29,6 +30,7 @@ router.post("/test-seed", protect, seedTestLeague);
 router.patch("/:leagueId", protect, updateLeague);
 router.delete("/:leagueId", protect, deleteLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
+router.get("/:leagueId/draft/history", protect, getDraftHistory);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
 router.post("/:leagueId/draft/picks/swap", protect, swapDraftPicks);
 router.patch("/:leagueId/draft/picks/:pickId", protect, updateDraftPick);

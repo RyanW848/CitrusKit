@@ -88,6 +88,11 @@ export async function deleteTaxiPick(leagueId, pickId) {
   return data;
 }
 
+export async function fetchDraftHistory(leagueId) {
+  const { data } = await client.get(`/leagues/${leagueId}/draft/history`);
+  return data.events;
+}
+
 export async function seedTestLeague(checkpoint) {
   const { data } = await client.post("/leagues/test-seed", { checkpoint });
   return data;
