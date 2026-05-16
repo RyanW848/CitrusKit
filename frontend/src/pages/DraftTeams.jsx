@@ -27,6 +27,9 @@ import {
   createMinorLeaguePick,
   deleteMinorLeaguePick,
   fetchDraftState,
+  updatePlanPick,
+  updateDraftPick,
+  swapDraftPicks,
 } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
@@ -34,6 +37,7 @@ import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined"
 import PlayerPickerModal from "../components/PlayerPickerModal";
+import { isEligibleForSlot, resolvePlayerPositions } from "../utils/rosterEligibility";
 
 const emptyPickForm = {
   amount: "",
@@ -144,12 +148,18 @@ export default function DraftTeams() {
     const plannedSlots = owner.plannedRosterSlots || [];
     return rosterSlots.map((slot, i) => {
       if (slot.pick) {
-        return { ...normalizeRosterSlot(slot, ownerId), isActual: true, isPlan: false };
+        return {
+          ...normalizeRosterSlot(slot, ownerId),
+          playerPositions: resolvePlayerPositions(allPlayers, slot.pick.player),
+          isActual: true,
+          isPlan: false,
+        };
       }
       const planSlot = plannedSlots[i];
       if (planSlot?.plan) {
         return {
           id: slot.id,
+          planPickId: planSlot.plan.id,
           ownerId,
           posAbbr: slot.abbr,
           posName: slot.name,
@@ -162,6 +172,7 @@ export default function DraftTeams() {
           isEmpty: true,
           isPlan: true,
           isActual: false,
+          playerPositions: resolvePlayerPositions(allPlayers, planSlot.plan.player),
         };
       }
       return { ...normalizeRosterSlot(slot, ownerId), isActual: false, isPlan: false };
@@ -259,6 +270,42 @@ export default function DraftTeams() {
       await loadDraftState(true);
     }
   };
+
+  const canDrop = useCallback((fromSlot, toSlot) => {
+    if (fromSlot.isPlan && !fromSlot.isActual) {
+      if (toSlot.isActual) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isPlan && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return true;
+    }
+    if (fromSlot.isActual) {
+      if (fromSlot.isEmpty) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isActual && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return toSlot.isActual || toSlot.isEmpty;
+    }
+    return false;
+  }, []);
+
+  const handleDropSlot = useCallback(async (fromSlot, toSlot) => {
+    if (fromSlot.posAbbr === toSlot.posAbbr && fromSlot.slot === toSlot.slot) return;
+    try {
+      if (fromSlot.isPlan && !fromSlot.isActual) {
+        if (!fromSlot.planPickId) return;
+        if (fromSlot.planPickId) await updatePlanPick(id, fromSlot.planPickId, { position: toSlot.posAbbr });
+        if (toSlot.planPickId) await updatePlanPick(id, toSlot.planPickId, { position: fromSlot.posAbbr });
+      } else if (fromSlot.isActual) {
+        if (toSlot.isActual && toSlot.pickId) {
+          await swapDraftPicks(id, { pickAId: fromSlot.pickId, pickBId: toSlot.pickId });
+        } else {
+          await updateDraftPick(id, fromSlot.pickId, { position: toSlot.posAbbr, slot: toSlot.slot });
+        }
+      }
+      loadDraftState(true);
+    } catch {
+      loadDraftState(true);
+    }
+  }, [id, loadDraftState]);
 
   const openDialog = (slot) => {
     setActiveSlot(slot);
@@ -500,6 +547,9 @@ export default function DraftTeams() {
             owners={owners}
             getRoster={getRoster}
             onSlotClick={openDialog}
+            canDrop={canDrop}
+            onDropSlot={handleDropSlot}
+            allowActualDrag
             getMinorLeague={getMinorLeague}
             onAddMinorLeaguePlayer={openMlDialog}
             onRemoveMinorLeaguePlayer={handleRemoveMinorLeague}

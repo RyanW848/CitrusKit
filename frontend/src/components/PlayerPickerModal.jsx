@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     Dialog, DialogTitle, DialogContent,
     Box, Typography, IconButton, CircularProgress,
-    InputAdornment, TextField, ToggleButtonGroup, ToggleButton, Button,
+    InputAdornment, TextField, ToggleButtonGroup, ToggleButton, Button, Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import AddIcon from '@mui/icons-material/Add';
-import { getPlayerValues } from '../api/playerClient';
+import { getPlayerValues, getPlayerStats } from '../api/playerClient';
 import { getHeadshotUrl } from '../utils/playerStats';
 import PlayerStatsModal from './PlayerStatsModal';
 import usePlayerStore from './stores/usePlayerStore';
@@ -39,10 +39,34 @@ function isEligible(playerPositions, slotAbbr) {
     return positions.some(p => required.includes(p));
 }
 
-function PlayerCard({ player, valuationMap, slotAbbr, onAdd, onViewStats }) {
+const LOWER_BETTER = new Set(['era', 'whip', 'losses', 'earnedRuns', 'homeRunsAllowed', 'errors', 'passedBall']);
+
+const KEY_STATS_SP = [{ key: 'era', label: 'ERA' }, { key: 'wins', label: 'W' }, { key: 'strikeOutsPitching', label: 'K' }];
+const KEY_STATS_RP = [{ key: 'era', label: 'ERA' }, { key: 'saves', label: 'SV' }, { key: 'strikeOutsPitching', label: 'K' }];
+const KEY_STATS_HIT = [{ key: 'avg', label: 'AVG' }, { key: 'homeRuns', label: 'HR' }, { key: 'rbi', label: 'RBI' }];
+
+function getKeyStats(positions) {
+    const p0 = ((Array.isArray(positions) ? positions[0] : positions) ?? '').toUpperCase();
+    if (p0 === 'RP' || p0 === 'CL') return KEY_STATS_RP;
+    if (p0 === 'SP' || p0 === 'P') return KEY_STATS_SP;
+    return KEY_STATS_HIT;
+}
+
+function fmtStat(key, val) {
+    if (val == null || val === '') return null;
+    const n = parseFloat(val);
+    if (isNaN(n)) return null;
+    if (key === 'avg' || key === 'obp' || key === 'slg' || key === 'ops') return n.toFixed(3).replace(/^0\./, '.');
+    if (key === 'era' || key === 'whip' || key === 'inningsPitched') return n.toFixed(2);
+    return Math.round(n).toString();
+}
+
+function PlayerCard({ player, valuationMap, statsMap, slotAbbr, onAdd, onViewStats }) {
     const eligible   = isEligible(player.positions, slotAbbr);
     const valuation  = valuationMap?.[player.id];
     const headshotUrl = getHeadshotUrl(player.id);
+    const playerStats = statsMap?.[String(player.id)];
+    const keyStats = getKeyStats(player.positions);
 
     const positions = Array.isArray(player.positions)
         ? player.positions.join(' · ')
@@ -105,6 +129,23 @@ function PlayerCard({ player, valuationMap, slotAbbr, onAdd, onViewStats }) {
                         </Box>
                     )}
                 </Typography>
+                {playerStats && (
+                    <Box sx={{ display: 'flex', gap: 1.25, mt: 0.25, flexWrap: 'wrap' }}>
+                        {keyStats.map(({ key, label }) => {
+                            const formatted = fmtStat(key, playerStats[key]);
+                            if (!formatted) return null;
+                            return (
+                                <Typography key={key} sx={{
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    fontSize: '0.68rem',
+                                    color: '#7c4a1e',
+                                }}>
+                                    {formatted} <Box component="span" sx={{ color: '#c4986a', fontSize: '0.62rem' }}>{label}</Box>
+                                </Typography>
+                            );
+                        })}
+                    </Box>
+                )}
             </Box>
 
             {/* Projected value */}
@@ -150,8 +191,12 @@ export default function PlayerPickerModal({
     const [query, setQuery]               = useState('');
     const [mode, setMode]                 = useState('search'); // 'search' | 'custom'
     const [customName, setCustomName]     = useState('');
+    const [filterEligible, setFilterEligible] = useState(false);
     const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
+    const [statsMap, setStatsMap]         = useState({});
+    const [sortBy, setSortBy]             = useState('value');
+    const fetchedIdsRef                   = useRef(new Set());
 
     // PlayerStatsModal state
     const [statsOpen, setStatsOpen]         = useState(false);
@@ -169,6 +214,10 @@ export default function PlayerPickerModal({
         setQuery('');
         setMode('search');
         setCustomName('');
+        setFilterEligible(false);
+        setSortBy('value');
+        setStatsMap({});
+        fetchedIdsRef.current = new Set();
         setValuationMap({});
 
         if (!draftContext) return;
@@ -191,21 +240,65 @@ export default function PlayerPickerModal({
             .finally(() => setValuationLoading(false));
     }, [open, draftContext]);
 
-    // Sort: by valuation desc, then alphabetically. Cap at MAX_VISIBLE for performance.
+    const isPitcherSlot = slotAbbr === 'SP' || slotAbbr === 'RP' || slotAbbr === 'P';
+    const sortOptions = useMemo(() => [
+        { key: 'value', label: '$ Val' },
+        ...(isPitcherSlot
+            ? [
+                { key: 'era', label: 'ERA' },
+                { key: 'wins', label: 'W' },
+                { key: 'saves', label: 'SV' },
+                { key: 'strikeOutsPitching', label: 'K' },
+                { key: 'whip', label: 'WHIP' },
+            ]
+            : [
+                { key: 'avg', label: 'AVG' },
+                { key: 'homeRuns', label: 'HR' },
+                { key: 'rbi', label: 'RBI' },
+                { key: 'stolenBases', label: 'SB' },
+                { key: 'ops', label: 'OPS' },
+            ]
+        ),
+    ], [isPitcherSlot]);
+
+    // Sort: by value or by stat. Cap at MAX_VISIBLE for performance.
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
+        .filter(p => !filterEligible || isEligible(p.positions, slotAbbr))
         .sort((a, b) => {
-            const va = valuationMap[a.id] ?? -1;
-            const vb = valuationMap[b.id] ?? -1;
-            return vb - va;
+            if (sortBy === 'value') {
+                return (valuationMap[b.id] ?? -1) - (valuationMap[a.id] ?? -1);
+            }
+            const sentinel = LOWER_BETTER.has(sortBy) ? 999 : -1;
+            const aVal = parseFloat(statsMap[String(a.id)]?.[sortBy] ?? sentinel) || sentinel;
+            const bVal = parseFloat(statsMap[String(b.id)]?.[sortBy] ?? sentinel) || sentinel;
+            return LOWER_BETTER.has(sortBy) ? aVal - bVal : bVal - aVal;
         })
         .slice(0, MAX_VISIBLE);
+
+    // Fetch stats for visible players not yet loaded
+    const filteredIdStr = filtered.map(p => p.id).filter(Boolean).join(',');
+    useEffect(() => {
+        if (!filteredIdStr) return;
+        const ids = filteredIdStr.split(',').filter(id => !fetchedIdsRef.current.has(id));
+        if (!ids.length) return;
+        ids.forEach(id => fetchedIdsRef.current.add(id));
+        getPlayerStats(ids)
+            .then(data => {
+                const entries = {};
+                (data?.results ?? []).forEach(r => {
+                    const id = String(r.player?.id ?? '');
+                    if (id) entries[id] = r.stats ?? {};
+                });
+                if (Object.keys(entries).length) setStatsMap(prev => ({ ...prev, ...entries }));
+            })
+            .catch(() => {});
+    }, [filteredIdStr]);
 
     const handleViewStats = async (player) => {
         setStatsEntry(player);
         setStatsLoading(true);
         try {
-            const { getPlayerStats } = await import('../api/playerClient');
             const data = await getPlayerStats(player.id);
             setStatsResult(data);
             setStatsOpen(true);
@@ -314,7 +407,7 @@ export default function PlayerPickerModal({
 
                     {/* Search bar — only in search mode */}
                     {mode === 'search' && (
-                        <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
+                        <Box sx={{ px: 2, pt: 1.5, pb: 1, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
                             <TextField
                                 inputRef={inputRef}
                                 fullWidth
@@ -340,6 +433,52 @@ export default function PlayerPickerModal({
                                     },
                                 }}
                             />
+                            <Box sx={{ mt: 1, display: 'flex', gap: 0.75, alignItems: 'center' }}>
+                                <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.62rem', color: '#c4a896', letterSpacing: '0.06em', flexShrink: 0 }}>
+                                    sort:
+                                </Typography>
+                                {sortOptions.map(opt => {
+                                    const active = sortBy === opt.key;
+                                    return (
+                                        <Chip
+                                            key={opt.key}
+                                            label={opt.label}
+                                            size="small"
+                                            onClick={() => setSortBy(opt.key)}
+                                            sx={{
+                                                fontFamily: "'IBM Plex Mono', monospace",
+                                                fontSize: '0.68rem',
+                                                height: 22,
+                                                bgcolor: active ? '#3a1f08' : 'transparent',
+                                                color: active ? '#fff9f5' : '#a3681e',
+                                                border: `1px solid ${active ? '#3a1f08' : '#e8c9a8'}`,
+                                                cursor: 'pointer',
+                                                '&:hover': { bgcolor: active ? '#2a1505' : '#fff1e6' },
+                                                '& .MuiChip-label': { px: 1 },
+                                            }}
+                                        />
+                                    );
+                                })}
+                                {slotAbbr && (
+                                    <Chip
+                                        label={`${slotAbbr} eligible`}
+                                        size="small"
+                                        onClick={() => setFilterEligible(f => !f)}
+                                        sx={{
+                                            fontFamily: "'IBM Plex Mono', monospace",
+                                            fontSize: '0.68rem',
+                                            height: 22,
+                                            ml: 'auto',
+                                            bgcolor: filterEligible ? accent : 'transparent',
+                                            color: filterEligible ? '#fff9f5' : '#a3681e',
+                                            border: `1px solid ${filterEligible ? accent : '#e8c9a8'}`,
+                                            cursor: 'pointer',
+                                            '&:hover': { bgcolor: filterEligible ? '#e86a0a' : '#fff1e6' },
+                                            '& .MuiChip-label': { px: 1 },
+                                        }}
+                                    />
+                                )}
+                            </Box>
                         </Box>
                     )}
 
@@ -402,7 +541,7 @@ export default function PlayerPickerModal({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.5, borderBottom: `1px solid ${dim}` }}>
                             <CircularProgress size={14} sx={{ color: accent }} />
                             <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: '#a3681e' }}>
-                                Loading valuations...
+                                Loading valuations and statistics...
                             </Typography>
                         </Box>
                     )}
@@ -428,6 +567,7 @@ export default function PlayerPickerModal({
                             key={player.id}
                             player={player}
                             valuationMap={valuationMap}
+                            statsMap={statsMap}
                             slotAbbr={slotAbbr}
                             onAdd={p => { onSelectPlayer(p); onClose(); }}
                             onViewStats={handleViewStats}

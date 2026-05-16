@@ -43,6 +43,16 @@ export async function deleteDraftPick(leagueId, pickId) {
   return data;
 }
 
+export async function updateDraftPick(leagueId, pickId, payload) {
+  const { data } = await client.patch(`/leagues/${leagueId}/draft/picks/${pickId}`, payload);
+  return data;
+}
+
+export async function swapDraftPicks(leagueId, payload) {
+  const { data } = await client.post(`/leagues/${leagueId}/draft/picks/swap`, payload);
+  return data;
+}
+
 export async function createPlanPick(leagueId, payload) {
   const { data } = await client.post(`/leagues/${leagueId}/plan/picks`, payload);
   return data;

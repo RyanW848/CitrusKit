@@ -777,6 +777,81 @@ async function deleteDraftPick(req, res) {
     }
 }
 
+async function updateDraftPick(req, res) {
+    try {
+        const { position, slot } = req.body;
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const league = result.league;
+        const normalizedPosition = position?.trim().toUpperCase();
+        const targetPosition = normalizedPosition ? findRosterPosition(league, normalizedPosition) : null;
+        if (!targetPosition) return res.status(400).json({ error: "position must match a league roster position" });
+
+        const targetSlot = slot !== undefined ? Number(slot) : 1;
+        if (!Number.isInteger(targetSlot) || targetSlot < 1) {
+            return res.status(400).json({ error: "slot must be a positive integer" });
+        }
+
+        const pick = await DraftPick.findOne({ _id: req.params.pickId, league: league._id });
+        if (!pick) return res.status(404).json({ error: "Draft pick not found" });
+
+        const conflict = await DraftPick.findOne({
+            _id: { $ne: pick._id },
+            league: league._id,
+            owner: pick.owner,
+            position: normalizedPosition,
+            slot: targetSlot,
+        });
+        if (conflict) return res.status(409).json({ error: `${normalizedPosition}-${targetSlot} is already filled` });
+
+        pick.position = normalizedPosition;
+        pick.slot = targetSlot;
+        await pick.save();
+
+        return res.status(200).json(serializeDraftPick(pick));
+    } catch (error) {
+        console.error("UPDATE DRAFT PICK ERROR:", error);
+        return res.status(500).json({ error: "Error updating draft pick" });
+    }
+}
+
+async function swapDraftPicks(req, res) {
+    try {
+        const { pickAId, pickBId } = req.body;
+        if (!pickAId || !pickBId) {
+            return res.status(400).json({ error: "pickAId and pickBId are required" });
+        }
+
+        const result = await findOwnedLeague(req.params.leagueId, req.user._id);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+
+        const league = result.league;
+        const [pickA, pickB] = await Promise.all([
+            DraftPick.findOne({ _id: pickAId, league: league._id }),
+            DraftPick.findOne({ _id: pickBId, league: league._id }),
+        ]);
+
+        if (!pickA || !pickB) return res.status(404).json({ error: "Draft pick not found" });
+
+        const origA = { position: pickA.position, slot: pickA.slot };
+        const origB = { position: pickB.position, slot: pickB.slot };
+
+        // 3-step swap to avoid unique (league, owner, position, slot) constraint conflict:
+        // move pickA to a temporary position that can't exist in the league, swap pickB, then finalize pickA
+        const tempPosition = `__SWAPTMP_${pickA._id}`;
+        await DraftPick.updateOne({ _id: pickA._id }, { $set: { position: tempPosition } });
+        await DraftPick.updateOne({ _id: pickB._id }, { $set: { position: origA.position, slot: origA.slot } });
+        await DraftPick.updateOne({ _id: pickA._id }, { $set: { position: origB.position, slot: origB.slot } });
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("SWAP DRAFT PICKS ERROR:", error);
+        return res.status(500).json({ error: "Error swapping draft picks" });
+    }
+}
+
 async function createPlanPick(req, res) {
     try {
         const { ownerId, playerName, position, plannedAmount, playerId } = req.body;
@@ -1156,6 +1231,8 @@ module.exports = {
     getDraftState,
     createDraftPick,
     deleteDraftPick,
+    updateDraftPick,
+    swapDraftPicks,
     createPlanPick,
     deletePlanPick,
     updatePlanPick,

@@ -139,6 +139,7 @@ export default function OwnerRosterPanel({
   onSlotClick,
   canDrop,
   onDropSlot,
+  allowActualDrag,
   getMinorLeague,
   onAddMinorLeaguePlayer,
   onRemoveMinorLeaguePlayer,
@@ -285,7 +286,10 @@ export default function OwnerRosterPanel({
               const isEditable = !!(onSlotClick && (
                 editableOwnerId == null || selectedId === String(editableOwnerId)
               ));
-              const isDraggable = !!(onDropSlot && slot.isPlan && !slot.isActual && slot.playerName);
+              const isDraggable = !!(onDropSlot && slot.playerName && (
+                (slot.isPlan && !slot.isActual) ||
+                (allowActualDrag && slot.isActual)
+              ));
 
               return (
                 <SlotRow

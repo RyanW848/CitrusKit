@@ -11,6 +11,8 @@ const {
     getDraftState,
     createDraftPick,
     deleteDraftPick,
+    updateDraftPick,
+    swapDraftPicks,
     createPlanPick,
     deletePlanPick,
     updatePlanPick,
@@ -28,6 +30,8 @@ router.patch("/:leagueId", protect, updateLeague);
 router.delete("/:leagueId", protect, deleteLeague);
 router.get("/:leagueId/draft", protect, getDraftState);
 router.post("/:leagueId/draft/picks", protect, createDraftPick);
+router.post("/:leagueId/draft/picks/swap", protect, swapDraftPicks);
+router.patch("/:leagueId/draft/picks/:pickId", protect, updateDraftPick);
 router.delete("/:leagueId/draft/picks/:pickId", protect, deleteDraftPick);
 router.post("/:leagueId/plan/picks", protect, createPlanPick);
 router.patch("/:leagueId/plan/picks/:pickId", protect, updatePlanPick);

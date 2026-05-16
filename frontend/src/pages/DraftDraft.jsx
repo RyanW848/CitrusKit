@@ -22,12 +22,13 @@ import PageLayout from "../components/PageLayout";
 import DraftTabBar from "../components/DraftTabBar";
 import OwnerRosterPanel from "../components/OwnerRosterPanel";
 import SearchBar from "../components/SearchBar";
-import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState } from "../api/leaguesApi";
+import { createDraftPick, deleteDraftPick, createTaxiPick, deleteTaxiPick, fetchDraftState, updatePlanPick, updateDraftPick, swapDraftPicks } from "../api/leaguesApi";
 import { getPlayerValues } from "../api/playerClient";
 import usePlayerStore from "../components/stores/usePlayerStore";
 import useUndoRedo from "../hooks/useUndoRedo";
 import useNotes from "../hooks/useNotes";
 import PlayerPickerModal from "../components/PlayerPickerModal"
+import { isEligibleForSlot, resolvePlayerPositions } from "../utils/rosterEligibility";
 
 const emptyPickForm = {
   amount: "",
@@ -138,12 +139,19 @@ export default function DraftDraft() {
     const plannedSlots = owner.plannedRosterSlots || [];
     return rosterSlots.map((slot, i) => {
       if (slot.pick) {
-        return { ...normalizeRosterSlot(slot, ownerId), isActual: true, isPlan: false };
+        return {
+          ...normalizeRosterSlot(slot, ownerId),
+          playerPositions: resolvePlayerPositions(allPlayers, slot.pick.player),
+          isActual: true,
+          isPlan: false,
+        };
       }
       const planSlot = plannedSlots[i];
       if (planSlot?.plan) {
         return {
           id: slot.id,
+          planPickId: planSlot.plan.id,
+          playerId: planSlot.plan.player ?? null,
           ownerId,
           posAbbr: slot.abbr,
           posName: slot.name,
@@ -156,11 +164,48 @@ export default function DraftDraft() {
           isEmpty: true,
           isPlan: true,
           isActual: false,
+          playerPositions: resolvePlayerPositions(allPlayers, planSlot.plan.player),
         };
       }
       return { ...normalizeRosterSlot(slot, ownerId), isActual: false, isPlan: false };
     });
   };
+
+  const canDrop = useCallback((fromSlot, toSlot) => {
+    if (fromSlot.isPlan && !fromSlot.isActual) {
+      if (toSlot.isActual) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isPlan && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return true;
+    }
+    if (fromSlot.isActual) {
+      if (fromSlot.isEmpty) return false;
+      if (!isEligibleForSlot(fromSlot.playerPositions, toSlot.posAbbr)) return false;
+      if (toSlot.isActual && !isEligibleForSlot(toSlot.playerPositions, fromSlot.posAbbr)) return false;
+      return toSlot.isActual || toSlot.isEmpty;
+    }
+    return false;
+  }, []);
+
+  const handleDropSlot = useCallback(async (fromSlot, toSlot) => {
+    if (fromSlot.posAbbr === toSlot.posAbbr && fromSlot.slot === toSlot.slot) return;
+    try {
+      if (fromSlot.isPlan && !fromSlot.isActual) {
+        if (!fromSlot.planPickId) return;
+        if (fromSlot.planPickId) await updatePlanPick(id, fromSlot.planPickId, { position: toSlot.posAbbr });
+        if (toSlot.planPickId) await updatePlanPick(id, toSlot.planPickId, { position: fromSlot.posAbbr });
+      } else if (fromSlot.isActual) {
+        if (toSlot.isActual && toSlot.pickId) {
+          await swapDraftPicks(id, { pickAId: fromSlot.pickId, pickBId: toSlot.pickId });
+        } else {
+          await updateDraftPick(id, fromSlot.pickId, { position: toSlot.posAbbr, slot: toSlot.slot });
+        }
+      }
+      loadDraftState(true);
+    } catch {
+      loadDraftState(true);
+    }
+  }, [id, loadDraftState]);
 
   const openDialog = (slot) => {
     setActiveSlot(slot);
@@ -171,12 +216,20 @@ export default function DraftDraft() {
     setMode("search");
     setSearchQuery("");
     setSuggestions([]);
-    setSelectedPlayer(null);
-    setCustomName("");
     setProjectedValue(null);
     setDialogError("");
     const existing = findNote(slot.playerId, slot.playerName);
     setNoteText(existing?.note ?? "");
+
+    if (slot.isPlan && slot.playerId) {
+      const planned = allPlayers.find((p) => String(p.id) === String(slot.playerId));
+      setSelectedPlayer(planned ?? null);
+      setSearchQuery(planned?.name ?? "");
+    } else {
+      setSelectedPlayer(null);
+      setCustomName("");
+    }
+
     setDialogOpen(true);
   };
 
@@ -508,6 +561,9 @@ export default function DraftDraft() {
             owners={owners}
             getRoster={getRoster}
             onSlotClick={openDialog}
+            canDrop={canDrop}
+            onDropSlot={handleDropSlot}
+            allowActualDrag
             getTaxi={getTaxi}
             onAddTaxiPlayer={openTaxiDialog}
             onRemoveTaxiPlayer={handleRemoveTaxiPick}
