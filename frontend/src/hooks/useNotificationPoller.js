@@ -20,8 +20,8 @@ async function pollTransactions(addNotifications) {
         const data = await getTransactions();
         if (!data?.transactions?.length) return;
  
-        if (data.date && data.date === lastTransactionDate) return;
-        lastTransactionDate = data.date;
+        // if (data.date && data.date === lastTransactionDate) return;
+        // lastTransactionDate = data.date;
  
         const notifications = data.transactions.map(tx => ({
             id: transactionId(tx),
