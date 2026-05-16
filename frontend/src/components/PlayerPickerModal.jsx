@@ -165,7 +165,9 @@ export default function PlayerPickerModal({
     draftContext,
     onSelectPlayer,
 }) {
-    const { allPlayers, fetchAllPlayers } = usePlayerStore();
+    const { allPlayers, fetchAllPlayers, 
+        allPlayersStats, fetchAllPlayerStats 
+    } = usePlayerStore();
 
     const [query, setQuery]               = useState('');
     const [mode, setMode]                 = useState('search'); // 'search' | 'custom'
@@ -186,6 +188,8 @@ export default function PlayerPickerModal({
     const inputRef = useRef(null);
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
+
+    useEffect(() => { fetchAllPlayersStats(); }, [fetchAllPlayerStats]);
 
     // Fetch valuations when modal opens
     useEffect(() => {
@@ -570,7 +574,7 @@ export default function PlayerPickerModal({
                 onClose={() => setStatsOpen(false)}
                 playerResult={statsResult}
                 playerEntry={statsEntry}
-                allPlayersStats={null}
+                allPlayersStats={allPlayersStats}
             />
         </>
     );

@@ -30,6 +30,13 @@ export const getPlayerStats = async (ids, year = null) => {
     return response.data;
 };
 
+export const getAllPlayerStats = async (year = null) => {
+    const params = {};
+    if (year) params.year = year;
+    const response = await playerClient.get('/stats', { params });
+    return response.data;
+}
+
 export const getAllTeams = async () => {
     const response = await playerClient.get('/teams');
     return response.data.teams;

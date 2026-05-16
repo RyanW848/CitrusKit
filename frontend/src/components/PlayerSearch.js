@@ -9,11 +9,13 @@ const PlayerSearch = () => {
     const {
         query, suggestions, statsLoading,
         allPlayers, playerResult, selectedPlayerEntry, modalOpen,
-        fetchAllPlayers, setQuery, clearSearch,
-        selectPlayer, setModalOpen,
+        fetchAllPlayers, fetchAllPlayerStats,
+        setQuery, clearSearch,
+        selectPlayer, setModalOpen, allPlayersStats
     } = usePlayerStore();
 
     useEffect(() => { fetchAllPlayers(); }, [fetchAllPlayers]);
+    useEffect(() => { fetchAllPlayerStats(); }, [fetchAllPlayerStats])
 
     const triggerSearch = () => {
         if (!query.trim() || statsLoading) return;
@@ -127,7 +129,7 @@ const PlayerSearch = () => {
                 onClose={() => setModalOpen(false)}
                 playerResult={playerResult}
                 playerEntry={selectedPlayerEntry}
-                allPlayersStats={null}
+                allPlayersStats={allPlayersStats}
             />
         </>
     );

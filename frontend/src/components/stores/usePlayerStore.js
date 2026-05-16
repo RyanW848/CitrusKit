@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getAllPlayers, getPlayerStats } from '../../api/playerClient';
+import { getAllPlayers, getPlayerStats, getAllPlayerStats } from '../../api/playerClient';
 
 const hasValidEntry = (p) =>
     p.id != null && p.name?.trim().length > 0;
@@ -27,6 +27,24 @@ const usePlayerStore = create((set, get) => ({
         } catch (err) {
             console.error("Could not load player list", err);
         }
+    },
+
+    allPlayersStats: [],
+    allStatsLoaded: false,
+
+    fetchAllPlayerStats: async () => {
+        if (get().allStatsLoaded) return;
+
+        try {
+        const data = await getAllPlayerStats();
+
+        set({
+            allPlayersStats: data?.results || [],
+            allStatsLoaded: true,
+        });
+    } catch (err) {
+        console.error("Could not load all player stats", err);
+    }
     },
 
     query: "",
