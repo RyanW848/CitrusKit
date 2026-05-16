@@ -151,6 +151,7 @@ export default function DraftDraft() {
         return {
           id: slot.id,
           planPickId: planSlot.plan.id,
+          playerId: planSlot.plan.player ?? null,
           ownerId,
           posAbbr: slot.abbr,
           posName: slot.name,
@@ -215,12 +216,20 @@ export default function DraftDraft() {
     setMode("search");
     setSearchQuery("");
     setSuggestions([]);
-    setSelectedPlayer(null);
-    setCustomName("");
     setProjectedValue(null);
     setDialogError("");
     const existing = findNote(slot.playerId, slot.playerName);
     setNoteText(existing?.note ?? "");
+
+    if (slot.isPlan && slot.playerId) {
+      const planned = allPlayers.find((p) => String(p.id) === String(slot.playerId));
+      setSelectedPlayer(planned ?? null);
+      setSearchQuery(planned?.name ?? "");
+    } else {
+      setSelectedPlayer(null);
+      setCustomName("");
+    }
+
     setDialogOpen(true);
   };
 
