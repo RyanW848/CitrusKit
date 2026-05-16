@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Dialog, DialogTitle, DialogContent,
     Box, Typography, IconButton, CircularProgress,
-    InputAdornment, TextField, ToggleButtonGroup, ToggleButton, Button,
+    InputAdornment, TextField, ToggleButtonGroup, ToggleButton, Button, Chip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -150,6 +150,7 @@ export default function PlayerPickerModal({
     const [query, setQuery]               = useState('');
     const [mode, setMode]                 = useState('search'); // 'search' | 'custom'
     const [customName, setCustomName]     = useState('');
+    const [filterEligible, setFilterEligible] = useState(false);
     const [valuationMap, setValuationMap] = useState({});
     const [valuationLoading, setValuationLoading] = useState(false);
 
@@ -169,6 +170,7 @@ export default function PlayerPickerModal({
         setQuery('');
         setMode('search');
         setCustomName('');
+        setFilterEligible(false);
         setValuationMap({});
 
         if (!draftContext) return;
@@ -194,6 +196,7 @@ export default function PlayerPickerModal({
     // Sort: by valuation desc, then alphabetically. Cap at MAX_VISIBLE for performance.
     const filtered = allPlayers
         .filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()))
+        .filter(p => !filterEligible || isEligible(p.positions, slotAbbr))
         .sort((a, b) => {
             const va = valuationMap[a.id] ?? -1;
             const vb = valuationMap[b.id] ?? -1;
@@ -314,7 +317,7 @@ export default function PlayerPickerModal({
 
                     {/* Search bar — only in search mode */}
                     {mode === 'search' && (
-                        <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
+                        <Box sx={{ px: 2, pt: 1.5, pb: slotAbbr ? 1 : 1.5, borderBottom: `1px solid ${dim}`, background: '#fff9f5' }}>
                             <TextField
                                 inputRef={inputRef}
                                 fullWidth
@@ -340,6 +343,28 @@ export default function PlayerPickerModal({
                                     },
                                 }}
                             />
+                            {slotAbbr && (
+                                <Box sx={{ mt: 1, display: 'flex', gap: 0.75 }}>
+                                    <Chip
+                                        label={`${slotAbbr} eligible`}
+                                        size="small"
+                                        onClick={() => setFilterEligible(f => !f)}
+                                        sx={{
+                                            fontFamily: "'IBM Plex Mono', monospace",
+                                            fontSize: '0.68rem',
+                                            height: 22,
+                                            bgcolor: filterEligible ? accent : 'transparent',
+                                            color: filterEligible ? '#fff9f5' : '#a3681e',
+                                            border: `1px solid ${filterEligible ? accent : '#e8c9a8'}`,
+                                            cursor: 'pointer',
+                                            '&:hover': {
+                                                bgcolor: filterEligible ? '#e86a0a' : '#fff1e6',
+                                            },
+                                            '& .MuiChip-label': { px: 1 },
+                                        }}
+                                    />
+                                </Box>
+                            )}
                         </Box>
                     )}
 
