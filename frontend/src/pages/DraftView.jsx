@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import {
   Alert,
   Box,
-  Button,
   CircularProgress,
   Typography,
 } from "@mui/material";
@@ -162,19 +161,6 @@ export default function DraftView() {
     return groups;
   }, [history]);
 
-  const tabBtnSx = (active) => ({
-    textTransform: "none",
-    fontWeight: active ? 600 : 400,
-    color: active ? "#3f332f" : "#6d5a57",
-    bgcolor: active ? "#f4c9b3" : "transparent",
-    borderRadius: "20px",
-    px: 2.5,
-    py: 0.6,
-    fontSize: "0.9rem",
-    boxShadow: "none",
-    "&:hover": { bgcolor: active ? "#f4c9b3" : "#f0e8e0", boxShadow: "none" },
-  });
-
   return (
     <PageLayout title="View" subtitle="View your finished league">
       {loading && (
@@ -192,14 +178,6 @@ export default function DraftView() {
 
       {!loading && !error && (
         <>
-          {/* View toggle */}
-          <Box sx={{ display: "flex", mb: 2 }}>
-            <Box sx={{ display: "flex", border: "1px solid #e5d5c8", borderRadius: "24px", p: "4px", gap: 0, bgcolor: "#fdf6f0" }}>
-              <Button disableRipple={activeView === "rosters"} onClick={() => setActiveView("rosters")} sx={tabBtnSx(activeView === "rosters")}>Rosters</Button>
-              <Button disableRipple={activeView === "log"} onClick={() => setActiveView("log")} sx={tabBtnSx(activeView === "log")}>Draft Log</Button>
-            </Box>
-          </Box>
-
           {activeView === "rosters" && (
             <>
               {statsLoading && (
@@ -307,7 +285,12 @@ export default function DraftView() {
         </>
       )}
 
-      <DraftTabBar activeTab="view" draftId={id} />
+      <DraftTabBar
+        activeTab="view"
+        draftId={id}
+        subTab={activeView}
+        onSubTabChange={setActiveView}
+      />
 
       <PlayerStatsModal
         open={statsOpen}
