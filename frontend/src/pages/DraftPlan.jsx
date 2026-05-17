@@ -405,7 +405,11 @@ export default function DraftPlan() {
       return sum;
     }, 0);
     const budget = (owner?.remainingBudget ?? draftState.league.budget) - plannedDeduction;
-    const playersLeftToDraft = (owner?.rosterSlots ?? []).filter(slot => !slot.pick).length;
+    const playersLeftToDraft = (owner?.rosterSlots ?? []).filter((slot, i) => {
+      if (slot.pick) return false;
+      const planSlot = (owner?.plannedRosterSlots ?? [])[i];
+      return !planSlot?.plan?.plannedAmount;
+    }).length;
 
     return {
       budget,
