@@ -591,13 +591,16 @@ export default function DraftTeams() {
       .filter(slot => !slot.pick)
       .length;
 
+    const activeOwner = draftState.owners?.find(o => String(o.id) === String(activeSlot?.ownerId));
+    const budget = activeOwner?.remainingBudget ?? draftState.league.budget;
+
     return {
-      budget: draftState.league.budget,
+      budget,
       relevantStats,
       unavailablePlayers,
       playersLeftToDraft,
     };
-  }, [draftState]);
+  }, [draftState, activeSlot]);
 
   return (
     <PageLayout

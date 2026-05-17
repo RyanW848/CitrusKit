@@ -601,13 +601,26 @@ export default function DraftDraft() {
       .filter(slot => !slot.pick)
       .length;
 
+    const activeOwner = draftState.owners?.find(o => String(o.id) === String(activeSlot?.ownerId));
+    const remainingBudget = activeOwner?.remainingBudget ?? draftState.league.budget;
+
+    const plannedDeduction = (activeOwner?.plannedRosterSlots ?? []).reduce((sum, planSlot, i) => {
+      const actualSlot = (activeOwner?.rosterSlots ?? [])[i];
+      if (!actualSlot?.pick && planSlot?.plan?.plannedAmount) {
+        return sum + planSlot.plan.plannedAmount;
+      }
+      return sum;
+    }, 0);
+    const budgetWithPlan = plannedDeduction > 0 ? remainingBudget - plannedDeduction : null;
+
     return {
-      budget: draftState.league.budget,
+      budget: remainingBudget,
+      budgetWithPlan,
       relevantStats,
       unavailablePlayers,
       playersLeftToDraft,
     };
-  }, [draftState]);
+  }, [draftState, activeSlot]);
 
   return (
     <PageLayout

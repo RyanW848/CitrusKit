@@ -401,8 +401,18 @@ export default function DraftPlan() {
       .filter(slot => !slot.pick)
       .length;
 
+    const owner = draftState?.owners?.[0];
+    const plannedDeduction = (owner?.plannedRosterSlots ?? []).reduce((sum, planSlot, i) => {
+      const actualSlot = (owner?.rosterSlots ?? [])[i];
+      if (!actualSlot?.pick && planSlot?.plan?.plannedAmount) {
+        return sum + planSlot.plan.plannedAmount;
+      }
+      return sum;
+    }, 0);
+    const budget = (owner?.remainingBudget ?? draftState.league.budget) - plannedDeduction;
+
     return {
-      budget: draftState.league.budget,
+      budget,
       relevantStats,
       unavailablePlayers,
       playersLeftToDraft,

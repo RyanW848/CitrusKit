@@ -343,7 +343,7 @@ export default function PlayerPickerModal({
                                         fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)',
                                         textTransform: 'uppercase', letterSpacing: '0.1em',
                                     }}>
-                                        ${draftContext.budget} budget
+                                        ${draftContext.budget}{draftContext.budgetWithPlan != null ? ` (~$${draftContext.budgetWithPlan})` : ''} remaining
                                     </Typography>
                                 )}
                                 {draftContext?.playersLeftToDraft != null && (
