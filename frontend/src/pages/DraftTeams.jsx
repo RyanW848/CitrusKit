@@ -586,13 +586,9 @@ export default function DraftTeams() {
       .map(slot => slot.pick?.player)
       .filter(Boolean);
 
-    const playersLeftToDraft = (draftState.owners ?? [])
-      .flatMap(owner => owner.rosterSlots ?? [])
-      .filter(slot => !slot.pick)
-      .length;
-
     const activeOwner = draftState.owners?.find(o => String(o.id) === String(activeSlot?.ownerId));
     const budget = activeOwner?.remainingBudget ?? draftState.league.budget;
+    const playersLeftToDraft = (activeOwner?.rosterSlots ?? []).filter(slot => !slot.pick).length;
 
     return {
       budget,

@@ -396,11 +396,6 @@ export default function DraftPlan() {
       .map(slot => slot.pick?.player)
       .filter(Boolean);
 
-    const playersLeftToDraft = (draftState.owners ?? [])
-      .flatMap(owner => owner.rosterSlots ?? [])
-      .filter(slot => !slot.pick)
-      .length;
-
     const owner = draftState?.owners?.[0];
     const plannedDeduction = (owner?.plannedRosterSlots ?? []).reduce((sum, planSlot, i) => {
       const actualSlot = (owner?.rosterSlots ?? [])[i];
@@ -410,6 +405,7 @@ export default function DraftPlan() {
       return sum;
     }, 0);
     const budget = (owner?.remainingBudget ?? draftState.league.budget) - plannedDeduction;
+    const playersLeftToDraft = (owner?.rosterSlots ?? []).filter(slot => !slot.pick).length;
 
     return {
       budget,

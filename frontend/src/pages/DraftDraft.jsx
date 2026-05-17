@@ -596,13 +596,9 @@ export default function DraftDraft() {
       .map(slot => slot.pick?.player)
       .filter(Boolean);
 
-    const playersLeftToDraft = (draftState.owners ?? [])
-      .flatMap(owner => owner.rosterSlots ?? [])
-      .filter(slot => !slot.pick)
-      .length;
-
     const activeOwner = draftState.owners?.find(o => String(o.id) === String(activeSlot?.ownerId));
     const remainingBudget = activeOwner?.remainingBudget ?? draftState.league.budget;
+    const playersLeftToDraft = (activeOwner?.rosterSlots ?? []).filter(slot => !slot.pick).length;
 
     const plannedDeduction = (activeOwner?.plannedRosterSlots ?? []).reduce((sum, planSlot, i) => {
       const actualSlot = (activeOwner?.rosterSlots ?? [])[i];
